@@ -1,4 +1,4 @@
-## ✅ Danbooru Tags Coping
+## ✅ Danbooru Tags Copying
 > Works exclusively on danbooru.donmai.us.
 ##### Screenshot:<br>
 <img width="406" height="133" alt="изображение" src="https://github.com/user-attachments/assets/b3fde65d-7655-44b6-80b9-8a6c99557323" />
