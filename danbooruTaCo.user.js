@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name            Danbooru TaCo
 // @namespace       http://tampermonkey.net/
-// @version         3.8
+// @version         4.0
 // @description     The user script adds a tag copying button to the image popup on Danbooru.
 // @description:ru  Юзерскрипт добавляет на Danbooru кнопку копирования тегов во всплывающее окно изображения
 // @author          vanja-san
 // @match           https://danbooru.donmai.us/*
 // @icon            https://danbooru.donmai.us/favicon.ico
-// @downloadURL     https://update.script/scripts/script.user.js
-// @updateURL       https://update.script/scripts/script.meta.js
+// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/danbooruTaCo.user.js
+// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/danbooruTaCo.user.js
 // @grant           GM_addStyle
 // @grant           GM_notification
 // @grant           GM_registerMenuCommand
@@ -16,8 +16,8 @@
 // @grant           GM_setValue
 // ==/UserScript==
 
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
   // ===== MODERN LOCALIZATION SYSTEM =====
   const localization = {
@@ -53,7 +53,7 @@
       savedButton: "Saved!",
       cancelButton: "Close",
       savedNotification: "Settings saved!",
-      reloadNotice: "PLEASE NOTE: Page reload required for language change"
+      reloadNotice: "PLEASE NOTE: Page reload required for language change",
     },
     ru: {
       title: "Скопировать все теги",
@@ -87,8 +87,8 @@
       savedButton: "Сохранено!",
       cancelButton: "Закрыть",
       savedNotification: "Настройки сохранены!",
-      reloadNotice: "ВНИМАНИЕ: Для смены языка требуется перезагрузка страницы"
-    }
+      reloadNotice: "ВНИМАНИЕ: Для смены языка требуется перезагрузка страницы",
+    },
   };
 
   // ===== CORE SETTINGS =====
@@ -98,23 +98,26 @@
     buttonOpacity: 0.3,
     buttonSize: 28,
     iconScale: 1.0,
-    buttonPosition: 'bottom-right',
-    buttonColor: '#000000',
-    buttonHoverColor: '#4CAF50',
-    iconColor: '#FFFFFF',
-    buttonShape: 'rounded-square',
-    language: 'auto'
+    buttonPosition: "bottom-right",
+    buttonColor: "#000000",
+    buttonHoverColor: "#4CAF50",
+    iconColor: "#FFFFFF",
+    buttonShape: "rounded-square",
+    language: "auto",
   };
 
-  const SETTINGS = {...DEFAULT_SETTINGS, ...GM_getValue('tagCopierSettings', {})};
+  const SETTINGS = {
+    ...DEFAULT_SETTINGS,
+    ...GM_getValue("tagCopierSettings", {}),
+  };
 
   // ===== DYNAMIC LANGUAGE MANAGEMENT =====
-  let currentLang = 'en';
+  let currentLang = "en";
 
   function updateLanguage() {
-    if (SETTINGS.language === 'auto') {
+    if (SETTINGS.language === "auto") {
       const systemLang = navigator.language.toLowerCase();
-      currentLang = systemLang.startsWith('ru') ? 'ru' : 'en';
+      currentLang = systemLang.startsWith("ru") ? "ru" : "en";
     } else {
       currentLang = SETTINGS.language;
     }
@@ -133,8 +136,12 @@
   let styleElement = null;
 
   function applyGlobalStyles() {
-    const borderRadius = SETTINGS.buttonShape === 'circle' ? '50%' :
-      SETTINGS.buttonShape === 'square' ? '0' : '4px';
+    const borderRadius =
+      SETTINGS.buttonShape === "circle"
+        ? "50%"
+        : SETTINGS.buttonShape === "square"
+        ? "0"
+        : "4px";
 
     const baseIconSize = 20;
     const scaledIconSize = baseIconSize * SETTINGS.iconScale;
@@ -190,8 +197,8 @@
 
     if (styleElement) styleElement.remove();
 
-    styleElement = document.createElement('style');
-    styleElement.id = 'tag-copier-styles';
+    styleElement = document.createElement("style");
+    styleElement.id = "tag-copier-styles";
     styleElement.textContent = css;
     document.head.appendChild(styleElement);
   }
@@ -204,297 +211,417 @@
 
   // ===== MAIN FUNCTIONALITY =====
   function addCopyButton() {
-    document.querySelectorAll('.tippy-box[data-state="visible"]').forEach(tooltip => {
-      if (tooltip.querySelector('.tag-copy-btn') || !tooltip.querySelector('.post-tooltip-body')) return;
+    document
+      .querySelectorAll('.tippy-box[data-state="visible"]')
+      .forEach((tooltip) => {
+        if (
+          tooltip.querySelector(".tag-copy-btn") ||
+          !tooltip.querySelector(".post-tooltip-body")
+        )
+          return;
 
-      const btn = document.createElement('button');
-      btn.className = 'tag-copy-btn';
-      btn.title = t('title');
-      btn.innerHTML = copyIcon;
-      applyButtonPosition(btn);
+        const btn = document.createElement("button");
+        btn.className = "tag-copy-btn";
+        btn.title = t("title");
+        btn.innerHTML = copyIcon;
+        applyButtonPosition(btn);
 
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const tags = Array.from(tooltip.querySelectorAll('.search-tag'))
-          .map(tag => {
-            let text = tag.textContent.trim();
-            if (SETTINGS.escapeParentheses) {
-              text = text.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-            }
-            return text;
-          })
-          .join(SETTINGS.addCommas ? ', ' : ' ');
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const tags = Array.from(tooltip.querySelectorAll(".search-tag"))
+            .map((tag) => {
+              let text = tag.textContent.trim();
+              if (SETTINGS.escapeParentheses) {
+                text = text.replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+              }
+              return text;
+            })
+            .join(SETTINGS.addCommas ? ", " : " ");
 
-        try {
-          await navigator.clipboard.writeText(tags);
-          showFeedback(btn);
-        } catch (err) {
-          console.error('Copy error:', err);
-        }
+          try {
+            await navigator.clipboard.writeText(tags);
+            showFeedback(btn);
+          } catch (err) {
+            console.error("Copy error:", err);
+          }
+        });
+
+        tooltip.querySelector(".tippy-content").appendChild(btn);
       });
-
-      tooltip.querySelector('.tippy-content').appendChild(btn);
-    });
   }
 
   function applyButtonPosition(btn) {
-    const offset = '5px';
-    btn.style.top = 'auto';
-    btn.style.bottom = 'auto';
-    btn.style.left = 'auto';
-    btn.style.right = 'auto';
+    const offset = "5px";
+    btn.style.top = "auto";
+    btn.style.bottom = "auto";
+    btn.style.left = "auto";
+    btn.style.right = "auto";
 
     switch (SETTINGS.buttonPosition) {
-      case 'top-left': btn.style.top = offset; btn.style.left = offset; break;
-      case 'top-right': btn.style.top = offset; btn.style.right = offset; break;
-      case 'bottom-left': btn.style.bottom = offset; btn.style.left = offset; break;
-      default: btn.style.bottom = offset; btn.style.right = offset;
+      case "top-left":
+        btn.style.top = offset;
+        btn.style.left = offset;
+        break;
+      case "top-right":
+        btn.style.top = offset;
+        btn.style.right = offset;
+        break;
+      case "bottom-left":
+        btn.style.bottom = offset;
+        btn.style.left = offset;
+        break;
+      default:
+        btn.style.bottom = offset;
+        btn.style.right = offset;
     }
   }
 
   function showFeedback(btn) {
     const originalIcon = btn.innerHTML;
     btn.innerHTML = checkIcon;
-    btn.classList.add('copied');
+    btn.classList.add("copied");
 
-    if (typeof GM_notification !== 'undefined') {
-      GM_notification({ title: t('title'), text: t('notification'), timeout: 2000 });
+    if (typeof GM_notification !== "undefined") {
+      GM_notification({
+        title: t("title"),
+        text: t("notification"),
+        timeout: 2000,
+      });
     }
 
     setTimeout(() => {
       btn.innerHTML = originalIcon;
-      btn.classList.remove('copied');
+      btn.classList.remove("copied");
     }, 2000);
   }
 
   // ===== SETTINGS EDITOR =====
   function createSettingsEditor() {
-    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const editor = document.createElement('div');
-    editor.id = 'tag-copier-editor';
+    const isDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    const editor = document.createElement("div");
+    editor.id = "tag-copier-editor";
 
     const getInputValue = (id) => {
       const el = editor.querySelector(`#${id}`);
       if (!el) return null;
-      if (el.type === 'checkbox') return el.checked;
-      if (el.type === 'range' || el.type === 'number') return parseFloat(el.value);
+      if (el.type === "checkbox") return el.checked;
+      if (el.type === "range" || el.type === "number")
+        return parseFloat(el.value);
       return el.value;
     };
 
     const renderEditor = () => {
-      const noticeBg = isDarkMode ? '#4a3c00' : '#fff3cd';
-      const noticeBorder = isDarkMode ? '#ffd700' : '#ffc107';
-      const noticeText = isDarkMode ? '#ffd700' : '#856404';
+      const noticeBg = isDarkMode ? "#4a3c00" : "#fff3cd";
+      const noticeBorder = isDarkMode ? "#ffd700" : "#ffc107";
+      const noticeText = isDarkMode ? "#ffd700" : "#856404";
 
       editor.innerHTML = `
-        <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%); padding:20px;padding-top: 15px;border:1px solid ${isDarkMode ? 'var(--default-border-color)' : '#ddd'};
+        <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%); padding:20px;padding-top: 15px;border:1px solid ${
+          isDarkMode ? "var(--default-border-color)" : "#ddd"
+        };
           border-radius:8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;z-index:9999; font-family:Arial,sans-serif;width:500px;max-width:90vw;max-height:90vh;
-          overflow-y:auto;color:${isDarkMode ? '#e0e0e0' : '#333'}; background:${isDarkMode ? 'var(--post-tooltip-background-color)' : 'white'}">
+          overflow-y:auto;color:${
+            isDarkMode ? "#e0e0e0" : "#333"
+          }; background:${
+        isDarkMode ? "var(--post-tooltip-background-color)" : "white"
+      }">
 
-          <h2 style="margin:0 0 20px 0;text-align:center;color:${isDarkMode ? 'var(--header-color)' : '#000'}">${t('settings')}</h2>
+          <h2 style="margin:0 0 20px 0;text-align:center;color:${
+            isDarkMode ? "var(--header-color)" : "#000"
+          }">${t("settings")}</h2>
 
-          <fieldset style="margin-bottom:25px; border:1px solid ${isDarkMode ? 'var(--default-border-color)' : '#ddd'}; border-radius:6px; padding:15px">
-            <legend style="color:${isDarkMode ? 'var(--header-color)' : '#000'}; padding:0 8px"><strong>${t('formatting')}</strong></legend>
+          <fieldset style="margin-bottom:25px; border:1px solid ${
+            isDarkMode ? "var(--default-border-color)" : "#ddd"
+          }; border-radius:6px; padding:15px">
+            <legend style="color:${
+              isDarkMode ? "var(--header-color)" : "#000"
+            }; padding:0 8px"><strong>${t("formatting")}</strong></legend>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">${t('addCommas')}</label>
-              <input type="checkbox" id="addCommas" ${SETTINGS.addCommas ? 'checked' : ''} style="transform: scale(1.3);">
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">${t("addCommas")}</label>
+              <input type="checkbox" id="addCommas" ${
+                SETTINGS.addCommas ? "checked" : ""
+              } style="transform: scale(1.3);">
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">${t('escapeParentheses')}</label>
-              <input type="checkbox" id="escapeParentheses" ${SETTINGS.escapeParentheses ? 'checked' : ''} style="transform: scale(1.3);">
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">${t("escapeParentheses")}</label>
+              <input type="checkbox" id="escapeParentheses" ${
+                SETTINGS.escapeParentheses ? "checked" : ""
+              } style="transform: scale(1.3);">
             </div>
           </fieldset>
 
-          <fieldset style="margin-bottom:25px; border:1px solid ${isDarkMode ? 'var(--default-border-color)' : '#ddd'}; border-radius:6px; padding:15px">
-            <legend style="color:${isDarkMode ? 'var(--header-color)' : '#000'}; padding:0 8px"><strong>${t('appearance')}</strong></legend>
+          <fieldset style="margin-bottom:25px; border:1px solid ${
+            isDarkMode ? "var(--default-border-color)" : "#ddd"
+          }; border-radius:6px; padding:15px">
+            <legend style="color:${
+              isDarkMode ? "var(--header-color)" : "#000"
+            }; padding:0 8px"><strong>${t("appearance")}</strong></legend>
 
             <!-- Button Opacity -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('buttonOpacity')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("buttonOpacity")}
               </label>
-              <input type="range" id="buttonOpacity" min="0.1" max="1.0" step="0.1" value="${SETTINGS.buttonOpacity}" style="width:60%; min-width:150px">
+              <input type="range" id="buttonOpacity" min="0.1" max="1.0" step="0.1" value="${
+                SETTINGS.buttonOpacity
+              }" style="width:60%; min-width:150px">
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px">
               <div style="width:100%; text-align:right">
                 <span>10%</span>
-                <span id="opacityValue" style="margin:0 10px">${Math.round(SETTINGS.buttonOpacity * 100)}%</span>
+                <span id="opacityValue" style="margin:0 10px">${Math.round(
+                  SETTINGS.buttonOpacity * 100
+                )}%</span>
                 <span>100%</span>
               </div>
             </div>
 
             <!-- Button Size -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('buttonSize')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("buttonSize")}
               </label>
-              <input type="range" id="buttonSize" min="16" max="50" step="2" value="${SETTINGS.buttonSize}" style="width:60%; min-width:150px">
+              <input type="range" id="buttonSize" min="16" max="50" step="2" value="${
+                SETTINGS.buttonSize
+              }" style="width:60%; min-width:150px">
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px">
               <div style="width:100%; text-align:right">
                 <span>16px</span>
-                <span id="sizeValue" style="margin:0 10px">${SETTINGS.buttonSize}px</span>
+                <span id="sizeValue" style="margin:0 10px">${
+                  SETTINGS.buttonSize
+                }px</span>
                 <span>50px</span>
               </div>
             </div>
 
             <!-- Icon Scale -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('iconScale')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("iconScale")}
               </label>
-              <input type="range" id="iconScale" min="0.5" max="3.0" step="0.1" value="${SETTINGS.iconScale}" style="width:60%; min-width:150px">
+              <input type="range" id="iconScale" min="0.5" max="3.0" step="0.1" value="${
+                SETTINGS.iconScale
+              }" style="width:60%; min-width:150px">
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px">
               <div style="width:100%; text-align:right">
                 <span>50%</span>
-                <span id="iconScaleValue" style="margin:0 10px">${Math.round(SETTINGS.iconScale * 100)}%</span>
+                <span id="iconScaleValue" style="margin:0 10px">${Math.round(
+                  SETTINGS.iconScale * 100
+                )}%</span>
                 <span>300%</span>
               </div>
             </div>
 
             <!-- Button Position -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('buttonPosition')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("buttonPosition")}
               </label>
-              <select id="buttonPosition" style="width:60%; min-width:150px; background:${isDarkMode ? 'var(--grey-7)' : 'white'}; color:${isDarkMode ? '#fff' : '#333'}; padding:5px; border-radius:4px;">
-                <option value="top-left" ${SETTINGS.buttonPosition === 'top-left' ? 'selected' : ''}>${t('positionTopLeft')}</option>
-                <option value="top-right" ${SETTINGS.buttonPosition === 'top-right' ? 'selected' : ''}>${t('positionTopRight')}</option>
-                <option value="bottom-left" ${SETTINGS.buttonPosition === 'bottom-left' ? 'selected' : ''}>${t('positionBottomLeft')}</option>
-                <option value="bottom-right" ${SETTINGS.buttonPosition === 'bottom-right' ? 'selected' : ''}>${t('positionBottomRight')}</option>
+              <select id="buttonPosition" style="width:60%; min-width:150px; background:${
+                isDarkMode ? "var(--grey-7)" : "white"
+              }; color:${
+        isDarkMode ? "#fff" : "#333"
+      }; padding:5px; border-radius:4px;">
+                <option value="top-left" ${
+                  SETTINGS.buttonPosition === "top-left" ? "selected" : ""
+                }>${t("positionTopLeft")}</option>
+                <option value="top-right" ${
+                  SETTINGS.buttonPosition === "top-right" ? "selected" : ""
+                }>${t("positionTopRight")}</option>
+                <option value="bottom-left" ${
+                  SETTINGS.buttonPosition === "bottom-left" ? "selected" : ""
+                }>${t("positionBottomLeft")}</option>
+                <option value="bottom-right" ${
+                  SETTINGS.buttonPosition === "bottom-right" ? "selected" : ""
+                }>${t("positionBottomRight")}</option>
               </select>
             </div>
 
             <!-- Button Color -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('buttonColor')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("buttonColor")}
               </label>
-              <input type="color" id="buttonColor" value="${SETTINGS.buttonColor}" style="width:60px; height:30px; border-radius:4px">
+              <input type="color" id="buttonColor" value="${
+                SETTINGS.buttonColor
+              }" style="width:60px; height:30px; border-radius:4px">
             </div>
 
             <!-- Button Hover Color -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('buttonHoverColor')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("buttonHoverColor")}
               </label>
-              <input type="color" id="buttonHoverColor" value="${SETTINGS.buttonHoverColor}" style="width:60px; height:30px; border-radius:4px">
+              <input type="color" id="buttonHoverColor" value="${
+                SETTINGS.buttonHoverColor
+              }" style="width:60px; height:30px; border-radius:4px">
             </div>
 
             <!-- Icon Color -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('iconColor')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("iconColor")}
               </label>
-              <input type="color" id="iconColor" value="${SETTINGS.iconColor}" style="width:60px; height:30px; border-radius:4px">
+              <input type="color" id="iconColor" value="${
+                SETTINGS.iconColor
+              }" style="width:60px; height:30px; border-radius:4px">
             </div>
 
             <!-- Button Shape -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('buttonShape')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("buttonShape")}
               </label>
-              <select id="buttonShape" style="width:60%; min-width:150px; background:${isDarkMode ? 'var(--grey-7)' : 'white'}; color:${isDarkMode ? '#fff' : '#333'}; padding:5px; border-radius:4px">
-                <option value="rounded-square" ${SETTINGS.buttonShape === 'rounded-square' ? 'selected' : ''}>${t('shapeRounded')}</option>
-                <option value="circle" ${SETTINGS.buttonShape === 'circle' ? 'selected' : ''}>${t('shapeCircle')}</option>
-                <option value="square" ${SETTINGS.buttonShape === 'square' ? 'selected' : ''}>${t('shapeSquare')}</option>
+              <select id="buttonShape" style="width:60%; min-width:150px; background:${
+                isDarkMode ? "var(--grey-7)" : "white"
+              }; color:${
+        isDarkMode ? "#fff" : "#333"
+      }; padding:5px; border-radius:4px">
+                <option value="rounded-square" ${
+                  SETTINGS.buttonShape === "rounded-square" ? "selected" : ""
+                }>${t("shapeRounded")}</option>
+                <option value="circle" ${
+                  SETTINGS.buttonShape === "circle" ? "selected" : ""
+                }>${t("shapeCircle")}</option>
+                <option value="square" ${
+                  SETTINGS.buttonShape === "square" ? "selected" : ""
+                }>${t("shapeSquare")}</option>
               </select>
             </div>
           </fieldset>
 
-          <fieldset style="margin-bottom:25px; border:1px solid ${isDarkMode ? 'var(--default-border-color)' : '#ddd'}; border-radius:6px; padding:15px; position: relative;">
-            <legend style="color:${isDarkMode ? 'var(--header-color)' : '#000'}; padding:0 8px"><strong>${t('languageSettings')}</strong></legend>
+          <fieldset style="margin-bottom:25px; border:1px solid ${
+            isDarkMode ? "var(--default-border-color)" : "#ddd"
+          }; border-radius:6px; padding:15px; position: relative;">
+            <legend style="color:${
+              isDarkMode ? "var(--header-color)" : "#000"
+            }; padding:0 8px"><strong>${t("languageSettings")}</strong></legend>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-              <label style="color:${isDarkMode ? 'var(--grey-2)' : '#333'}; margin-right:15px">
-                ${t('language')}
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+              }; margin-right:15px">
+                ${t("language")}
               </label>
-              <select id="language" style="width:60%; min-width:150px; background:${isDarkMode ? 'var(--grey-7)' : 'white'}; color:${isDarkMode ? '#fff' : '#333'}; padding:5px; border-radius:4px">
-                <option value="auto" ${SETTINGS.language === 'auto' ? 'selected' : ''}>${t('langAuto')}</option>
-                <option value="en" ${SETTINGS.language === 'en' ? 'selected' : ''}>${t('langEn')}</option>
-                <option value="ru" ${SETTINGS.language === 'ru' ? 'selected' : ''}>${t('langRu')}</option>
+              <select id="language" style="width:60%; min-width:150px; background:${
+                isDarkMode ? "var(--grey-7)" : "white"
+              }; color:${
+        isDarkMode ? "#fff" : "#333"
+      }; padding:5px; border-radius:4px">
+                <option value="auto" ${
+                  SETTINGS.language === "auto" ? "selected" : ""
+                }>${t("langAuto")}</option>
+                <option value="en" ${
+                  SETTINGS.language === "en" ? "selected" : ""
+                }>${t("langEn")}</option>
+                <option value="ru" ${
+                  SETTINGS.language === "ru" ? "selected" : ""
+                }>${t("langRu")}</option>
               </select>
             </div>
             <div id="languageNotice" class="language-notice"
                  style="background:${noticeBg}; border-left: 4px solid ${noticeBorder}; color: ${noticeText};">
-              <strong>${t('reloadNotice')}</strong>
+              <strong>${t("reloadNotice")}</strong>
             </div>
           </fieldset>
 
           <div style="display:flex; justify-content:end; margin-top:15px">
             <button id="saveSettings" style="padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold">
-              ${t('saveButton')}
+              ${t("saveButton")}
             </button>
             <button id="closeEditor" style="margin-left: 15px;padding:10px 20px; background:#f44336; color:white; border:none; border-radius:5px; cursor:pointer">
-              ${t('cancelButton')}
+              ${t("cancelButton")}
             </button>
           </div>
         </div>
       `;
 
       // Update handlers
-      editor.querySelector('#buttonOpacity')?.addEventListener('input', () => {
-        editor.querySelector('#opacityValue').textContent =
-          Math.round(editor.querySelector('#buttonOpacity').value * 100) + '%';
+      editor.querySelector("#buttonOpacity")?.addEventListener("input", () => {
+        editor.querySelector("#opacityValue").textContent =
+          Math.round(editor.querySelector("#buttonOpacity").value * 100) + "%";
       });
 
-      editor.querySelector('#buttonSize')?.addEventListener('input', () => {
-        editor.querySelector('#sizeValue').textContent =
-          editor.querySelector('#buttonSize').value + 'px';
+      editor.querySelector("#buttonSize")?.addEventListener("input", () => {
+        editor.querySelector("#sizeValue").textContent =
+          editor.querySelector("#buttonSize").value + "px";
       });
 
-      editor.querySelector('#iconScale')?.addEventListener('input', () => {
-        editor.querySelector('#iconScaleValue').textContent =
-          Math.round(editor.querySelector('#iconScale').value * 100) + '%';
+      editor.querySelector("#iconScale")?.addEventListener("input", () => {
+        editor.querySelector("#iconScaleValue").textContent =
+          Math.round(editor.querySelector("#iconScale").value * 100) + "%";
       });
 
       // Show notice when language is changed
-      editor.querySelector('#language')?.addEventListener('change', (e) => {
-        const notice = editor.querySelector('#languageNotice');
-        notice.style.display = 'block';
+      editor.querySelector("#language")?.addEventListener("change", (e) => {
+        const notice = editor.querySelector("#languageNotice");
+        notice.style.display = "block";
       });
 
-      editor.querySelector('#closeEditor')?.addEventListener('click', () => {
+      editor.querySelector("#closeEditor")?.addEventListener("click", () => {
         document.body.removeChild(editor);
       });
     };
 
     const saveSettings = () => {
       const newSettings = {
-        addCommas: getInputValue('addCommas'),
-        escapeParentheses: getInputValue('escapeParentheses'),
-        buttonOpacity: getInputValue('buttonOpacity'),
-        buttonSize: getInputValue('buttonSize'),
-        iconScale: getInputValue('iconScale'),
-        buttonPosition: getInputValue('buttonPosition'),
-        buttonColor: getInputValue('buttonColor'),
-        buttonHoverColor: getInputValue('buttonHoverColor'),
-        iconColor: getInputValue('iconColor'),
-        buttonShape: getInputValue('buttonShape'),
-        language: getInputValue('language')
+        addCommas: getInputValue("addCommas"),
+        escapeParentheses: getInputValue("escapeParentheses"),
+        buttonOpacity: getInputValue("buttonOpacity"),
+        buttonSize: getInputValue("buttonSize"),
+        iconScale: getInputValue("iconScale"),
+        buttonPosition: getInputValue("buttonPosition"),
+        buttonColor: getInputValue("buttonColor"),
+        buttonHoverColor: getInputValue("buttonHoverColor"),
+        iconColor: getInputValue("iconColor"),
+        buttonShape: getInputValue("buttonShape"),
+        language: getInputValue("language"),
       };
 
       // Update global settings
       Object.assign(SETTINGS, newSettings);
-      GM_setValue('tagCopierSettings', SETTINGS);
+      GM_setValue("tagCopierSettings", SETTINGS);
 
       // Apply changes
       applyGlobalStyles();
-      document.querySelectorAll('.tag-copy-btn').forEach(btn => {
-        btn.title = t('title');
+      document.querySelectorAll(".tag-copy-btn").forEach((btn) => {
+        btn.title = t("title");
         applyButtonPosition(btn);
       });
 
       // Update button text
-      const saveButton = editor.querySelector('#saveSettings');
+      const saveButton = editor.querySelector("#saveSettings");
       const originalText = saveButton.textContent;
-      saveButton.textContent = t('savedButton');
-      saveButton.classList.add('saved');
+      saveButton.textContent = t("savedButton");
+      saveButton.classList.add("saved");
 
       // Revert after 3 seconds
       setTimeout(() => {
-        saveButton.textContent = t('saveButton');
-        saveButton.classList.remove('saved');
+        saveButton.textContent = t("saveButton");
+        saveButton.classList.remove("saved");
       }, 3000);
     };
 
@@ -502,13 +629,15 @@
     renderEditor();
 
     // Add save handler AFTER rendering
-    editor.querySelector('#saveSettings')?.addEventListener('click', saveSettings);
+    editor
+      .querySelector("#saveSettings")
+      ?.addEventListener("click", saveSettings);
 
     return editor;
   }
 
   function openSettingsEditor() {
-    const existingEditor = document.getElementById('tag-copier-editor');
+    const existingEditor = document.getElementById("tag-copier-editor");
     if (existingEditor) return;
 
     const editor = createSettingsEditor();
@@ -516,14 +645,14 @@
   }
 
   // ===== INITIALIZATION =====
-  GM_registerMenuCommand(t('settings'), openSettingsEditor);
+  GM_registerMenuCommand(t("settings"), openSettingsEditor);
 
   const observer = new MutationObserver(() => addCopyButton());
   observer.observe(document.body, {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['data-state']
+    attributeFilter: ["data-state"],
   });
 
   addCopyButton();
