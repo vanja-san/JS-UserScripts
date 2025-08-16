@@ -6,8 +6,9 @@
 ### Here's a description of the current functions<br>in Danbooru TaCo userscript:
 
 ### Tag Copy Button
-- Adds a one-click copy button to image popups on Danbooru
-- Copies all tags of an image to clipboard
+ - Adds a one-click copy button to image popups on Danbooru
+ - Copies all tags of an image to clipboard
+ - Adds a Settings menu in Tampermonkey
 
 ### Settings menu:
   - #### Tag Formatting
