@@ -1,5 +1,6 @@
 // ==UserScript==
 // @name            Danbooru TaCo
+// @name:ru         Danbooru TaCo
 // @namespace       http://tampermonkey.net/
 // @version         4.0
 // @description     The user script adds a tag copying button to the image popup on Danbooru.
