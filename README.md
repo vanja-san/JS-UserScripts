@@ -43,3 +43,4 @@ Settings menu:<br>
 - Another
 
 ### Need this? Install immediately.<br>[⬇️ Install UserScript](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/danbooruTaCo.user.js)
+### [GreysFork Page](https://greasyfork.org/ru/scripts/546052-danbooru-taco)
