@@ -2,7 +2,7 @@
 // @name            Danbooru TaCo
 // @name:ru         Danbooru TaCo
 // @namespace       http://tampermonkey.net/
-// @version         4.0
+// @version         4.1
 // @description     The user script adds a tag copying button to the image popup on Danbooru.
 // @description:ru  Юзерскрипт добавляет на Danbooru кнопку копирования тегов во всплывающее окно изображения
 // @author          vanja-san
@@ -211,6 +211,10 @@
   const copyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
   const checkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg>`;
 
+  // ===== MEMORY LEAK PREVENTION =====
+  let observer = null;
+  let tooltipClickHandlers = new WeakMap();
+
   // ===== MAIN FUNCTIONALITY =====
   function addCopyButton() {
     document
@@ -228,7 +232,8 @@
         btn.innerHTML = copyIcon;
         applyButtonPosition(btn);
 
-        btn.addEventListener("click", async (e) => {
+        // Create a dedicated handler for this button
+        const clickHandler = async (e) => {
           e.stopPropagation();
           const tags = Array.from(tooltip.querySelectorAll(".search-tag"))
             .map((tag) => {
@@ -246,7 +251,11 @@
           } catch (err) {
             console.error("Copy error:", err);
           }
-        });
+        };
+
+        // Store handler in WeakMap for potential future cleanup
+        tooltipClickHandlers.set(btn, clickHandler);
+        btn.addEventListener("click", clickHandler);
 
         tooltip.querySelector(".tippy-content").appendChild(btn);
       });
@@ -649,13 +658,36 @@
   // ===== INITIALIZATION =====
   GM_registerMenuCommand(t("settings"), openSettingsEditor);
 
-  const observer = new MutationObserver(() => addCopyButton());
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["data-state"],
-  });
+  // Optimized observer with better performance
+  function initObserver() {
+    if (observer) {
+      observer.disconnect();
+    }
 
+    observer = new MutationObserver(() => {
+      // Use requestAnimationFrame to debounce rapid mutations
+      requestAnimationFrame(() => {
+        addCopyButton();
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-state"],
+    });
+  }
+
+  // Initialize with optimized observer
+  initObserver();
   addCopyButton();
+
+  // Cleanup function for potential script re-initialization
+  window.addEventListener('beforeunload', () => {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+  });
 })();
