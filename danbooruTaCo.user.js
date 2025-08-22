@@ -6,6 +6,7 @@
 // @description     The user script adds a tag copying button to the image popup on Danbooru.
 // @description:ru  Юзерскрипт добавляет на Danbooru кнопку копирования тегов во всплывающее окно изображения
 // @author          vanja-san
+// @license         MIT
 // @match           https://danbooru.donmai.us/*
 // @icon            https://danbooru.donmai.us/favicon.ico
 // @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/danbooruTaCo.user.js
