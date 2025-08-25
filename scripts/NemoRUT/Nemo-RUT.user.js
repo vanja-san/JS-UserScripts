@@ -4,7 +4,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  Добавляет русскую локализацию для сайта Nexus Mods.
 // @description:en  Add Russian localization for Nexus Mods.
-// @version      1.5
+// @version      1.0.1
 // @author       vanja-san
 // @match        https://*.nexusmods.com/*
 // @downloadURL  https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
@@ -17,7 +17,7 @@
   'use strict';
 
   // Константы
-  const CACHE_VERSION = 'v1.0.50';
+  const CACHE_VERSION = 'v1.0.51';
   const DB_NAME = 'translationCache';
   const DB_VERSION = 1;
   const STORE_NAME = 'translations';
@@ -135,7 +135,7 @@
     "uncapped download speeds":    "неограниченной скорости скачивания ",
     "and":                         "и",
     "browse ad-free.":             "отключение рекламы.",
-    "Go Premium":                  "Получить Premium",
+    "Go Premium":                  "Получить Премиум",
     "Our creators earned over $":  "Наши создатели заработали более $",
     "Share your creations on the": "Поделитесь своими творениями на",
     "Get":                         " Получите",
