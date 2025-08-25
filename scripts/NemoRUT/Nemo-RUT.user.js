@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         Nemo-RUT
-// @name:ru      Nemo-RUT
+// @name:en      Nemo-RUT
 // @namespace    http://tampermonkey.net/
-// @description  Add Russian localization for Nexus Mods.
-// @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
+// @description  Добавляет русскую локализацию для сайта Nexus Mods.
+// @description:en  Add Russian localization for Nexus Mods.
 // @version      1.5
 // @author       vanja-san
 // @match        https://*.nexusmods.com/*
+// @downloadURL  https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
+// @updateURL    https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
 // @grant        none
 // @license      MIT
 // ==/UserScript==
