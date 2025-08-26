@@ -4,7 +4,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  Добавляет русскую локализацию для сайта Nexus Mods.
 // @description:en  Add Russian localization for Nexus Mods.
-// @version      1.0.3
+// @version      1.0.4
 // @author       vanja-san
 // @match        https://*.nexusmods.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
