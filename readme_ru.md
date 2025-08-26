@@ -4,10 +4,10 @@
 > Коллекция скриптов Quality-of-Life для различных сайтов.
 
 #### СПИСОК СКРИПТОВ ⬇️
-1. `DanbooruTACO` • `Добавляет кнопку для копирования всех тегов во всплывающее окошечко при наведении на картинку.`<br>
+1. `Booru Tag Hauler` • `Копируй все теги из всплывающего окошка картинки в один клик.` <br>
 [[ Установить ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler/Booru_Tags_Hauler.user.js) / [[ Readme и скриншоты ]](./scripts/Booru%20Tags%20Hauler/) / [[ Graysfork ]](https://greasyfork.org/ru/scripts/546052-booru-tags-hauler)
 
-2. `NemoRUT` • `Добавляет русский перевод на сайт NexusMods.`<br>
+2. `Nexus Russian Localizer` • `Добавляет русский перевод на сайт NexusMods.`<br>
 [[ Установить ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus%20Russian%20Localizer/NRL.user.js) / [[ Readme & скриншоты ]](./scripts/Nexus%20Russian%20Localizer/) / [ Graysfork ]
  <br><br>
 # ℹ️ Как использовать
