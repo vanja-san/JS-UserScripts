@@ -8,7 +8,7 @@
 // @author          vanja-san
 // @license         MIT
 // @match           https://danbooru.donmai.us/*
-// @icon            https://danbooru.donmai.us/favicon.ico
+// @icon            https://www.google.com/s2/favicons?sz=64&domain=donmai.us
 // @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js
 // @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js
 // @grant           GM_addStyle
