@@ -5,11 +5,11 @@
 > A collection of quality-of-life userscripts for various websites.
 
 #### LIST USERSCRIPTS ⬇️
-1. `DanbooruTACO` • `Adds a button to copy all tags in the tooltip.`<br>
-[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js) / [[ Readme & Screenshots ]](./scripts/DanbooruTACO) / [[ Graysfork ]](https://greasyfork.org/scripts/546052-danbooru-taco)
+1. `Booru Tag Hauler` • `One-click tags copy from the hover preview tooltip.`<br>
+[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js) / [[ Readme & Screenshots ]](./scripts/DanbooruTACO/) / [[ Graysfork ]](https://greasyfork.org/scripts/546052-danbooru-taco)
 
-2. `NemoRUT` • `Adds Russian translation to NexusMods website.`<br>
-[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js) / [[ Readme & Screenshots ]](./scripts/NemoRUT) / [ Graysfork ]
+2. `Nexus Russian Localizer` • `Adds Russian translation to NexusMods website.`<br>
+[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js) / [[ Readme & Screenshots ]](./scripts/Nexus Russian Localizer/) / [ Graysfork ]
  <br><br>
 # ℹ️ How to Use
 1. Install a userscript manager ( [Tampermonkey](https://www.tampermonkey.net/) or alternative )
