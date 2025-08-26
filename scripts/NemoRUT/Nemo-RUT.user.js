@@ -17,7 +17,7 @@
   'use strict';
 
   // Константы
-  const CACHE_VERSION = 'v1.0.51';
+  const CACHE_VERSION = 'v1.0.60';
   const DB_NAME = 'translationCache';
   const DB_VERSION = 1;
   const STORE_NAME = 'translations';
@@ -38,7 +38,7 @@
     "Downloads":                   "Скачиваний",
     "Collections":                 "Коллекции",
     "All collections":             "Все коллекции",
-    "Highest rated":               "Высокооценённые",
+    "Highest rated":               "Самый высокий рейтинг",
     "Collections tutorials":       "Обучение коллекций",
     "Media":                       "Медиа",
     "Latest":                      "Последние",
@@ -56,7 +56,7 @@
     "Mod News":                    "Новости модов",
     "Support":                     "Поддержка",
     "Help":                        "Справка",
-    "Contact":                     "Контакт",
+    "Contact":                     "Контакты",
     "FAQ":                         "ЧаВо",
     "Game guides":                 "Игровые руководства",
     "Tutorial":                    "Обучение",
@@ -87,15 +87,15 @@
     "Register here":               "Зарегестрируйтесь здесь",
     "Comments":                    "Комментарии",
     "Files":                       "Файлы",
-    "Recently updated":            "Обновлены недавно",
-    "Recently added":              "Добавлены недавно",
-    "Most endorsed":               "Больше одобреных",
+    "Recently updated":            "Недавно обновлены",
+    "Recently added":              "Недавно добавлены",
+    "Most endorsed":               "Самые одобренные",
     "What's new":                  "Что нового",
     "Categories":                  "Категории",
     "Welcome back,":               "С возвращением,",
     "All games":                   "Все игры",
     "My games":                    "Мои игры",
-    "Trending":                    "В тренде",
+    "Trending":                    "Сайчас популярны",
     "Mod updates":                 "Обновления модов",
     "Tracked mods":                "Отслеживание модов",
     "My stuff":                    "Мои вещи",
@@ -248,6 +248,11 @@
     "Mod manager for installing collections": "Менеджер модов для установки коллекций",
     "Download Vortex":             "Скачать Vortex",
     "Game Version":                "Версия игры",
+    "Top files": "Файлы в топе",
+    "Mod categories": "Категории модов",
+    "Recent activity": "Последняя активность",
+    "Mods of the month": "Моды месяца",
+    "Explore this month’s nominated mods.": "Исследуйте номинированные моды этого месяца.",
     "Views": "Просмотров",
     "No. of mods": "Кол. модов",
     "No. of collections": "Кол. коллекций",
