@@ -1,4 +1,5 @@
 ## ✅ Danbooru Tags Copying
+![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✔-lightgreen?logo=tampermonkey) ![Violentmonkey](https://img.shields.io/badge/ScriptCat-✔-lightgreen?logo=violentmonkey) ![Violentmonkey](https://img.shields.io/badge/Violentmonkey-✔-lightgreen?logo=violentmonkey)
 
 ### 👁️‍🗨️ Screenshots
 <img height="406" alt="изображение" src="https://github.com/user-attachments/assets/216c6fff-0d62-4a73-80fb-409811dd6a25" />
