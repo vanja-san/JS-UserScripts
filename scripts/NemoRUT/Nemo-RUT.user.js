@@ -4,7 +4,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  Добавляет русскую локализацию для сайта Nexus Mods.
 // @description:en  Add Russian localization for Nexus Mods.
-// @version      1.0.1
+// @version      1.0.2
 // @author       vanja-san
 // @match        https://*.nexusmods.com/*
 // @downloadURL  https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
@@ -777,6 +777,41 @@
     "Owner": "Владелец",
     "All Members": "Все участники",
     "Post your ideas and suggestions for new mods.": "Публикуйте свои идеи и предложения для новых модов.",
+
+    /* Wiki Page */
+    "Knowledge Base": "Основа знаний",
+    "Game Wikis": "Вики игр",
+    "General modding": "Вики игр",
+    "Tutorials": "Обучение",
+    "Graphics": "Графика",
+    "Texturing": "Текстурирование",
+    "Modelling": "Моделлинг",
+    "What links here": "Какие ссылки здесь",
+    "Related changes": "Связанные изменения",
+    "Special pages": "Специальные страницы",
+    "Printable version": "Версия для печати",
+    "Permanent link": "Постоянная ссылка",
+    "Page information": "Информация о странице",
+    "Main page": "Главная страница",
+    "View": "Посмотреть",
+    "View source": "Посмотреть исходники",
+    "History": "История",
+    "Search Nexus Mods Wiki": "Поиск на Nexus Mods Wiki",
+    "Search Nexus Mods Wiki [Alt+Shift+f]": "Поиск на Nexus Mods Wiki [Alt+Shift+f]",
+    "Guest": "Гость",
+    "Login with Nexus Mods": "Войти через Nexus Mods",
+    "Welcome to the Nexus Mods Wiki": "Добро пожаловать на Nexus Mods Wiki",
+    "This Wiki is here to provide useful articles and tutorials on the use of the Nexus sites and the games that they are related to. No need to make a new account, just use your Nexus username and password! Use the quick category list in the left nav to find what you're looking for or use the game box art below to find articles and tutorials related to specific games.": "Эта Wiki здесь, чтобы предоставить полезные статьи и учебные пособия по использованию сайтов Nexus и игр, с которыми они связаны. Не нужно создавать новую учётную запись, просто используйте имя пользователя и пароль Nexus! Используйте быстрый список категорий в левой навигационной системе, чтобы найти то, что вы ищете, или использовать арт игрового ящика ниже, чтобы найти статьи и учебные пособия, связанные с конкретными играми.",
+    "Quick links": "Быстрые ссылки",
+    "The rules for this Wiki": "Правила для этого Wiki",
+    "Posting guidelines and template": "Рекомендации и шаблон публикации",
+    "How to create a new wiki page": "Как создать новую страницу Wiki",
+    "Help and FAQs on using the Nexus sites": "Помощь и ЧаВо по использованию сайтов Nexus",
+    "Create a new page": "Создать новую страницу",
+    "Recent Changes": "Последние изменения",
+    "No changes during the given period match these criteria.": "Никакие изменения в течение данного периода не соответствуют этим критериям.",
+    "(Article title)": "(Заголовок статьи)",
+    "Create new article": "Создать новую статью"
 
   };
 
