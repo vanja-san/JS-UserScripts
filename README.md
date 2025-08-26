@@ -1,3 +1,6 @@
+<img width="16" height="11" alt="ru" src="https://github.com/user-attachments/assets/fec055f0-e3d1-4fb9-a869-f5dd53e951ad" /> [Russian](./readme_ru.md)
+<img width="16" height="11" alt="us" src="https://github.com/user-attachments/assets/d1d687d5-eb4c-4363-afdb-45c97d201bec" /> English
+
 # 🛖 My Userscripts
 > A collection of quality-of-life userscripts for various websites.
 
