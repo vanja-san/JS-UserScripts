@@ -4,7 +4,7 @@
 > Коллекция скриптов Quality-of-Life для различных сайтов.
 
 #### СПИСОК СКРИПТОВ ⬇️
-1. `DanbooruTACO` • `Добавляет кнопку для копирования всех тегов во всплывающее окошеско при наведении на картинку.`<br>
+1. `DanbooruTACO` • `Добавляет кнопку для копирования всех тегов во всплывающее окошечко при наведении на картинку.`<br>
 [[ Установить ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js) / [[ Readme и скриншоты ]](./scripts/DanbooruTACO) / [[ Graysfork ]](https://greasyfork.org/scripts/546052-danbooru-taco)
 
 2. `NemoRUT` • `Добавляет русский перевод на сайт NexusMods.`<br>
