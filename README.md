@@ -6,7 +6,7 @@
 
 #### LIST USERSCRIPTS ⬇️
 1. `Booru Tag Hauler` • `One-click tags copy from the hover preview tooltip.` <br>
-[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js) / [[ Readme & Screenshots ]](./scripts/DanbooruTACO/) / [[ Graysfork ]](https://greasyfork.org/scripts/546052-danbooru-taco)
+[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler/Booru_Tags_Hauler.user.js) / [[ Readme & Screenshots ]](./scripts/Booru%20Tags%20Hauler/) / [[ Graysfork ]](https://greasyfork.org/scripts/546052-danbooru-taco)
 
 2. `Nexus Russian Localizer` • `Adds Russian translation to NexusMods website.` <br>
 [[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus%20Russian%20Localizer/NRL.user.js) / [[ Readme & Screenshots ]](./scripts/Nexus%20Russian%20Localizer/) / [ Graysfork ] <br><br>
