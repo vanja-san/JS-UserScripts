@@ -1,46 +1,15 @@
-## ✅ Danbooru Tags Copying
-> Works exclusively on danbooru.donmai.us.
-##### Screenshot<br>
-Button:<br>
-<img width="406" height="133" alt="изображение" src="https://github.com/user-attachments/assets/b3fde65d-7655-44b6-80b9-8a6c99557323" /><br>
-Settings menu:<br>
-<img height="406" alt="изображение" src="https://github.com/user-attachments/assets/216c6fff-0d62-4a73-80fb-409811dd6a25" />
+# 🛖 My Userscripts
+> A collection of quality-of-life userscripts for various websites.
 
+#### LIST USERSCRIPTS ⬇️
+1. `DanbooruTACO` • `Adds a button to copy all tags in the tooltip.`<br>
+[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js) / [[ Readme & Screenshots ]](./scripts/DanbooruTACO) / [[ Graysfork ]](https://greasyfork.org/scripts/546052-danbooru-taco)
 
-### Here's a description of the current functions<br>in Danbooru TaCo userscript:
+2. `NemoRUT` • `Adds Russian translation to NexusMods website.`<br>
+[[ Install ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js) / [[ Readme & Screenshots ]](./scripts/NemoRUT) / [ Graysfork ]
+ <br><br>
+# ℹ️ How to Use
+1. Install a userscript manager ( [Tampermonkey](https://www.tampermonkey.net/) or alternative )
 
-### Tag Copy Button
- - Adds a one-click copy button to image popups on Danbooru
- - Copies all tags of an image to clipboard
- - Adds a Settings menu in Tampermonkey
-
-### Settings menu:
-  - #### Tag Formatting
-    - Toggle commas between tags (default: ON)
-    - Toggle escaping parentheses in tags (default: ON)
-
-  - #### Customizable UI
-    - Adjust button: opacity/size/position (4 corners)
-    - Choose colors: button/hover/icon
-    - Select shape: circle/square/rounded
-
-  - #### Multi-Language Support
-    - Auto-detects system language (English/Russian)
-    - Manual language override
-
-  - ### Persistent Settings
-    - Saves preferences between sessions
-    - Access settings via Tampermonkey menu
-
-  - ### User Feedback
-    - Visual confirmation (icon change) on copy
-    - Notification when tags are copied
-    - Settings save confirmation
-
-### Requires userscript manager 
-- Tampermonkey
-- Violentmonkey
-- Another
-
-### Need this? Install immediately.<br>[⬇️ Install UserScript](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/danbooruTaCo.user.js)
-### [GreysFork Page](https://greasyfork.org/ru/scripts/546052-danbooru-taco)
+2. Click on the `[ Install ]` for the script you want. Your userscript manager will handle the rest.
+3. Click on the `[ Readme & Screenshots ]` for detailed information.
