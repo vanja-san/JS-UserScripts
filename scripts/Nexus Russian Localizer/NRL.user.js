@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name            NRL: Nexus Russian Localizer
-// @name:en         NRL: Nexus Russian Localizer
+// @name            Nexus Russian Localizer
+// @name:ru         Nexus Russian Localizer
 // @namespace       http://tampermonkey.net/
-// @description     Добавляет русскую локализацию для сайта Nexus Mods.
-// @description:en  Add Russian localization for Nexus Mods.
-// @version         1.0.5
+// @description     Add Russian localization for Nexus Mods.
+// @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
+// @version         1.0.6
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
