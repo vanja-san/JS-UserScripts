@@ -1,17 +1,17 @@
 // ==UserScript==
-// @name         NRL: Nexus Russian Localizer
-// @name:en      NRL: Nexus Russian Localizer
-// @namespace    http://tampermonkey.net/
-// @description  Добавляет русскую локализацию для сайта Nexus Mods.
+// @name            NRL: Nexus Russian Localizer
+// @name:en         NRL: Nexus Russian Localizer
+// @namespace       http://tampermonkey.net/
+// @description     Добавляет русскую локализацию для сайта Nexus Mods.
 // @description:en  Add Russian localization for Nexus Mods.
-// @version      1.0.5
-// @author       vanja-san
-// @match        https://*.nexusmods.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
-// @downloadURL  https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
-// @updateURL    https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
-// @grant        none
-// @license      MIT
+// @version         1.0.5
+// @author          vanja-san
+// @match           https://*.nexusmods.com/*
+// @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
+// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js
+// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js
+// @grant           none
+// @license         MIT
 // ==/UserScript==
 
 (function() {
