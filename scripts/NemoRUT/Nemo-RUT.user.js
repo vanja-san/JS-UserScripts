@@ -4,7 +4,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  Добавляет русскую локализацию для сайта Nexus Mods.
 // @description:en  Add Russian localization for Nexus Mods.
-// @version      1.0.2
+// @version      1.0.3
 // @author       vanja-san
 // @match        https://*.nexusmods.com/*
 // @downloadURL  https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/NemoRUT/Nemo-RUT.user.js
@@ -17,7 +17,7 @@
   'use strict';
 
   // Константы
-  const CACHE_VERSION = 'v1.0.60';
+  const CACHE_VERSION = 'v1.0.61';
   const DB_NAME = 'translationCache';
   const DB_VERSION = 1;
   const STORE_NAME = 'translations';
@@ -108,7 +108,7 @@
     "Vortex mod manager":          "Менеджер модов Vortex",
     "Members":                     "Участники",
     "Creator rewards":             "Вознаграждений",
-    "Modding made easy":           "Модинг — это просто",
+    "Modding made easy":           "Моддинг — это просто",
     "Browse all mods":             "Просмотреть все моды",
     "Mods and collections for":    "Моды и коллекции для ",
     "games.":                      " игр.",
