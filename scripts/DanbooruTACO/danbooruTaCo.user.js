@@ -2,7 +2,7 @@
 // @name            Danbooru TaCo
 // @name:ru         Danbooru TaCo
 // @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO
-// @version         4.1
+// @version         1.0.1
 // @description     The user script adds a tag copying button to the image popup on Danbooru.
 // @description:ru  Юзерскрипт добавляет на Danbooru кнопку копирования тегов во всплывающее окно изображения
 // @author          vanja-san
