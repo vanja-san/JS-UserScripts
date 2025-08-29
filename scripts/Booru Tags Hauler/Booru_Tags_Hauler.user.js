@@ -2,17 +2,16 @@
 // @name            Booru Tags Hauler
 // @name:ru         Booru Tags Hauler
 // @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO
-// @version         1.0.1
+// @version         1.0.3
 // @description     Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 // @description:ru  Добавляет кнопку 'Скопировать все теги' во всплывающую подсказку при наведении на превью. Копируйте все теги картинки, не открывая её страницу! Существенная экономия времени.
 // @author          vanja-san
 // @license         MIT
 // @match           https://danbooru.donmai.us/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=donmai.us
-// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru Tags Hauler/Booru_Tags_Hauler.user.js
-// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru Tags Hauler/Booru_Tags_Hauler.user.js
+// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js
+// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO/danbooruTaCo.user.js
 // @grant           GM_addStyle
-// @grant           GM_notification
 // @grant           GM_registerMenuCommand
 // @grant           GM_getValue
 // @grant           GM_setValue
@@ -292,14 +291,6 @@
     btn.innerHTML = checkIcon;
     btn.classList.add("copied");
 
-    if (typeof GM_notification !== "undefined") {
-      GM_notification({
-        title: t("title"),
-        text: t("notification"),
-        timeout: 2000,
-      });
-    }
-
     setTimeout(() => {
       btn.innerHTML = originalIcon;
       btn.classList.remove("copied");
@@ -511,7 +502,7 @@
                 isDarkMode ? "var(--grey-7)" : "white"
               }; color:${
         isDarkMode ? "#fff" : "#333"
-      }; padding:5px; border-radius:4px">
+      }; padding:5px; border-radius:4px;">
                 <option value="rounded-square" ${
                   SETTINGS.buttonShape === "rounded-square" ? "selected" : ""
                 }>${t("shapeRounded")}</option>
@@ -682,6 +673,14 @@
   // Initialize with optimized observer
   initObserver();
   addCopyButton();
+
+  // Handle PJAX navigation (used by Danbooru)
+  document.addEventListener('pjax:end', function() {
+    // Reinitialize observer after page content changes
+    initObserver();
+    // Add buttons to any existing tooltips
+    addCopyButton();
+  });
 
   // Cleanup function for potential script re-initialization
   window.addEventListener('beforeunload', () => {
