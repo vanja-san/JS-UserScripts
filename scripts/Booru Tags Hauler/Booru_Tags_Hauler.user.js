@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name            Booru Tags Hauler
 // @name:ru         Booru Tags Hauler
-// @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/Booru Tags Hauler
-// @version         1.0.3
+// @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO
+// @version         1.0.4
 // @description     Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 // @description:ru  Добавляет кнопку 'Скопировать все теги' во всплывающую подсказку при наведении на превью. Копируйте все теги картинки, не открывая её страницу! Существенная экономия времени.
 // @author          vanja-san
@@ -29,6 +29,7 @@
       formatting: "Tag Formatting",
       addCommas: "Add commas between tags",
       escapeParentheses: "Escape parentheses (\\( \\))",
+      replaceUnderscores: "Replace Underscores",
       appearance: "Button Appearance",
       buttonOpacity: "Button opacity:",
       buttonSize: "Button size:",
@@ -63,6 +64,7 @@
       formatting: "Форматирование тегов",
       addCommas: "Добавлять запятые между тегами",
       escapeParentheses: "Экранировать скобки (\\( \\))",
+      replaceUnderscores: "Заменять нижнии подчеркивания пробелами",
       appearance: "Внешний вид кнопки",
       buttonOpacity: "Прозрачность кнопки:",
       buttonSize: "Размер кнопки:",
@@ -96,6 +98,7 @@
   const DEFAULT_SETTINGS = {
     addCommas: true,
     escapeParentheses: true,
+    replaceUnderscores: true,
     buttonOpacity: 0.3,
     buttonSize: 28,
     iconScale: 1.0,
@@ -104,7 +107,7 @@
     buttonHoverColor: "#4CAF50",
     iconColor: "#FFFFFF",
     buttonShape: "rounded-square",
-    language: "auto",
+    language: "auto"
   };
 
   const SETTINGS = {
@@ -138,11 +141,11 @@
 
   function applyGlobalStyles() {
     const borderRadius =
-      SETTINGS.buttonShape === "circle"
-        ? "50%"
-        : SETTINGS.buttonShape === "square"
-        ? "0"
-        : "4px";
+          SETTINGS.buttonShape === "circle"
+    ? "50%"
+    : SETTINGS.buttonShape === "square"
+    ? "0"
+    : "4px";
 
     const baseIconSize = 20;
     const scaledIconSize = baseIconSize * SETTINGS.iconScale;
@@ -219,45 +222,49 @@
     document
       .querySelectorAll('.tippy-box[data-state="visible"]')
       .forEach((tooltip) => {
-        if (
-          tooltip.querySelector(".tag-copy-btn") ||
-          !tooltip.querySelector(".post-tooltip-body")
-        )
-          return;
+      if (
+        tooltip.querySelector(".tag-copy-btn") ||
+        !tooltip.querySelector(".post-tooltip-body")
+      )
+        return;
 
-        const btn = document.createElement("button");
-        btn.className = "tag-copy-btn";
-        btn.title = t("title");
-        btn.innerHTML = copyIcon;
-        applyButtonPosition(btn);
+      const btn = document.createElement("button");
+      btn.className = "tag-copy-btn";
+      btn.title = t("title");
+      btn.innerHTML = copyIcon;
+      applyButtonPosition(btn);
 
-        // Create a dedicated handler for this button
-        const clickHandler = async (e) => {
-          e.stopPropagation();
-          const tags = Array.from(tooltip.querySelectorAll(".search-tag"))
-            .map((tag) => {
-              let text = tag.textContent.trim();
-              if (SETTINGS.escapeParentheses) {
-                text = text.replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-              }
-              return text;
-            })
-            .join(SETTINGS.addCommas ? ", " : " ");
-
-          try {
-            await navigator.clipboard.writeText(tags);
-            showFeedback(btn);
-          } catch (err) {
-            console.error("Copy error:", err);
+      // Create a dedicated handler for this button
+      const clickHandler = async (e) => {
+        e.stopPropagation();
+        const tags = Array.from(tooltip.querySelectorAll(".search-tag"))
+        .map((tag) => {
+          let text = tag.textContent.trim();
+          // Замена нижних подчеркиваний на пробелы
+          if (SETTINGS.replaceUnderscores) {
+            text = text.replace(/_/g, ' ');
           }
-        };
+          if (SETTINGS.escapeParentheses) {
+            text = text.replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+          }
+          return text;
+        })
+        .join(SETTINGS.addCommas ? ", " : " ");
 
-        // Store handler in WeakMap for potential future cleanup
-        tooltipClickHandlers.set(btn, clickHandler);
-        btn.addEventListener("click", clickHandler);
+        try {
+          await navigator.clipboard.writeText(tags);
+          showFeedback(btn);
+        } catch (err) {
+          console.error("Copy error:", err);
+        }
+      };
 
-        tooltip.querySelector(".tippy-content").appendChild(btn);
-      });
+      // Store handler in WeakMap for potential future cleanup
+      tooltipClickHandlers.set(btn, clickHandler);
+      btn.addEventListener("click", clickHandler);
+
+      tooltip.querySelector(".tippy-content").appendChild(btn);
+    });
   }
 
   function applyButtonPosition(btn) {
@@ -322,66 +329,74 @@
       editor.innerHTML = `
         <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%); padding:20px;padding-top: 15px;border:1px solid ${
           isDarkMode ? "var(--default-border-color)" : "#ddd"
-        };
+    };
           border-radius:8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;z-index:9999; font-family:Arial,sans-serif;width:500px;max-width:90vw;max-height:90vh;
           overflow-y:auto;color:${
             isDarkMode ? "#e0e0e0" : "#333"
-          }; background:${
+    }; background:${
         isDarkMode ? "var(--post-tooltip-background-color)" : "white"
-      }">
+    }">
 
           <h2 style="margin:0 0 20px 0;text-align:center;color:${
             isDarkMode ? "var(--header-color)" : "#000"
-          }">${t("settings")}</h2>
+    }">${t("settings")}</h2>
 
           <fieldset style="margin-bottom:25px; border:1px solid ${
             isDarkMode ? "var(--default-border-color)" : "#ddd"
-          }; border-radius:6px; padding:15px">
+    }; border-radius:6px; padding:15px">
             <legend style="color:${
               isDarkMode ? "var(--header-color)" : "#000"
-            }; padding:0 8px"><strong>${t("formatting")}</strong></legend>
+    }; padding:0 8px"><strong>${t("formatting")}</strong></legend>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">${t("addCommas")}</label>
+    }; margin-right:15px">${t("addCommas")}</label>
               <input type="checkbox" id="addCommas" ${
                 SETTINGS.addCommas ? "checked" : ""
-              } style="transform: scale(1.3);">
+    } style="transform: scale(1.3);">
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+              <label style="color:${
+                isDarkMode ? "var(--grey-2)" : "#333"
+    }; margin-right:15px">${t("escapeParentheses")}</label>
+              <input type="checkbox" id="escapeParentheses" ${
+                SETTINGS.escapeParentheses ? "checked" : ""
+    } style="transform: scale(1.3);">
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">${t("escapeParentheses")}</label>
-              <input type="checkbox" id="escapeParentheses" ${
-                SETTINGS.escapeParentheses ? "checked" : ""
-              } style="transform: scale(1.3);">
+    }; margin-right:15px">${t("replaceUnderscores")}</label>
+              <input type="checkbox" id="replaceUnderscores" ${
+                SETTINGS.replaceUnderscores ? "checked" : ""
+    } style="transform: scale(1.3);">
             </div>
           </fieldset>
 
           <fieldset style="margin-bottom:25px; border:1px solid ${
             isDarkMode ? "var(--default-border-color)" : "#ddd"
-          }; border-radius:6px; padding:15px">
+    }; border-radius:6px; padding:15px">
             <legend style="color:${
               isDarkMode ? "var(--header-color)" : "#000"
-            }; padding:0 8px"><strong>${t("appearance")}</strong></legend>
+    }; padding:0 8px"><strong>${t("appearance")}</strong></legend>
 
             <!-- Button Opacity -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("buttonOpacity")}
               </label>
               <input type="range" id="buttonOpacity" min="0.1" max="1.0" step="0.1" value="${
                 SETTINGS.buttonOpacity
-              }" style="width:60%; min-width:150px">
+    }" style="width:60%; min-width:150px">
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px">
               <div style="width:100%; text-align:right">
                 <span>10%</span>
                 <span id="opacityValue" style="margin:0 10px">${Math.round(
-                  SETTINGS.buttonOpacity * 100
-                )}%</span>
+        SETTINGS.buttonOpacity * 100
+      )}%</span>
                 <span>100%</span>
               </div>
             </div>
@@ -390,19 +405,19 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("buttonSize")}
               </label>
               <input type="range" id="buttonSize" min="16" max="50" step="2" value="${
                 SETTINGS.buttonSize
-              }" style="width:60%; min-width:150px">
+    }" style="width:60%; min-width:150px">
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px">
               <div style="width:100%; text-align:right">
                 <span>16px</span>
                 <span id="sizeValue" style="margin:0 10px">${
                   SETTINGS.buttonSize
-                }px</span>
+    }px</span>
                 <span>50px</span>
               </div>
             </div>
@@ -411,19 +426,19 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("iconScale")}
               </label>
               <input type="range" id="iconScale" min="0.5" max="3.0" step="0.1" value="${
                 SETTINGS.iconScale
-              }" style="width:60%; min-width:150px">
+    }" style="width:60%; min-width:150px">
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:15px">
               <div style="width:100%; text-align:right">
                 <span>50%</span>
                 <span id="iconScaleValue" style="margin:0 10px">${Math.round(
-                  SETTINGS.iconScale * 100
-                )}%</span>
+        SETTINGS.iconScale * 100
+      )}%</span>
                 <span>300%</span>
               </div>
             </div>
@@ -432,26 +447,26 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("buttonPosition")}
               </label>
               <select id="buttonPosition" style="width:60%; min-width:150px; background:${
                 isDarkMode ? "var(--grey-7)" : "white"
-              }; color:${
+    }; color:${
         isDarkMode ? "#fff" : "#333"
-      }; padding:5px; border-radius:4px;">
+    }; padding:5px; border-radius:4px;">
                 <option value="top-left" ${
                   SETTINGS.buttonPosition === "top-left" ? "selected" : ""
-                }>${t("positionTopLeft")}</option>
+    }>${t("positionTopLeft")}</option>
                 <option value="top-right" ${
                   SETTINGS.buttonPosition === "top-right" ? "selected" : ""
-                }>${t("positionTopRight")}</option>
+    }>${t("positionTopRight")}</option>
                 <option value="bottom-left" ${
                   SETTINGS.buttonPosition === "bottom-left" ? "selected" : ""
-                }>${t("positionBottomLeft")}</option>
+    }>${t("positionBottomLeft")}</option>
                 <option value="bottom-right" ${
                   SETTINGS.buttonPosition === "bottom-right" ? "selected" : ""
-                }>${t("positionBottomRight")}</option>
+    }>${t("positionBottomRight")}</option>
               </select>
             </div>
 
@@ -459,89 +474,89 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("buttonColor")}
               </label>
               <input type="color" id="buttonColor" value="${
                 SETTINGS.buttonColor
-              }" style="width:60px; height:30px; border-radius:4px">
+    }" style="width:60px; height:30px; border-radius:4px">
             </div>
 
             <!-- Button Hover Color -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("buttonHoverColor")}
               </label>
               <input type="color" id="buttonHoverColor" value="${
                 SETTINGS.buttonHoverColor
-              }" style="width:60px; height:30px; border-radius:4px">
+    }" style="width:60px; height:30px; border-radius:4px">
             </div>
 
             <!-- Icon Color -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("iconColor")}
               </label>
               <input type="color" id="iconColor" value="${
                 SETTINGS.iconColor
-              }" style="width:60px; height:30px; border-radius:4px">
+    }" style="width:60px; height:30px; border-radius:4px">
             </div>
 
             <!-- Button Shape -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("buttonShape")}
               </label>
               <select id="buttonShape" style="width:60%; min-width:150px; background:${
                 isDarkMode ? "var(--grey-7)" : "white"
-              }; color:${
+    }; color:${
         isDarkMode ? "#fff" : "#333"
-      }; padding:5px; border-radius:4px;">
+    }; padding:5px; border-radius:4px;">
                 <option value="rounded-square" ${
                   SETTINGS.buttonShape === "rounded-square" ? "selected" : ""
-                }>${t("shapeRounded")}</option>
+    }>${t("shapeRounded")}</option>
                 <option value="circle" ${
                   SETTINGS.buttonShape === "circle" ? "selected" : ""
-                }>${t("shapeCircle")}</option>
+    }>${t("shapeCircle")}</option>
                 <option value="square" ${
                   SETTINGS.buttonShape === "square" ? "selected" : ""
-                }>${t("shapeSquare")}</option>
+    }>${t("shapeSquare")}</option>
               </select>
             </div>
           </fieldset>
 
           <fieldset style="margin-bottom:25px; border:1px solid ${
             isDarkMode ? "var(--default-border-color)" : "#ddd"
-          }; border-radius:6px; padding:15px; position: relative;">
+    }; border-radius:6px; padding:15px; position: relative;">
             <legend style="color:${
               isDarkMode ? "var(--header-color)" : "#000"
-            }; padding:0 8px"><strong>${t("languageSettings")}</strong></legend>
+    }; padding:0 8px"><strong>${t("languageSettings")}</strong></legend>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-              }; margin-right:15px">
+    }; margin-right:15px">
                 ${t("language")}
               </label>
               <select id="language" style="width:60%; min-width:150px; background:${
                 isDarkMode ? "var(--grey-7)" : "white"
-              }; color:${
+    }; color:${
         isDarkMode ? "#fff" : "#333"
-      }; padding:5px; border-radius:4px">
+    }; padding:5px; border-radius:4px">
                 <option value="auto" ${
                   SETTINGS.language === "auto" ? "selected" : ""
-                }>${t("langAuto")}</option>
+    }>${t("langAuto")}</option>
                 <option value="en" ${
                   SETTINGS.language === "en" ? "selected" : ""
-                }>${t("langEn")}</option>
+    }>${t("langEn")}</option>
                 <option value="ru" ${
                   SETTINGS.language === "ru" ? "selected" : ""
-                }>${t("langRu")}</option>
+    }>${t("langRu")}</option>
               </select>
             </div>
             <div id="languageNotice" class="language-notice"
