@@ -2,7 +2,7 @@
 // @name            Booru Tags Hauler
 // @name:ru         Booru Tags Hauler
 // @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/DanbooruTACO
-// @version         1.0.4
+// @version         1.0.5
 // @description     Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 // @description:ru  Добавляет кнопку 'Скопировать все теги' во всплывающую подсказку при наведении на превью. Копируйте все теги картинки, не открывая её страницу! Существенная экономия времени.
 // @author          vanja-san
@@ -607,6 +607,7 @@
       const newSettings = {
         addCommas: getInputValue("addCommas"),
         escapeParentheses: getInputValue("escapeParentheses"),
+        replaceUnderscores: getInputValue("replaceUnderscores"),
         buttonOpacity: getInputValue("buttonOpacity"),
         buttonSize: getInputValue("buttonSize"),
         iconScale: getInputValue("iconScale"),
