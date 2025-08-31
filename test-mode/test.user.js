@@ -4,11 +4,11 @@
 // @description  Русифицирует интерфейс NexusMods.
 // @copyright    2025, Ваше Имя (https://ваш_блог_или_профиль)
 // @icon         https://images.nexusmods.com/images/favicon.ico
-// @version      0.0.1
+// @version      0.0.2
 // @author       user
 // @license      GPL-3.0
 // @match        https://*.nexusmods.com/*
-// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/test-mode/gh-pages/locale.js?v0.0.1
+// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/test-mode/gh-pages/locale.js?v0.0.2
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
