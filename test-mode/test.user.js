@@ -8,7 +8,7 @@
 // @author       user
 // @license      GPL-3.0
 // @match        https://*.nexusmods.com/*
-// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/test-mode/gh-pages/locale.js?v0.0.2
+// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/test-mode/locale.js?v0.0.2
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
