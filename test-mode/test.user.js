@@ -8,7 +8,7 @@
 // @author       user
 // @license      GPL-3.0
 // @match        https://*.nexusmods.com/*
-// @require      https://raw.githubusercontent.com/ваш_ник/nexusmods-ru/gh-pages/locale.js?v0.0.1 // TODO: Замените на реальный URL
+// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/test-mode/gh-pages/locale.js?v0.0.1
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
