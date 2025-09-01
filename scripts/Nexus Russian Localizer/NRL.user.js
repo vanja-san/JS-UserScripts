@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.0.1
+// @version         2.1.0
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -19,7 +19,7 @@
 
   // Константы
   const CONFIG = {
-    CACHE_VERSION: 'v2.0.0',
+    CACHE_VERSION: 'v1.1.1',
     DB_NAME: 'translationCache',
     DB_VERSION: 1,
     STORE_NAME: 'translations',
@@ -281,6 +281,21 @@
       "Billed monthly": "Ежемесячная оплата",
       "billed yearly": " в год",
       "/ month": " / месяц",
+      "Alchemy and Crafting": "Алхимия и создание",
+      "Balancing": "Баланс",
+      "Camera": "Камера",
+      "Combat": "Бой",
+      "Controller Button Layout": "Макет кнопок контроллера",
+      "Debug Console": "Консоль отладки",
+      "Gameplay Changes": "Изменение игрового процесса",
+      "Gwent": "Гвинт",
+      "Hair and Face": "Волосы и лицо",
+      "Inventory": "Инвентарь",
+      "Overhaul": "Капитальный ремонт",
+      "ReShade Preset": "Пресеты для ReShade",
+      "Save Games": "Сохранения игры",
+      "Signs": "Знаки",
+      "Tweaks": "Твики",
       "No thanks": "Нет спасибо ",
       "(Basic membership).": "(Базовое членство).",
       "No. of downloads": "Кол-во скачиваний",
@@ -385,7 +400,8 @@
       "Copyright ©": "Авторские права © ",
       "Terms of Service": "Условия использования",
       "Privacy Policy": "Политика конфиденциальности",
-      "Tracking centre": "Центр слежения",
+      "Tracking centre": "Центр отслеживания",
+      "Adult": "18+",
       "My content": "Мой контент",
       "My Games": "Мои игры",
       "All Games": "Все игры",
@@ -436,7 +452,7 @@
       "Language support": "Поддерживаемые языки",
       "Hide translations": "Скрыть переводы",
       "Content options": "Параметры контента",
-      "Show only updated mods": "Показывать только обновленные моды",
+      "Show only updated mods": "Показывать только обновлённые моды",
       "File size": "Размер файла",
       "Endorsements": "Одобрений",
       "Make mods.": "Делай моды. ",
@@ -537,6 +553,7 @@
       "Unique DLs": "Уник. скачиваний",
       "Total DLs": "Скачиваний",
       "Total views": "Просмотров",
+      "Track": "Отслеживать",
       "Version": "Версия",
       "Download:":"Скачать: ",
       "Manual": "Вручную",
@@ -574,6 +591,7 @@
       "7 days": "7 дней",
       "14 days": "14 дней",
       "28 days": "28 дней",
+      "Search:": "Поиск: ",
       "Homepage": "Главная страница",
       "Set your default tabs for the ‘homepage’ and ‘game homepages’.": "Установите вкладки по умолчанию для «домашняя страница» и «домашние страницы игры».",
       "Default Mods Tab": "Вкладка модов по умолчанию",
@@ -760,7 +778,11 @@
       "Save": "Сохранить",
       "Published": "Опубликовано",
       "Uploaded": "Загружено",
-      "Updated": "Обновлённые",
+      "Updated": "Обновлено",
+      "My images": "Мои изображения",
+      "My videos": "Мои видео",
+      "Upload image": "Добавить изображения ",
+      "Upload video": "Добавить видео ",
       "Display when you were last active": "Отображать вашу активность",
       "Enter the exact username": "Введите точное имя пользователя",
       "Choose on a per image basis": "Выбирать на основе изображения",
@@ -1135,7 +1157,7 @@
       "Most endorsed files of all-time (non-adult)": "Самые одобренные файлы за всё время (без контента для взрослых)",
       "Online User List": "Список пользователей в сети",
       "Find out more about modding with our": "Узнайте больше о моддинге в нашем ",
-      "Use mods to power up your game": "Используйте моды для повышения мощи своей игры",
+      "Use mods to power up your game": "Используйте моды, чтобы улучшить свою игру",
       "biggest modding platform in the world.": " самой большой платформе моддинга в мире.",
       "Black Tree Gaming Ltd. All rights reserved.": " Black Tree Gaming Ltd. Все права защищены.",
       "Games that you favourite will be displayed here": "Игры, которые вам нравятся, будут показаны здесь",
@@ -1598,12 +1620,6 @@
       replacer: (match, day, month, year) =>
       `${day} ${DICTIONARIES.months[month] || month} ${year}`
   },
-    {
-      pattern: /(Uploaded|Updated|Published)\s+(\d{1,2}\s+\w+\s+\d{4},\s+\d{1,2}:\d{2})/gi,
-      replacer: (match, action, date) =>
-      `${DICTIONARIES.main[action] || action} ${date}`
-  },
-
     // Универсальный шаблон для всех временных интервалов с ago
     {
       pattern: /(\d+)[\s\u00A0]+(second|minute|hour|day|week|month|year)s?[\s\u00A0]+ago/gi,
@@ -1632,13 +1648,13 @@
       {en: 'endorsements?', ru: ['одобрение', 'одобрения', 'одобрений']},
       {en: 'views?', ru: ['просмотр', 'просмотра', 'просмотров']},
       {en: 'replies?', ru: ['ответ', 'ответа', 'ответов']},
-      {en: 'Members?', ru: ['участник', 'участника', 'участников']},
-      {en: 'Anonymous?', ru: ['аноним', 'анонима', 'анонимов']},
-      {en: 'Guests?', ru: ['гость', 'гостя', 'гостей']},
-      {en: 'members?', ru: ['участник', 'участника', 'участников']},
-      {en: 'results?', ru: ['результат', 'результата', 'результатов']},
-      {en: 'Comments?', ru: ['комментарий', 'комментария', 'комментариев']},
-      {en: 'mods in 1-click with Premium?', ru: ['мод в один клик с премиум', 'мода в один клик с премиум', 'модов в один клик с премиум']}
+      {en: 'Members', ru: ['участник', 'участника', 'участников']},
+      {en: 'Anonymous', ru: ['аноним', 'анонима', 'анонимов']},
+      {en: 'Guests', ru: ['гость', 'гостя', 'гостей']},
+      {en: 'members', ru: ['участник', 'участника', 'участников']},
+      {en: 'results', ru: ['результат', 'результата', 'результатов']},
+      {en: 'Comments', ru: ['комментарий', 'комментария', 'комментариев']},
+      {en: 'mods in 1-click with Premium', ru: ['мод в один клик с премиум', 'мода в один клик с премиум', 'модов в один клик с премиум']}
     ]),
 
     // Статические шаблоны
@@ -2172,7 +2188,7 @@
 
   // Предзагрузка ключевых переводов
   async function preloadCriticalTranslations(cache) {
-    const criticalTerms = ['Download', 'Mods', 'Home', 'Search', 'Login', 'Register'];
+    const criticalTerms = ['Download', 'Mods', 'Games', 'Collections', 'Media', 'Community', 'Support', 'Home', 'Search', 'Login', 'Register'];
     await Promise.all(criticalTerms.map(term =>
                                         cache.getCachedTranslation(term)
                                        ));
