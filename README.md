@@ -10,15 +10,10 @@ A collection of quality-of-life userscripts for various websites.
 > <a href="./scripts/Nexus Russian Localizer/"><img src="https://img.shields.io/badge/ReadMe_%26_Screenshots-663447?style=for-the-badge" alt="ReadMe & Screenshots"></a>
 > <a href=""><img src="https://img.shields.io/badge/Greasyfork-26736e?style=for-the-badge" alt="Greasyfork"></a>
 >
-> <img src="https://img.shields.io/badge/DBooru_Tags_Hauler-One--click_tags_copy_from_the_hover_preview_tooltip_(Danbooru).-474747?style=for-the-badge&logo=hackthebox&logoColor=white" alt="Booru Tag Hauler - One-click tags copy from the hover preview tooltip."><br />
+> <img src="https://img.shields.io/badge/Booru_Tags_Hauler-One--click_tags_copy_from_the_hover_preview_tooltip_(Danbooru|Safebooru|Hijiribe).-474747?style=for-the-badge&logo=hackthebox&logoColor=white" alt="Booru Tag Hauler - One-click tags copy from the hover preview tooltip."><br />
 > <a href="https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler/Booru_Tags_Hauler.user.js"><img src="https://img.shields.io/badge/Install-633d63?style=for-the-badge" alt="Install"></a>
 > <a href="./scripts/Booru Tags Hauler/"><img src="https://img.shields.io/badge/ReadMe_%26_Screenshots-663447?style=for-the-badge" alt="ReadMe & Screenshots"></a>
 > <a href="https://greasyfork.org/ru/scripts/546052-booru-tags-hauler"><img src="https://img.shields.io/badge/Greasyfork-26736e?style=for-the-badge" alt="Greasyfork"></a>
-> 
-> <img src="https://img.shields.io/badge/SBooru_Tags_Hauler-One--click_tags_copy_from_the_hover_tooltip_(Safebooru).-474747?style=for-the-badge&logo=hackthebox&logoColor=white" alt="Nexus Russian Localizer - Adds Russian translation to NexusMods website."><br />
-> <a href="https://raw.githubusercontent.com/vanja-san/JS-UserScripts/raw/refs/heads/main/scripts/SBooru%20Tags%20Hauler/SBooru_Tags_Hauler.user.js"><img src="https://img.shields.io/badge/Install-633d63?style=for-the-badge" alt="Install"></a>
-> <a href="./scripts/SBooru Tags Hauler"><img src="https://img.shields.io/badge/ReadMe_%26_Screenshots-663447?style=for-the-badge" alt="ReadMe & Screenshots"></a>
-> <a href=""><img src="https://img.shields.io/badge/Greasyfork-26736e?style=for-the-badge" alt="Greasyfork"></a>
  
 # ℹ️ How to Use
 1. Install a userscript manager ( [Tampermonkey](https://www.tampermonkey.net/) or alternative )
