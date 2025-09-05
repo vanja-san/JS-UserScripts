@@ -6,7 +6,7 @@
 Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 
 ### ⭐ Current features:
- - Adds a one-click copy button to image popups on Danbooru
+ - Adds a one-click copy button to image
  - Copies all tags of an image to clipboard
  - Adds a Settings menu in Tampermonkey
 
