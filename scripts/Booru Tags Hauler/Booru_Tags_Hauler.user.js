@@ -154,7 +154,7 @@
       }
 
       .tag-copy-btn svg {
-        height: .75rem;
+        height: .9rem;
         stroke-width: 2;
         flex-shrink: 0;
       }
