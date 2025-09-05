@@ -2,7 +2,7 @@
 // @name            Booru Tags Hauler
 // @name:ru         Booru Tags Hauler
 // @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler
-// @version         1.0.5
+// @version         1.1.6
 // @description     Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 // @description:ru  Добавляет кнопку 'Скопировать все теги' во всплывающую подсказку при наведении на превью. Копируйте все теги картинки, не открывая её страницу! Существенная экономия времени.
 // @author          vanja-san
@@ -33,26 +33,20 @@
       escapeParentheses: "Escape parentheses (\\( \\))",
       replaceUnderscores: "Replace Underscores",
       appearance: "Button Appearance",
-      buttonOpacity: "Button opacity:",
-      buttonSize: "Button size:",
-      iconScale: "Icon scale:",
-      buttonPosition: "Button position:",
-      positionBottomRight: "Bottom right",
-      positionTopRight: "Top right",
-      positionBottomLeft: "Bottom left",
-      positionTopLeft: "Top left",
-      buttonColor: "Button color:",
-      buttonHoverColor: "Hover color:",
-      iconColor: "Icon color:",
-      buttonShape: "Button shape:",
-      shapeRounded: "Rounded square",
-      shapeCircle: "Circle",
-      shapeSquare: "Square",
+      
+      positionLeft: "Left",
+      positionCenter: "Center",
+      positionRight: "Right",
       languageSettings: "Language Settings",
       language: "Language:",
       langAuto: "System default",
       langEn: "English",
       langRu: "Russian",
+      buttonStyle: "Button style:",
+      styleIconOnly: "Icon only",
+      styleIconAndText: "Icon and text",
+      styleTextOnly: "Text only",
+      buttonText: "Copy tags",
       saveButton: "Save",
       savedButton: "Saved!",
       cancelButton: "Close",
@@ -68,32 +62,26 @@
       escapeParentheses: "Экранировать скобки (\\( \\))",
       replaceUnderscores: "Заменять нижнии подчеркивания пробелами",
       appearance: "Внешний вид кнопки",
-      buttonOpacity: "Прозрачность кнопки:",
-      buttonSize: "Размер кнопки:",
-      iconScale: "Масштаб иконки:",
-      buttonPosition: "Позиция кнопки:",
-      positionBottomRight: "Снизу справа",
-      positionTopRight: "Сверху справа",
-      positionBottomLeft: "Снизу слева",
-      positionTopLeft: "Сверху слева",
-      buttonColor: "Цвет кнопки:",
-      buttonHoverColor: "Цвет при наведении:",
-      iconColor: "Цвет иконки:",
-      buttonShape: "Форма кнопки:",
-      shapeRounded: "Скругленный квадрат",
-      shapeCircle: "Круг",
-      shapeSquare: "Квадрат",
+      
+      positionLeft: "Слева",
+      positionCenter: "По центру",
+      positionRight: "Справа",
       languageSettings: "Настройки языка",
       language: "Язык:",
       langAuto: "Как в системе",
       langEn: "Английский",
       langRu: "Русский",
+      buttonStyle: "Стиль кнопки:",
+      styleIconOnly: "Только иконка",
+      styleIconAndText: "Иконка и текст",
+      styleTextOnly: "Только текст",
+      buttonText: "Скопировать теги",
       saveButton: "Сохранить",
       savedButton: "Сохранено!",
       cancelButton: "Закрыть",
       savedNotification: "Настройки сохранены!",
       reloadNotice: "ВНИМАНИЕ: Для смены языка требуется перезагрузка страницы",
-    },
+    }
   };
 
   // ===== CORE SETTINGS =====
@@ -101,15 +89,8 @@
     addCommas: true,
     escapeParentheses: true,
     replaceUnderscores: true,
-    buttonOpacity: 0.3,
-    buttonSize: 28,
-    iconScale: 1.0,
-    buttonPosition: "bottom-right",
-    buttonColor: "#000000",
-    buttonHoverColor: "#4CAF50",
-    iconColor: "#FFFFFF",
-    buttonShape: "rounded-square",
-    language: "auto"
+    language: "auto",
+    buttonStyle: "icon-only"
   };
 
   const SETTINGS = {
@@ -142,44 +123,63 @@
   let styleElement = null;
 
   function applyGlobalStyles() {
-    const borderRadius =
-          SETTINGS.buttonShape === "circle"
-    ? "50%"
-    : SETTINGS.buttonShape === "square"
-    ? "0"
-    : "4px";
-
-    const baseIconSize = 20;
-    const scaledIconSize = baseIconSize * SETTINGS.iconScale;
-
     const css = `
+      .tippy-box[data-theme~="post-tooltip"] .tippy-content .post-tooltip-body {
+        max-height: 80px;
+      }
       .tag-copy-btn {
         position: absolute;
         display: flex;
+        background: unset !important;
+        color: var(--muted-text-color);
         align-items: center;
         justify-content: center;
         cursor: pointer;
         z-index: 1000;
-        border: none;
+        border: none !important;
         transition: all 0.3s;
-        border-radius: ${borderRadius};
-        background: ${SETTINGS.buttonColor};
-        opacity: ${SETTINGS.buttonOpacity};
+        border-radius: 4px;
         padding: 0;
-        width: ${SETTINGS.buttonSize}px;
-        height: ${SETTINGS.buttonSize}px;
+        width: 28px;
+        height: 28px;
+        box-shadow: unset !important;
+        gap: .2rem;
+        bottom: 5px;
+        right: 5px;
       }
 
-      .tag-copy-btn:hover { opacity: 0.9; transform: scale(1.15); background: ${SETTINGS.buttonHoverColor} !important; }
+      .tag-copy-btn.with-text {
+        width: auto;
+      }
 
-      .tag-copy-btn.copied { background: #2196F3 !important; }
+      .tag-copy-btn.with-text-left {
+        justify-content: flex-start;
+      }
+
+      .tag-copy-btn.with-text-right {
+        justify-content: flex-end;
+      }
+
+      .tag-copy-btn:hover {
+        color: #4CAF50 !important;
+      }
+
+      .tag-copy-btn.copied {
+        color: #2196F3 !important;
+      }
 
       .tag-copy-btn svg {
-        width: ${scaledIconSize}px;
-        height: ${scaledIconSize}px;
-        stroke: ${SETTINGS.iconColor};
+        height: .75rem;
         stroke-width: 2;
         flex-shrink: 0;
+      }
+
+      .tag-copy-btn .btn-text {
+        white-space: nowrap;
+      }
+
+      .fs-10 {
+        font-size: 10px
       }
 
       /* Fixed width notice */
@@ -216,30 +216,68 @@
   const checkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg>`;
 
   // ===== MEMORY LEAK PREVENTION =====
-  let observer = null;
-  let tooltipClickHandlers = new WeakMap();
+  // Переменные объявлены в секции инициализации
 
   // ===== MAIN FUNCTIONALITY =====
   function addCopyButton() {
-    document
-      .querySelectorAll('.tippy-box[data-state="visible"]')
-      .forEach((tooltip) => {
-      if (
-        tooltip.querySelector(".tag-copy-btn") ||
-        !tooltip.querySelector(".post-tooltip-body")
-      )
-        return;
-
+    // Find all post preview images
+    const postPreviews = document.querySelectorAll('article > .post-preview-container .post-preview-image');
+    
+    for (let i = 0; i < postPreviews.length; i++) {
+      const preview = postPreviews[i];
+      
+      // Skip if button already exists
+      if (preview.querySelector(".tag-copy-btn")) continue;
+      
+      // Get the post ID from the parent article
+      const article = preview.closest('article');
+      if (!article) continue;
+      
+      const postId = article.dataset.id;
+      if (!postId) continue;
+      
       const btn = document.createElement("button");
       btn.className = "tag-copy-btn";
       btn.title = t("title");
-      btn.innerHTML = copyIcon;
-      applyButtonPosition(btn);
-
+      btn.dataset.postId = postId; // Store post ID for later use
+      
+      // Устанавливаем содержимое кнопки в зависимости от настроек
+      switch (SETTINGS.buttonStyle) {
+        case "icon-and-text":
+          btn.innerHTML = copyIcon + `<span class="btn-text">${t("buttonText")}</span>`;
+          btn.classList.add("with-text");
+          break;
+        case "text-only":
+          btn.innerHTML = `<span class="btn-text">${t("buttonText")}</span>`;
+          btn.classList.add("with-text");
+          break;
+        default: // "icon-only"
+          btn.innerHTML = copyIcon;
+      }
+      
+      // Position button absolutely within the preview container
+      btn.style.position = "absolute";
+      btn.style.bottom = "5px";
+      btn.style.right = "5px";
+      btn.style.zIndex = "10";
+      
       // Create a dedicated handler for this button
       const clickHandler = async (e) => {
         e.stopPropagation();
-        const tags = Array.from(tooltip.querySelectorAll(".search-tag"))
+        const postId = btn.dataset.postId;
+        
+        // Find the post tooltip for this ID
+        const tooltip = document.querySelector(`.tippy-box[data-state="visible"] .post-tooltip-body[data-post-id="${postId}"]`);
+        if (!tooltip) {
+          // Alternative: try to find any visible tooltip
+          const tooltips = document.querySelectorAll('.tippy-box[data-state="visible"] .post-tooltip-body');
+          if (tooltips.length === 0) return;
+          tooltipBody = tooltips[0];
+        } else {
+          tooltipBody = tooltip;
+        }
+        
+        const tags = Array.from(tooltipBody.querySelectorAll(".search-tag"))
         .map((tag) => {
           let text = tag.textContent.trim();
           // Замена нижних подчеркиваний на пробелы
@@ -247,7 +285,7 @@
             text = text.replace(/_/g, ' ');
           }
           if (SETTINGS.escapeParentheses) {
-            text = text.replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+            text = text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
           }
           return text;
         })
@@ -264,35 +302,26 @@
       // Store handler in WeakMap for potential future cleanup
       tooltipClickHandlers.set(btn, clickHandler);
       btn.addEventListener("click", clickHandler);
-
-      tooltip.querySelector(".tippy-content").appendChild(btn);
-    });
+      
+      // Add button to the preview container
+      preview.style.position = "relative"; // Ensure container is positioned for absolute button
+      preview.appendChild(btn);
+    }
   }
 
-  function applyButtonPosition(btn) {
-    const offset = "5px";
-    btn.style.top = "auto";
-    btn.style.bottom = "auto";
-    btn.style.left = "auto";
-    btn.style.right = "auto";
-
-    switch (SETTINGS.buttonPosition) {
-      case "top-left":
-        btn.style.top = offset;
-        btn.style.left = offset;
-        break;
-      case "top-right":
-        btn.style.top = offset;
-        btn.style.right = offset;
-        break;
-      case "bottom-left":
-        btn.style.bottom = offset;
-        btn.style.left = offset;
-        break;
-      default:
-        btn.style.bottom = offset;
-        btn.style.right = offset;
+  // Функция для очистки обработчиков событий
+  function cleanupEventHandlers() {
+    // Очищаем все обработчики событий для кнопок
+    for (const [btn, handler] of tooltipClickHandlers) {
+      btn.removeEventListener("click", handler);
     }
+    // Очищаем WeakMap
+    tooltipClickHandlers = new WeakMap();
+  }
+
+  // Button positioning is now handled via CSS when adding to preview container
+  function applyButtonPosition(btn) {
+    // No longer needed as we position buttons absolutely in the preview container
   }
 
   function showFeedback(btn) {
@@ -331,234 +360,108 @@
       editor.innerHTML = `
         <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%); padding:20px;padding-top: 15px;border:1px solid ${
           isDarkMode ? "var(--default-border-color)" : "#ddd"
-    };
+        };
           border-radius:8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;z-index:9999; font-family:Arial,sans-serif;width:500px;max-width:90vw;max-height:90vh;
           overflow-y:auto;color:${
             isDarkMode ? "#e0e0e0" : "#333"
-    }; background:${
+        }; background:${
         isDarkMode ? "var(--post-tooltip-background-color)" : "white"
-    }">
+        }">
 
           <h2 style="margin:0 0 20px 0;text-align:center;color:${
             isDarkMode ? "var(--header-color)" : "#000"
-    }">${t("settings")}</h2>
+        }">${t("settings")}</h2>
 
           <fieldset style="margin-bottom:25px; border:1px solid ${
             isDarkMode ? "var(--default-border-color)" : "#ddd"
-    }; border-radius:6px; padding:15px">
+        }; border-radius:6px; padding:15px">
             <legend style="color:${
               isDarkMode ? "var(--header-color)" : "#000"
-    }; padding:0 8px"><strong>${t("formatting")}</strong></legend>
+        }; padding:0 8px"><strong>${t("formatting")}</strong></legend>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">${t("addCommas")}</label>
+        }; margin-right:15px">${t("addCommas")}</label>
               <input type="checkbox" id="addCommas" ${
                 SETTINGS.addCommas ? "checked" : ""
-    } style="transform: scale(1.3);">
+        } style="transform: scale(1.3);">
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">${t("escapeParentheses")}</label>
+        }; margin-right:15px">${t("escapeParentheses")}</label>
               <input type="checkbox" id="escapeParentheses" ${
                 SETTINGS.escapeParentheses ? "checked" : ""
-    } style="transform: scale(1.3);">
+        } style="transform: scale(1.3);">
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">${t("replaceUnderscores")}</label>
+        }; margin-right:15px">${t("replaceUnderscores")}</label>
               <input type="checkbox" id="replaceUnderscores" ${
                 SETTINGS.replaceUnderscores ? "checked" : ""
-    } style="transform: scale(1.3);">
+        } style="transform: scale(1.3);">
             </div>
           </fieldset>
 
           <fieldset style="margin-bottom:25px; border:1px solid ${
             isDarkMode ? "var(--default-border-color)" : "#ddd"
-    }; border-radius:6px; padding:15px">
+        }; border-radius:6px; padding:15px">
             <legend style="color:${
               isDarkMode ? "var(--header-color)" : "#000"
-    }; padding:0 8px"><strong>${t("appearance")}</strong></legend>
+        }; padding:0 8px"><strong>${t("appearance")}</strong></legend>
 
-            <!-- Button Opacity -->
+            <!-- Button Style -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("buttonOpacity")}
+        }; margin-right:15px">
+                ${t("buttonStyle")}
               </label>
-              <input type="range" id="buttonOpacity" min="0.1" max="1.0" step="0.1" value="${
-                SETTINGS.buttonOpacity
-    }" style="width:60%; min-width:150px">
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px">
-              <div style="width:100%; text-align:right">
-                <span>10%</span>
-                <span id="opacityValue" style="margin:0 10px">${Math.round(
-        SETTINGS.buttonOpacity * 100
-      )}%</span>
-                <span>100%</span>
-              </div>
-            </div>
-
-            <!-- Button Size -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("buttonSize")}
-              </label>
-              <input type="range" id="buttonSize" min="16" max="50" step="2" value="${
-                SETTINGS.buttonSize
-    }" style="width:60%; min-width:150px">
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px">
-              <div style="width:100%; text-align:right">
-                <span>16px</span>
-                <span id="sizeValue" style="margin:0 10px">${
-                  SETTINGS.buttonSize
-    }px</span>
-                <span>50px</span>
-              </div>
-            </div>
-
-            <!-- Icon Scale -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("iconScale")}
-              </label>
-              <input type="range" id="iconScale" min="0.5" max="3.0" step="0.1" value="${
-                SETTINGS.iconScale
-    }" style="width:60%; min-width:150px">
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px">
-              <div style="width:100%; text-align:right">
-                <span>50%</span>
-                <span id="iconScaleValue" style="margin:0 10px">${Math.round(
-        SETTINGS.iconScale * 100
-      )}%</span>
-                <span>300%</span>
-              </div>
-            </div>
-
-            <!-- Button Position -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("buttonPosition")}
-              </label>
-              <select id="buttonPosition" style="width:60%; min-width:150px; background:${
+              <select id="buttonStyle" style="width:60%; min-width:150px; background:${
                 isDarkMode ? "var(--grey-7)" : "white"
-    }; color:${
+        }; color:${
         isDarkMode ? "#fff" : "#333"
-    }; padding:5px; border-radius:4px;">
-                <option value="top-left" ${
-                  SETTINGS.buttonPosition === "top-left" ? "selected" : ""
-    }>${t("positionTopLeft")}</option>
-                <option value="top-right" ${
-                  SETTINGS.buttonPosition === "top-right" ? "selected" : ""
-    }>${t("positionTopRight")}</option>
-                <option value="bottom-left" ${
-                  SETTINGS.buttonPosition === "bottom-left" ? "selected" : ""
-    }>${t("positionBottomLeft")}</option>
-                <option value="bottom-right" ${
-                  SETTINGS.buttonPosition === "bottom-right" ? "selected" : ""
-    }>${t("positionBottomRight")}</option>
-              </select>
-            </div>
-
-            <!-- Button Color -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("buttonColor")}
-              </label>
-              <input type="color" id="buttonColor" value="${
-                SETTINGS.buttonColor
-    }" style="width:60px; height:30px; border-radius:4px">
-            </div>
-
-            <!-- Button Hover Color -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("buttonHoverColor")}
-              </label>
-              <input type="color" id="buttonHoverColor" value="${
-                SETTINGS.buttonHoverColor
-    }" style="width:60px; height:30px; border-radius:4px">
-            </div>
-
-            <!-- Icon Color -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("iconColor")}
-              </label>
-              <input type="color" id="iconColor" value="${
-                SETTINGS.iconColor
-    }" style="width:60px; height:30px; border-radius:4px">
-            </div>
-
-            <!-- Button Shape -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
-                ${t("buttonShape")}
-              </label>
-              <select id="buttonShape" style="width:60%; min-width:150px; background:${
-                isDarkMode ? "var(--grey-7)" : "white"
-    }; color:${
-        isDarkMode ? "#fff" : "#333"
-    }; padding:5px; border-radius:4px;">
-                <option value="rounded-square" ${
-                  SETTINGS.buttonShape === "rounded-square" ? "selected" : ""
-    }>${t("shapeRounded")}</option>
-                <option value="circle" ${
-                  SETTINGS.buttonShape === "circle" ? "selected" : ""
-    }>${t("shapeCircle")}</option>
-                <option value="square" ${
-                  SETTINGS.buttonShape === "square" ? "selected" : ""
-    }>${t("shapeSquare")}</option>
+        }; padding:5px; border-radius:4px;">
+                <option value="icon-only" ${
+                  SETTINGS.buttonStyle === "icon-only" ? "selected" : ""
+        }>${t("styleIconOnly")}</option>
+                <option value="icon-and-text" ${
+                  SETTINGS.buttonStyle === "icon-and-text" ? "selected" : ""
+        }>${t("styleIconAndText")}</option>
+                <option value="text-only" ${
+                  SETTINGS.buttonStyle === "text-only" ? "selected" : ""
+        }>${t("styleTextOnly")}</option>
               </select>
             </div>
           </fieldset>
 
           <fieldset style="margin-bottom:25px; border:1px solid ${
             isDarkMode ? "var(--default-border-color)" : "#ddd"
-    }; border-radius:6px; padding:15px; position: relative;">
+        }; border-radius:6px; padding:15px; position: relative;">
             <legend style="color:${
               isDarkMode ? "var(--header-color)" : "#000"
-    }; padding:0 8px"><strong>${t("languageSettings")}</strong></legend>
+        }; padding:0 8px"><strong>${t("languageSettings")}</strong></legend>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
               <label style="color:${
                 isDarkMode ? "var(--grey-2)" : "#333"
-    }; margin-right:15px">
+        }; margin-right:15px">
                 ${t("language")}
               </label>
               <select id="language" style="width:60%; min-width:150px; background:${
                 isDarkMode ? "var(--grey-7)" : "white"
-    }; color:${
+        }; color:${
         isDarkMode ? "#fff" : "#333"
-    }; padding:5px; border-radius:4px">
+        }; padding:5px; border-radius:4px">
                 <option value="auto" ${
                   SETTINGS.language === "auto" ? "selected" : ""
-    }>${t("langAuto")}</option>
+        }>${t("langAuto")}</option>
                 <option value="en" ${
                   SETTINGS.language === "en" ? "selected" : ""
-    }>${t("langEn")}</option>
+        }>${t("langEn")}</option>
                 <option value="ru" ${
                   SETTINGS.language === "ru" ? "selected" : ""
-    }>${t("langRu")}</option>
+        }>${t("langRu")}</option>
               </select>
             </div>
             <div id="languageNotice" class="language-notice"
@@ -579,20 +482,6 @@
       `;
 
       // Update handlers
-      editor.querySelector("#buttonOpacity")?.addEventListener("input", () => {
-        editor.querySelector("#opacityValue").textContent =
-          Math.round(editor.querySelector("#buttonOpacity").value * 100) + "%";
-      });
-
-      editor.querySelector("#buttonSize")?.addEventListener("input", () => {
-        editor.querySelector("#sizeValue").textContent =
-          editor.querySelector("#buttonSize").value + "px";
-      });
-
-      editor.querySelector("#iconScale")?.addEventListener("input", () => {
-        editor.querySelector("#iconScaleValue").textContent =
-          Math.round(editor.querySelector("#iconScale").value * 100) + "%";
-      });
 
       // Show notice when language is changed
       editor.querySelector("#language")?.addEventListener("change", (e) => {
@@ -610,15 +499,8 @@
         addCommas: getInputValue("addCommas"),
         escapeParentheses: getInputValue("escapeParentheses"),
         replaceUnderscores: getInputValue("replaceUnderscores"),
-        buttonOpacity: getInputValue("buttonOpacity"),
-        buttonSize: getInputValue("buttonSize"),
-        iconScale: getInputValue("iconScale"),
-        buttonPosition: getInputValue("buttonPosition"),
-        buttonColor: getInputValue("buttonColor"),
-        buttonHoverColor: getInputValue("buttonHoverColor"),
-        iconColor: getInputValue("iconColor"),
-        buttonShape: getInputValue("buttonShape"),
         language: getInputValue("language"),
+        buttonStyle: getInputValue("buttonStyle"),
       };
 
       // Update global settings
@@ -629,7 +511,22 @@
       applyGlobalStyles();
       document.querySelectorAll(".tag-copy-btn").forEach((btn) => {
         btn.title = t("title");
-        applyButtonPosition(btn);
+        // Update button content based on new style
+        switch (SETTINGS.buttonStyle) {
+          case "icon-and-text":
+            btn.innerHTML = copyIcon + `<span class="btn-text">${t("buttonText")}</span>`;
+            btn.classList.add("with-text");
+            btn.classList.remove("with-text-left", "with-text-right");
+            break;
+          case "text-only":
+            btn.innerHTML = `<span class="btn-text">${t("buttonText")}</span>`;
+            btn.classList.add("with-text");
+            btn.classList.remove("with-text-left", "with-text-right");
+            break;
+          default: // "icon-only"
+            btn.innerHTML = copyIcon;
+            btn.classList.remove("with-text", "with-text-left", "with-text-right");
+        }
       });
 
       // Update button text
@@ -667,17 +564,27 @@
   // ===== INITIALIZATION =====
   GM_registerMenuCommand(t("settings"), openSettingsEditor);
 
-  // Optimized observer with better performance
+  // Global variables for observer and event handlers
+  let observer = null;
+  let tooltipClickHandlers = new WeakMap();
+  let throttleTimer = null;
+
+  // Optimized observer with throttling
   function initObserver() {
     if (observer) {
       observer.disconnect();
+      // Очищаем обработчики событий при повторной инициализации
+      cleanupEventHandlers();
     }
 
     observer = new MutationObserver(() => {
-      // Use requestAnimationFrame to debounce rapid mutations
-      requestAnimationFrame(() => {
+      // Throttling to reduce frequency of calls
+      if (throttleTimer) return;
+
+      throttleTimer = setTimeout(() => {
         addCopyButton();
-      });
+        throttleTimer = null;
+      }, 100); // Ограничиваем частоту вызовов до 10 раз в секунду
     });
 
     observer.observe(document.body, {
@@ -706,5 +613,11 @@
       observer.disconnect();
       observer = null;
     }
+    if (throttleTimer) {
+      clearTimeout(throttleTimer);
+      throttleTimer = null;
+    }
+    // Очищаем обработчики событий
+    cleanupEventHandlers();
   });
-})();
+})()
