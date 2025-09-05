@@ -2,7 +2,7 @@
 // @name            Booru Tags Hauler
 // @name:ru         Booru Tags Hauler
 // @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler
-// @version         1.9.5
+// @version         1.9.9
 // @description     Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 // @description:ru  Добавляет кнопку 'Скопировать все теги' во всплывающую подсказку при наведении на превью. Копируйте все теги картинки, не открывая её страницу! Существенная экономия времени.
 // @author          vanja-san
@@ -173,41 +173,51 @@
   // ===== UI COMPONENTS =====
   const copyIcon = createCopyIcon();
   const checkIcon = createCheckIcon();
-
-  function createCopyIcon() {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", "9");
-    rect.setAttribute("y", "9");
-    rect.setAttribute("width", "13");
-    rect.setAttribute("height", "13");
-    rect.setAttribute("rx", "2");
-
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1");
-
-    svg.appendChild(rect);
-    svg.appendChild(path);
-
+  
+  // Helper function to create SVG elements
+  function createSvgElement(tag, attrs = {}) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.keys(attrs).forEach(key => {
+      element.setAttribute(key, attrs[key]);
+    });
+    return element;
+  }
+  
+  // Helper function to create SVG icons with common attributes
+  function createSvgIcon(children = [], attrs = {}) {
+    const svg = createSvgElement("svg", {
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      ...attrs
+    });
+    
+    children.forEach(child => svg.appendChild(child));
     return svg;
   }
 
+  function createCopyIcon() {
+    const rect = createSvgElement("rect", {
+      x: "9",
+      y: "9",
+      width: "13",
+      height: "13",
+      rx: "2"
+    });
+    
+    const path = createSvgElement("path", {
+      d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+    });
+    
+    return createSvgIcon([rect, path]);
+  }
+
   function createCheckIcon() {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", "M20 6L9 17l-5-5");
-
-    svg.appendChild(path);
-
-    return svg;
+    const path = createSvgElement("path", {
+      d: "M20 6L9 17l-5-5"
+    });
+    
+    return createSvgIcon([path]);
   }
 
   // ===== MEMORY LEAK PREVENTION =====
@@ -335,10 +345,12 @@
     previewLink.appendChild(copyButton);
 
     // Position button in the bottom-right corner of the link
-    copyButton.style.position = 'absolute';
-    copyButton.style.bottom = '5px';
-    copyButton.style.right = '5px';
-    copyButton.style.zIndex = '10';
+    Object.assign(copyButton.style, {
+      position: 'absolute',
+      bottom: '5px',
+      right: '5px',
+      zIndex: '10'
+    });
   }
 
   function showButton(previewElement) {
@@ -429,7 +441,64 @@
 
     return element;
   }
+  
+  // Helper function to create checkbox setting
+  function createCheckboxSetting(id, labelKey, isChecked, isDarkMode) {
+    const container = createElement("div", {}, {
+      display: "flex",
+      alignItems: "center",
+      padding: "8px",
+      border: `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`,
+      borderRadius: "3px",
+      background: isDarkMode ? "var(--grey-7)" : "#f9f9f9",
+      cursor: "pointer",
+      marginBottom: "4px"
+    });
 
+    const input = createElement("input", {
+      type: "checkbox",
+      id: id
+    }, {
+      marginRight: "6px",
+      transform: "scale(1.1)"
+    });
+    if (isChecked) {
+      input.checked = true;
+    }
+    container.appendChild(input);
+
+    const label = createElement("label", { 
+      textContent: t(labelKey),
+      htmlFor: id
+    }, {
+      color: isDarkMode ? "var(--text-color)" : "#333",
+      cursor: "pointer",
+      flex: "1"
+    });
+    container.appendChild(label);
+
+    // Add click handler to container
+    container.addEventListener("click", (e) => {
+      // Don't trigger if clicking on the checkbox itself
+      if (e.target !== input) {
+        input.checked = !input.checked;
+      }
+    });
+
+    return { container, input, label };
+  }
+  
+  // Helper function to update button text with temporary feedback
+  function updateButtonTextWithFeedback(button, defaultText, feedbackText, className, duration = 3000) {
+    button.textContent = feedbackText;
+    if (className) button.classList.add(className);
+    
+    setTimeout(() => {
+      button.textContent = defaultText;
+      if (className) button.classList.remove(className);
+    }, duration);
+  }
+  
   function createSettingsEditor() {
     const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
@@ -471,178 +540,42 @@
     });
 
     // Add commas checkbox
-    const addCommasContainer = createElement("div", {}, {
-      display: "flex",
-      alignItems: "center",
-      padding: "8px",
-      border: `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`,
-      borderRadius: "3px",
-      background: isDarkMode ? "var(--grey-7)" : "#f9f9f9",
-      cursor: "pointer",
-      marginBottom: "0"
-    });
-
-    const addCommasInput = createElement("input", {
-      type: "checkbox",
-      id: "addCommas"
-    }, {
-      marginRight: "6px",
-      transform: "scale(1.1)"
-    });
-    if (SETTINGS.addCommas) {
-      addCommasInput.checked = true;
-    }
-    addCommasContainer.appendChild(addCommasInput);
-
-    const addCommasLabel = createElement("label", {
-      textContent: t("addCommas"),
-      htmlFor: "addCommas"
-    }, {
-      color: isDarkMode ? "var(--text-color)" : "#333",
-      cursor: "pointer",
-      flex: "1"
-    });
-    addCommasContainer.appendChild(addCommasLabel);
-
-    // Add click handler to container
-    addCommasContainer.addEventListener("click", (e) => {
-      // Don't trigger if clicking on the checkbox itself
-      if (e.target !== addCommasInput) {
-        addCommasInput.checked = !addCommasInput.checked;
-      }
-    });
+    const { container: addCommasContainer, input: addCommasInput } = createCheckboxSetting(
+      "addCommas", 
+      "addCommas", 
+      SETTINGS.addCommas, 
+      isDarkMode
+    );
 
     settingsContainer.appendChild(addCommasContainer);
 
     // Escape parentheses checkbox
-    const escapeParenthesesContainer = createElement("div", {}, {
-      display: "flex",
-      alignItems: "center",
-      padding: "8px",
-      border: `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`,
-      borderRadius: "3px",
-      background: isDarkMode ? "var(--grey-7)" : "#f9f9f9",
-      cursor: "pointer",
-      marginBottom: "0"
-    });
-
-    const escapeParenthesesInput = createElement("input", {
-      type: "checkbox",
-      id: "escapeParentheses"
-    }, {
-      marginRight: "6px",
-      transform: "scale(1.1)"
-    });
-    if (SETTINGS.escapeParentheses) {
-      escapeParenthesesInput.checked = true;
-    }
-    escapeParenthesesContainer.appendChild(escapeParenthesesInput);
-
-    const escapeParenthesesLabel = createElement("label", {
-      textContent: t("escapeParentheses"),
-      htmlFor: "escapeParentheses"
-    }, {
-      color: isDarkMode ? "var(--text-color)" : "#333",
-      cursor: "pointer",
-      flex: "1"
-    });
-    escapeParenthesesContainer.appendChild(escapeParenthesesLabel);
-
-    // Add click handler to container
-    escapeParenthesesContainer.addEventListener("click", (e) => {
-      // Don't trigger if clicking on the checkbox itself
-      if (e.target !== escapeParenthesesInput) {
-        escapeParenthesesInput.checked = !escapeParenthesesInput.checked;
-      }
-    });
+    const { container: escapeParenthesesContainer, input: escapeParenthesesInput } = createCheckboxSetting(
+      "escapeParentheses", 
+      "escapeParentheses", 
+      SETTINGS.escapeParentheses, 
+      isDarkMode
+    );
 
     settingsContainer.appendChild(escapeParenthesesContainer);
 
     // Escape colons checkbox
-    const escapeColonsContainer = createElement("div", {}, {
-      display: "flex",
-      alignItems: "center",
-      padding: "8px",
-      border: `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`,
-      borderRadius: "3px",
-      background: isDarkMode ? "var(--grey-7)" : "#f9f9f9",
-      cursor: "pointer",
-      marginBottom: "0"
-    });
-
-    const escapeColonsInput = createElement("input", {
-      type: "checkbox",
-      id: "escapeColons"
-    }, {
-      marginRight: "6px",
-      transform: "scale(1.1)"
-    });
-    if (SETTINGS.escapeColons) {
-      escapeColonsInput.checked = true;
-    }
-    escapeColonsContainer.appendChild(escapeColonsInput);
-
-    const escapeColonsLabel = createElement("label", {
-      textContent: t("escapeColons"),
-      htmlFor: "escapeColons"
-    }, {
-      color: isDarkMode ? "var(--text-color)" : "#333",
-      cursor: "pointer",
-      flex: "1"
-    });
-    escapeColonsContainer.appendChild(escapeColonsLabel);
-
-    // Add click handler to container
-    escapeColonsContainer.addEventListener("click", (e) => {
-      // Don't trigger if clicking on the checkbox itself
-      if (e.target !== escapeColonsInput) {
-        escapeColonsInput.checked = !escapeColonsInput.checked;
-      }
-    });
+    const { container: escapeColonsContainer, input: escapeColonsInput } = createCheckboxSetting(
+      "escapeColons", 
+      "escapeColons", 
+      SETTINGS.escapeColons, 
+      isDarkMode
+    );
 
     settingsContainer.appendChild(escapeColonsContainer);
 
     // Replace underscores checkbox
-    const replaceUnderscoresContainer = createElement("div", {}, {
-      display: "flex",
-      alignItems: "center",
-      padding: "8px",
-      border: `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`,
-      borderRadius: "3px",
-      background: isDarkMode ? "var(--grey-7)" : "#f9f9f9",
-      cursor: "pointer",
-      marginBottom: "0"
-    });
-
-    const replaceUnderscoresInput = createElement("input", {
-      type: "checkbox",
-      id: "replaceUnderscores"
-    }, {
-      marginRight: "6px",
-      transform: "scale(1.1)"
-    });
-    if (SETTINGS.replaceUnderscores) {
-      replaceUnderscoresInput.checked = true;
-    }
-    replaceUnderscoresContainer.appendChild(replaceUnderscoresInput);
-
-    const replaceUnderscoresLabel = createElement("label", {
-      textContent: t("replaceUnderscores"),
-      htmlFor: "replaceUnderscores"
-    }, {
-      color: isDarkMode ? "var(--text-color)" : "#333",
-      cursor: "pointer",
-      flex: "1"
-    });
-    replaceUnderscoresContainer.appendChild(replaceUnderscoresLabel);
-
-    // Add click handler to container
-    replaceUnderscoresContainer.addEventListener("click", (e) => {
-      // Don't trigger if clicking on the checkbox itself
-      if (e.target !== replaceUnderscoresInput) {
-        replaceUnderscoresInput.checked = !replaceUnderscoresInput.checked;
-      }
-    });
+    const { container: replaceUnderscoresContainer, input: replaceUnderscoresInput } = createCheckboxSetting(
+      "replaceUnderscores", 
+      "replaceUnderscores", 
+      SETTINGS.replaceUnderscores, 
+      isDarkMode
+    );
 
     settingsContainer.appendChild(replaceUnderscoresContainer);
 
@@ -784,16 +717,8 @@
         btn.appendChild(iconClone);
       });
 
-      // Update button text
-      const originalText = saveButton.textContent;
-      saveButton.textContent = t("savedButton");
-      saveButton.classList.add("saved");
-
-      // Revert after 3 seconds
-      setTimeout(() => {
-        saveButton.textContent = t("saveButton");
-        saveButton.classList.remove("saved");
-      }, 3000);
+      // Update button text with feedback
+      updateButtonTextWithFeedback(saveButton, t("saveButton"), t("savedButton"), "saved", 3000);
     };
 
     saveButton.addEventListener("click", saveSettings);
