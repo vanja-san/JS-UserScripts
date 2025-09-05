@@ -1,93 +1,94 @@
-# Qwen Configuration
+# Конфигурация Qwen
 
-## Qwen Code Preferences
-- Language: Russian
-- Coding Style: Follow project conventions
-- Documentation: Prefer markdown format
+## Предпочтения Qwen Code
+- Язык: Русский
+- Стиль кодирования: Следовать соглашениям проекта
+- Документация: Предпочтительно формат markdown
 
-## Project Information
-- Project: JS-UserScripts
-- Description: A collection of userscripts
-- Created: September 4, 2025
+## Информация о проекте
+- Проект: JS-UserScripts
+- Описание: Коллекция пользовательских скриптов
+- Создан: 4 сентября 2025
 
-## Basic Settings
+## Базовые настройки
 
-### File Organization
-- Main scripts directory: `scripts/`
-- Each script should have its own subdirectory
-- Required files per script:
-  - `*.user.js` (the main script file)
-  - `ReadMe.md` (documentation for the script)
+### Организация файлов
+- Основная директория скриптов: `scripts/`
+- Каждый скрипт должен находиться в своей поддиректории
+- Обязательные файлы для каждого скрипта:
+  - `*.user.js` (основной файл скрипта)
+  - `ReadMe.md` (документация для скрипта)
 
-### Script Standards
-- All scripts should follow userscript standards
-- Include proper metadata blocks
-- Use consistent naming conventions
-- Maintain documentation in English
+### Стандарты скриптов
+- Все скрипты должны соответствовать стандартам пользовательских скриптов
+- Включать правильные блоки метаданных
+- Использовать согласованные соглашения об именовании
+- Поддерживать документацию на английском языке
 
-### Development Guidelines
-- Follow existing code style in the project
-- Ensure scripts are well-documented
-- Test scripts before committing
-- Keep dependencies minimal
-- Write and run tests for new features
-- Verify cross-browser compatibility
-- Check for console errors and warnings
-- Ensure compatibility with browser extensions: ScriptCat, Tampermonkey, Violentmonkey
-- Use modern but efficient approaches
-- Research solutions in open source communities where people choose the best fixes for issues
+### Руководство по разработке
+- Соблюдайте существующий стиль кода в проекте
+- Убедитесь, что скрипты хорошо задокументированы
+- Тестируйте скрипты перед коммитом
+- Сведите к минимуму зависимости
+- Пишите и запускайте тесты для новых функций
+- Проверяйте совместимость с различными браузерами
+- Проверяйте наличие ошибок и предупреждений в консоли
+- Обеспечьте совместимость с расширениями браузера: ScriptCat, Tampermonkey, Violentmonkey
+- Используйте современные, но эффективные подходы
+- Исследуйте решения в сообществах с открытым исходным кодом, где люди выбирают лучшие исправления для проблем
+- После внесения изменений протестируйте код пользовательского скрипта с помощью команды `node --test ...` или с использованием фреймворков для тестирования JavaScript
 
-### Code Review Practices
-- All changes must be reviewed before merging
-- Review code for adherence to project standards
-- Check for potential bugs and security issues
-- Ensure documentation is updated with code changes
-- Verify tests are included for new functionality
+### Практики код ревью
+- Все изменения должны быть проверены перед слиянием
+- Проверяйте код на соответствие стандартам проекта
+- Ищите потенциальные ошибки и проблемы безопасности
+- Убедитесь, что документация обновлена вместе с изменениями кода
+- Проверяйте, что тесты включены для новой функциональности
 
-### Performance Optimization Guidelines
-- Minimize DOM manipulation
-- Use efficient selectors and caching when possible
-- Avoid unnecessary computations in loops
-- Optimize resource loading (images, external scripts)
-- Profile performance regularly using browser dev tools
+### Рекомендации по оптимизации производительности
+- Минимизируйте манипуляции с DOM
+- Используйте эффективные селекторы и кэширование, когда это возможно
+- Избегайте ненужных вычислений в циклах
+- Оптимизируйте загрузку ресурсов (изображения, внешние скрипты)
+- Регулярно профилируйте производительность с помощью инструментов разработчика браузера
 
-### Security Best Practices
-- Avoid using eval() and similar functions
-- Sanitize user inputs and data from external sources
-- Use secure methods for handling sensitive data
-- Regularly update dependencies to patch known vulnerabilities
-- Implement Content Security Policy (CSP) where applicable
+### Рекомендации по безопасности
+- Избегайте использования eval() и подобных функций
+- Очищайте пользовательский ввод и данные из внешних источников
+- Используйте безопасные методы для обработки конфиденциальных данных
+- Регулярно обновляйте зависимости для устранения известных уязвимостей
+- Реализуйте политику безопасности контента (CSP), где это применимо
 
-### Versioning Strategy
-- Follow semantic versioning (MAJOR.MINOR.PATCH)
-- Increment version numbers according to change impact
-- Document breaking changes in release notes
-- Maintain backward compatibility when possible
-- Tag releases in Git with version numbers
+### Стратегия версионирования
+- Следуйте семантическому версионированию (MAJOR.MINOR.PATCH)
+- Увеличивайте номера версий в соответствии с влиянием изменений
+- Документируйте критические изменения в заметках о релизе
+- Поддерживайте обратную совместимость, когда это возможно
+- Помечайте релизы в Git номерами версий
 
-### Dependency Management
-- Audit dependencies regularly for security vulnerabilities
-- Remove unused dependencies
-- Prefer lightweight libraries over feature-heavy alternatives
-- Document the purpose of each dependency
-- Monitor for updates and apply security patches promptly
+### Управление зависимостями
+- Регулярно проверяйте зависимости на наличие уязвимостей безопасности
+- Удаляйте неиспользуемые зависимости
+- Предпочтение отдается легковесным библиотекам вместо тяжелых альтернатив
+- Документируйте назначение каждой зависимости
+- Следите за обновлениями и своевременно применяйте патчи безопасности
 
-### Error Handling Standards
-- Implement proper try/catch blocks for error-prone operations
-- Provide meaningful error messages for debugging
-- Log errors appropriately without exposing sensitive information
-- Handle asynchronous errors properly
-- Gracefully degrade functionality when errors occur
+### Стандарты обработки ошибок
+- Реализуйте правильные блоки try/catch для операций, подверженных ошибкам
+- Предоставляйте содержательные сообщения об ошибках для отладки
+- Логгируйте ошибки соответствующим образом, не раскрывая конфиденциальную информацию
+- Правильно обрабатывайте асинхронные ошибки
+- Обеспечьте graceful degradation функциональности при возникновении ошибок
 
-### Accessibility Guidelines
-- Ensure proper contrast ratios for text and UI elements
-- Use semantic HTML where possible
-- Provide alternative text for images
-- Ensure keyboard navigation support
-- Test with screen readers and other assistive technologies
+### Рекомендации по доступности
+- Обеспечьте надлежащие коэффициенты контрастности для текста и элементов интерфейса
+- Используйте семантический HTML, где это возможно
+- Предоставляйте альтернативный текст для изображений
+- Обеспечьте поддержку навигации с клавиатуры
+- Тестируйте с помощью программ чтения с экрана и других вспомогательных технологий
 
-### Git Workflow
-- Commit messages in English
-- Use meaningful commit messages
-- Push changes regularly
-- Create separate branches for major features
+### Рабочий процесс Git
+- Сообщения коммитов на английском языке
+- Используйте содержательные сообщения коммитов
+- Регулярно пушьте изменения
+- Создавайте отдельные ветки для основных функций
