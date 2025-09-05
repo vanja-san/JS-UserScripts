@@ -2,7 +2,7 @@
 // @name            Booru Tags Hauler
 // @name:ru         Booru Tags Hauler
 // @namespace       https://github.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler
-// @version         1.1.6
+// @version         1.5.8
 // @description     Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all of a tooltip tags instantly!
 // @description:ru  Добавляет кнопку 'Скопировать все теги' во всплывающую подсказку при наведении на превью. Копируйте все теги картинки, не открывая её страницу! Существенная экономия времени.
 // @author          vanja-san
@@ -31,21 +31,13 @@
       formatting: "Tag Formatting",
       addCommas: "Add commas between tags",
       escapeParentheses: "Escape parentheses (\\( \\))",
+      escapeColons: "Escape colons (\\:)",
       replaceUnderscores: "Replace Underscores",
-      appearance: "Button Appearance",
-      
-      positionLeft: "Left",
-      positionCenter: "Center",
-      positionRight: "Right",
       languageSettings: "Language Settings",
       language: "Language:",
       langAuto: "System default",
       langEn: "English",
       langRu: "Russian",
-      buttonStyle: "Button style:",
-      styleIconOnly: "Icon only",
-      styleIconAndText: "Icon and text",
-      styleTextOnly: "Text only",
       buttonText: "Copy tags",
       saveButton: "Save",
       savedButton: "Saved!",
@@ -60,21 +52,13 @@
       formatting: "Форматирование тегов",
       addCommas: "Добавлять запятые между тегами",
       escapeParentheses: "Экранировать скобки (\\( \\))",
+      escapeColons: "Экранировать двоеточия (\\:)",
       replaceUnderscores: "Заменять нижнии подчеркивания пробелами",
-      appearance: "Внешний вид кнопки",
-      
-      positionLeft: "Слева",
-      positionCenter: "По центру",
-      positionRight: "Справа",
       languageSettings: "Настройки языка",
       language: "Язык:",
       langAuto: "Как в системе",
       langEn: "Английский",
       langRu: "Русский",
-      buttonStyle: "Стиль кнопки:",
-      styleIconOnly: "Только иконка",
-      styleIconAndText: "Иконка и текст",
-      styleTextOnly: "Только текст",
       buttonText: "Скопировать теги",
       saveButton: "Сохранить",
       savedButton: "Сохранено!",
@@ -88,9 +72,9 @@
   const DEFAULT_SETTINGS = {
     addCommas: true,
     escapeParentheses: true,
+    escapeColons: false,
     replaceUnderscores: true,
-    language: "auto",
-    buttonStyle: "icon-only"
+    language: "auto"
   };
 
   const SETTINGS = {
@@ -120,32 +104,32 @@
   updateLanguage();
 
   // ===== STYLE MANAGEMENT =====
-  let styleElement = null;
-
   function applyGlobalStyles() {
-    const css = `
-      .tippy-box[data-theme~="post-tooltip"] .tippy-content .post-tooltip-body {
-        max-height: 80px;
-      }
+    GM_addStyle(`
       .tag-copy-btn {
-        position: absolute;
         display: flex;
-        background: unset !important;
+        background: rgba(0, 0, 0, 0.7) !important;
         color: var(--muted-text-color);
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        z-index: 1000;
+        z-index: 10000;
         border: none !important;
-        transition: all 0.3s;
         border-radius: 4px;
         padding: 0;
         width: 28px;
         height: 28px;
-        box-shadow: unset !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
         gap: .2rem;
-        bottom: 5px;
-        right: 5px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease-in-out, background 0.2s ease-in-out, color 0.2s ease-in-out;
+        will-change: opacity;
+      }
+
+      .tag-copy-btn.visible {
+        opacity: 1;
+        pointer-events: auto;
       }
 
       .tag-copy-btn.with-text {
@@ -162,6 +146,7 @@
 
       .tag-copy-btn:hover {
         color: #4CAF50 !important;
+        background: rgba(0, 0, 0, 0.9) !important;
       }
 
       .tag-copy-btn.copied {
@@ -176,10 +161,6 @@
 
       .tag-copy-btn .btn-text {
         white-space: nowrap;
-      }
-
-      .fs-10 {
-        font-size: 10px
       }
 
       /* Fixed width notice */
@@ -199,152 +180,505 @@
 
       /* Save button feedback */
       #saveSettings.saved { background: #2196F3 !important; }
-    `;
-
-    if (styleElement) styleElement.remove();
-
-    styleElement = document.createElement("style");
-    styleElement.id = "tag-copier-styles";
-    styleElement.textContent = css;
-    document.head.appendChild(styleElement);
+    `);
   }
 
   applyGlobalStyles();
 
   // ===== UI COMPONENTS =====
-  const copyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-  const checkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg>`;
+  const copyIcon = createCopyIcon();
+  const checkIcon = createCheckIcon();
+  
+  function createCopyIcon() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", "9");
+    rect.setAttribute("y", "9");
+    rect.setAttribute("width", "13");
+    rect.setAttribute("height", "13");
+    rect.setAttribute("rx", "2");
+    
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1");
+    
+    svg.appendChild(rect);
+    svg.appendChild(path);
+    
+    return svg;
+  }
+  
+  function createCheckIcon() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M20 6L9 17l-5-5");
+    
+    svg.appendChild(path);
+    
+    return svg;
+  }
 
   // ===== MEMORY LEAK PREVENTION =====
-  // Переменные объявлены в секции инициализации
+  let currentPreview = null;
+  let copyButton = null;
+  let hideTimeout = null;
+  let isMouseOverPreview = false;
+  let isMouseOverButton = false;
+  let currentPreviewLink = null;
 
   // ===== MAIN FUNCTIONALITY =====
-  function addCopyButton() {
-    // Find all post preview images
-    const postPreviews = document.querySelectorAll('article > .post-preview-container .post-preview-image');
+  function initCopyButton() {
+    // Create a single global copy button
+    copyButton = document.createElement("button");
+    copyButton.className = "tag-copy-btn";
+    copyButton.title = t("title");
     
-    for (let i = 0; i < postPreviews.length; i++) {
-      const preview = postPreviews[i];
+    // Clone the copy icon and append it to the button
+    const iconClone = copyIcon.cloneNode(true);
+    copyButton.appendChild(iconClone);
+    
+    // Add click handler
+    copyButton.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
       
-      // Skip if button already exists
-      if (preview.querySelector(".tag-copy-btn")) continue;
+      if (!currentPreview) return;
       
-      // Get the post ID from the parent article
-      const article = preview.closest('article');
-      if (!article) continue;
+      // Get the post ID and tags from the current preview's parent article
+      const article = currentPreview.closest('article');
+      if (!article) return;
+
+      const tagsString = article.dataset.tags;
+      if (!tagsString) return;
+
+      // Format tags according to settings
+      let formattedTags = tagsString;
       
-      const postId = article.dataset.id;
-      if (!postId) continue;
-      
-      const btn = document.createElement("button");
-      btn.className = "tag-copy-btn";
-      btn.title = t("title");
-      btn.dataset.postId = postId; // Store post ID for later use
-      
-      // Устанавливаем содержимое кнопки в зависимости от настроек
-      switch (SETTINGS.buttonStyle) {
-        case "icon-and-text":
-          btn.innerHTML = copyIcon + `<span class="btn-text">${t("buttonText")}</span>`;
-          btn.classList.add("with-text");
-          break;
-        case "text-only":
-          btn.innerHTML = `<span class="btn-text">${t("buttonText")}</span>`;
-          btn.classList.add("with-text");
-          break;
-        default: // "icon-only"
-          btn.innerHTML = copyIcon;
+      // Apply transformations in correct order
+      if (SETTINGS.escapeParentheses) {
+        formattedTags = formattedTags.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
       }
       
-      // Position button absolutely within the preview container
-      btn.style.position = "absolute";
-      btn.style.bottom = "5px";
-      btn.style.right = "5px";
-      btn.style.zIndex = "10";
+      if (SETTINGS.escapeColons) {
+        formattedTags = formattedTags.replace(/:/g, "\\:");
+      }
       
-      // Create a dedicated handler for this button
-      const clickHandler = async (e) => {
-        e.stopPropagation();
-        const postId = btn.dataset.postId;
-        
-        // Find the post tooltip for this ID
-        const tooltip = document.querySelector(`.tippy-box[data-state="visible"] .post-tooltip-body[data-post-id="${postId}"]`);
-        if (!tooltip) {
-          // Alternative: try to find any visible tooltip
-          const tooltips = document.querySelectorAll('.tippy-box[data-state="visible"] .post-tooltip-body');
-          if (tooltips.length === 0) return;
-          tooltipBody = tooltips[0];
-        } else {
-          tooltipBody = tooltip;
-        }
-        
-        const tags = Array.from(tooltipBody.querySelectorAll(".search-tag"))
-        .map((tag) => {
-          let text = tag.textContent.trim();
-          // Замена нижних подчеркиваний на пробелы
+      // Split tags by space, process each tag, then join back
+      if (SETTINGS.replaceUnderscores || SETTINGS.addCommas) {
+        const tags = formattedTags.split(' ');
+        const processedTags = tags.map(tag => {
+          // Replace underscores with spaces within each tag
           if (SETTINGS.replaceUnderscores) {
-            text = text.replace(/_/g, ' ');
+            tag = tag.replace(/_/g, ' ');
           }
-          if (SETTINGS.escapeParentheses) {
-            text = text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-          }
-          return text;
-        })
-        .join(SETTINGS.addCommas ? ", " : " ");
-
-        try {
-          await navigator.clipboard.writeText(tags);
-          showFeedback(btn);
-        } catch (err) {
-          console.error("Copy error:", err);
+          return tag;
+        });
+        
+        // Join tags with comma+space if needed, otherwise with space
+        if (SETTINGS.addCommas) {
+          formattedTags = processedTags.join(', ');
+        } else {
+          formattedTags = processedTags.join(' ');
         }
-      };
+      }
 
-      // Store handler in WeakMap for potential future cleanup
-      tooltipClickHandlers.set(btn, clickHandler);
-      btn.addEventListener("click", clickHandler);
-      
-      // Add button to the preview container
-      preview.style.position = "relative"; // Ensure container is positioned for absolute button
-      preview.appendChild(btn);
-    }
-  }
-
-  // Функция для очистки обработчиков событий
-  function cleanupEventHandlers() {
-    // Очищаем все обработчики событий для кнопок
-    for (const [btn, handler] of tooltipClickHandlers) {
-      btn.removeEventListener("click", handler);
-    }
-    // Очищаем WeakMap
-    tooltipClickHandlers = new WeakMap();
-  }
-
-  // Button positioning is now handled via CSS when adding to preview container
-  function applyButtonPosition(btn) {
-    // No longer needed as we position buttons absolutely in the preview container
+      try {
+        await navigator.clipboard.writeText(formattedTags);
+        showFeedback(copyButton);
+      } catch (err) {
+        console.error("Copy error:", err);
+      }
+    });
+    
+    // Add mouse events to the button itself
+    copyButton.addEventListener('mouseenter', () => {
+      // Clear any pending hide timeout when mouse enters the button
+      isMouseOverButton = true;
+      clearHideTimeout();
+    });
+    
+    copyButton.addEventListener('mouseleave', (e) => {
+      isMouseOverButton = false;
+      // Only hide if mouse is not over preview
+      if (!isMouseOverPreview) {
+        scheduleHideButton();
+      }
+    });
   }
 
   function showFeedback(btn) {
-    const originalIcon = btn.innerHTML;
-    btn.innerHTML = checkIcon;
+    // Store the original content
+    const originalContent = btn.cloneNode(true);
+    
+    // Clear the button and add check icon
+    btn.innerHTML = '';
+    const checkClone = checkIcon.cloneNode(true);
+    btn.appendChild(checkClone);
     btn.classList.add("copied");
+    
+    // Change background to indicate successful copy
+    const originalBg = btn.style.background;
+    btn.style.background = "rgba(33, 150, 243, 0.9)"; // Blue color for success
 
     setTimeout(() => {
-      btn.innerHTML = originalIcon;
+      // Restore original content
+      btn.innerHTML = '';
+      const originalIcon = originalContent.firstChild.cloneNode(true);
+      btn.appendChild(originalIcon);
       btn.classList.remove("copied");
+      // Restore original background
+      btn.style.background = originalBg || "rgba(0, 0, 0, 0.7)";
     }, 2000);
+  }
+  
+  function positionButton(previewElement) {
+    if (!copyButton || !previewElement) return;
+    
+    // Find the post-preview-link element
+    const previewLink = previewElement.querySelector('.post-preview-link');
+    if (!previewLink) return;
+    
+    // Append button directly to the preview link
+    previewLink.style.position = 'relative';
+    previewLink.appendChild(copyButton);
+    
+    // Position button in the bottom-right corner of the link
+    copyButton.style.position = 'absolute';
+    copyButton.style.bottom = '5px';
+    copyButton.style.right = '5px';
+    copyButton.style.zIndex = '10';
+  }
+  
+  function showButton(previewElement) {
+    if (!copyButton) return;
+    
+    // Clear any pending hide timeout
+    clearHideTimeout();
+    
+    currentPreview = previewElement;
+    positionButton(previewElement);
+    
+    // Add a small delay before showing to prevent flickering
+    hideTimeout = setTimeout(() => {
+      copyButton.classList.add('visible');
+    }, 50);
+  }
+  
+  function scheduleHideButton() {
+    // Clear any pending hide timeout
+    clearHideTimeout();
+    
+    // Schedule hiding with delay
+    hideTimeout = setTimeout(() => {
+      if (!isMouseOverPreview && !isMouseOverButton) {
+        hideButton();
+      }
+    }, 200);
+  }
+  
+  function clearHideTimeout() {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+  }
+  
+  function hideButton() {
+    if (!copyButton) return;
+    
+    clearHideTimeout();
+    copyButton.classList.remove('visible');
+    currentPreview = null;
+  }
+  
+  function attachHoverHandlers() {
+    // Attach hover handlers to all post previews
+    const postPreviews = document.querySelectorAll('article > .post-preview-container');
+    
+    postPreviews.forEach(preview => {
+      preview.addEventListener('mouseenter', () => {
+        isMouseOverPreview = true;
+        showButton(preview);
+      });
+      
+      preview.addEventListener('mouseleave', (e) => {
+        isMouseOverPreview = false;
+        // Only schedule hide if mouse is not over button
+        if (!isMouseOverButton) {
+          scheduleHideButton();
+        }
+      });
+    });
+  }
+  
+  function addCopyButton() {
+    // Attach hover handlers to existing previews
+    attachHoverHandlers();
   }
 
   // ===== SETTINGS EDITOR =====
   function createSettingsEditor() {
-    const isDarkMode = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
+    const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const editor = document.createElement("div");
     editor.id = "tag-copier-editor";
 
+    // Create editor content using DOM methods
+    const editorContainer = document.createElement("div");
+    editorContainer.style.position = "fixed";
+    editorContainer.style.top = "50%";
+    editorContainer.style.left = "50%";
+    editorContainer.style.transform = "translate(-50%, -50%)";
+    editorContainer.style.padding = "10px";
+    editorContainer.style.border = `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`;
+    editorContainer.style.borderRadius = "8px";
+    editorContainer.style.boxShadow = "rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px";
+    editorContainer.style.zIndex = "9999";
+    editorContainer.style.fontFamily = "Arial,sans-serif";
+    editorContainer.style.width = "500px";
+    editorContainer.style.maxWidth = "90vw";
+    editorContainer.style.maxHeight = "90vh";
+    editorContainer.style.overflowY = "auto";
+    editorContainer.style.color = isDarkMode ? "#e0e0e0" : "#333";
+    editorContainer.style.background = isDarkMode ? "var(--post-tooltip-background-color)" : "white";
+
+    const heading = document.createElement("h2");
+    heading.style.margin = "0 0 20px 0";
+    heading.style.textAlign = "center";
+    heading.style.color = isDarkMode ? "var(--header-color)" : "#000";
+    heading.textContent = t("settings");
+    editorContainer.appendChild(heading);
+
+    // Formatting fieldset
+    const formattingFieldset = document.createElement("fieldset");
+    formattingFieldset.style.marginBottom = "10px";
+    formattingFieldset.style.border = `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`;
+    formattingFieldset.style.borderRadius = "6px";
+    formattingFieldset.style.padding = "20px 15px";
+
+    const formattingLegend = document.createElement("legend");
+    formattingLegend.style.color = isDarkMode ? "var(--header-color)" : "#000";
+    formattingLegend.style.padding = "0 8px";
+    const formattingLegendStrong = document.createElement("strong");
+    formattingLegendStrong.textContent = t("formatting");
+    formattingLegend.appendChild(formattingLegendStrong);
+    formattingFieldset.appendChild(formattingLegend);
+
+    // Add commas checkbox
+    const addCommasContainer = document.createElement("div");
+    addCommasContainer.style.display = "flex";
+    addCommasContainer.style.justifyContent = "space-between";
+    addCommasContainer.style.alignItems = "center";
+    addCommasContainer.style.marginBottom = "15px";
+
+    const addCommasLabel = document.createElement("label");
+    addCommasLabel.style.color = isDarkMode ? "var(--grey-2)" : "#333";
+    addCommasLabel.style.marginRight = "15px";
+    addCommasLabel.textContent = t("addCommas");
+    addCommasContainer.appendChild(addCommasLabel);
+
+    const addCommasInput = document.createElement("input");
+    addCommasInput.type = "checkbox";
+    addCommasInput.id = "addCommas";
+    if (SETTINGS.addCommas) addCommasInput.checked = true;
+    addCommasInput.style.transform = "scale(1.3)";
+    addCommasContainer.appendChild(addCommasInput);
+
+    formattingFieldset.appendChild(addCommasContainer);
+
+    // Escape parentheses checkbox
+    const escapeParenthesesContainer = document.createElement("div");
+    escapeParenthesesContainer.style.display = "flex";
+    escapeParenthesesContainer.style.justifyContent = "space-between";
+    escapeParenthesesContainer.style.alignItems = "center";
+    escapeParenthesesContainer.style.marginBottom = "15px";
+
+    const escapeParenthesesLabel = document.createElement("label");
+    escapeParenthesesLabel.style.color = isDarkMode ? "var(--grey-2)" : "#333";
+    escapeParenthesesLabel.style.marginRight = "15px";
+    escapeParenthesesLabel.textContent = t("escapeParentheses");
+    escapeParenthesesContainer.appendChild(escapeParenthesesLabel);
+
+    const escapeParenthesesInput = document.createElement("input");
+    escapeParenthesesInput.type = "checkbox";
+    escapeParenthesesInput.id = "escapeParentheses";
+    if (SETTINGS.escapeParentheses) escapeParenthesesInput.checked = true;
+    escapeParenthesesInput.style.transform = "scale(1.3)";
+    escapeParenthesesContainer.appendChild(escapeParenthesesInput);
+
+    formattingFieldset.appendChild(escapeParenthesesContainer);
+
+    // Escape colons checkbox
+    const escapeColonsContainer = document.createElement("div");
+    escapeColonsContainer.style.display = "flex";
+    escapeColonsContainer.style.justifyContent = "space-between";
+    escapeColonsContainer.style.alignItems = "center";
+    escapeColonsContainer.style.marginBottom = "15px";
+
+    const escapeColonsLabel = document.createElement("label");
+    escapeColonsLabel.style.color = isDarkMode ? "var(--grey-2)" : "#333";
+    escapeColonsLabel.style.marginRight = "15px";
+    escapeColonsLabel.textContent = t("escapeColons");
+    escapeColonsContainer.appendChild(escapeColonsLabel);
+
+    const escapeColonsInput = document.createElement("input");
+    escapeColonsInput.type = "checkbox";
+    escapeColonsInput.id = "escapeColons";
+    if (SETTINGS.escapeColons) escapeColonsInput.checked = true;
+    escapeColonsInput.style.transform = "scale(1.3)";
+    escapeColonsContainer.appendChild(escapeColonsInput);
+
+    formattingFieldset.appendChild(escapeColonsContainer);
+
+    // Replace underscores checkbox
+    const replaceUnderscoresContainer = document.createElement("div");
+    replaceUnderscoresContainer.style.display = "flex";
+    replaceUnderscoresContainer.style.justifyContent = "space-between";
+    replaceUnderscoresContainer.style.alignItems = "center";
+
+    const replaceUnderscoresLabel = document.createElement("label");
+    replaceUnderscoresLabel.style.color = isDarkMode ? "var(--grey-2)" : "#333";
+    replaceUnderscoresLabel.style.marginRight = "15px";
+    replaceUnderscoresLabel.textContent = t("replaceUnderscores");
+    replaceUnderscoresContainer.appendChild(replaceUnderscoresLabel);
+
+    const replaceUnderscoresInput = document.createElement("input");
+    replaceUnderscoresInput.type = "checkbox";
+    replaceUnderscoresInput.id = "replaceUnderscores";
+    if (SETTINGS.replaceUnderscores) replaceUnderscoresInput.checked = true;
+    replaceUnderscoresInput.style.transform = "scale(1.3)";
+    replaceUnderscoresContainer.appendChild(replaceUnderscoresInput);
+
+    formattingFieldset.appendChild(replaceUnderscoresContainer);
+
+    editorContainer.appendChild(formattingFieldset);
+
+    // Language settings fieldset
+    const languageFieldset = document.createElement("fieldset");
+    languageFieldset.style.marginBottom = "10px";
+    languageFieldset.style.border = `1px solid ${isDarkMode ? "var(--default-border-color)" : "#ddd"}`;
+    languageFieldset.style.borderRadius = "6px";
+    languageFieldset.style.padding = "20px 15px";
+    languageFieldset.style.position = "relative";
+
+    const languageLegend = document.createElement("legend");
+    languageLegend.style.color = isDarkMode ? "var(--header-color)" : "#000";
+    languageLegend.style.padding = "0 8px";
+    const languageLegendStrong = document.createElement("strong");
+    languageLegendStrong.textContent = t("languageSettings");
+    languageLegend.appendChild(languageLegendStrong);
+    languageFieldset.appendChild(languageLegend);
+
+    const languageContainer = document.createElement("div");
+    languageContainer.style.display = "flex";
+    languageContainer.style.justifyContent = "space-between";
+    languageContainer.style.alignItems = "center";
+    languageContainer.style.marginBottom = "10px";
+
+    const languageLabel = document.createElement("label");
+    languageLabel.style.color = isDarkMode ? "var(--grey-2)" : "#333";
+    languageLabel.style.marginRight = "15px";
+    languageLabel.textContent = t("language");
+    languageContainer.appendChild(languageLabel);
+
+    const languageSelect = document.createElement("select");
+    languageSelect.id = "language";
+    languageSelect.style.width = "60%";
+    languageSelect.style.minWidth = "150px";
+    languageSelect.style.background = isDarkMode ? "var(--grey-7)" : "white";
+    languageSelect.style.color = isDarkMode ? "#fff" : "#333";
+    languageSelect.style.padding = "5px";
+    languageSelect.style.borderRadius = "4px";
+
+    const autoOption = document.createElement("option");
+    autoOption.value = "auto";
+    autoOption.textContent = t("langAuto");
+    if (SETTINGS.language === "auto") autoOption.selected = true;
+    languageSelect.appendChild(autoOption);
+
+    const enOption = document.createElement("option");
+    enOption.value = "en";
+    enOption.textContent = t("langEn");
+    if (SETTINGS.language === "en") enOption.selected = true;
+    languageSelect.appendChild(enOption);
+
+    const ruOption = document.createElement("option");
+    ruOption.value = "ru";
+    ruOption.textContent = t("langRu");
+    if (SETTINGS.language === "ru") ruOption.selected = true;
+    languageSelect.appendChild(ruOption);
+
+    languageContainer.appendChild(languageSelect);
+    languageFieldset.appendChild(languageContainer);
+
+    const languageNotice = document.createElement("div");
+    languageNotice.id = "languageNotice";
+    languageNotice.className = "language-notice";
+    const noticeBg = isDarkMode ? "#4a3c00" : "#fff3cd";
+    const noticeBorder = isDarkMode ? "#ffd700" : "#ffc107";
+    const noticeText = isDarkMode ? "#ffd700" : "#856404";
+    languageNotice.style.background = noticeBg;
+    languageNotice.style.borderLeft = `4px solid ${noticeBorder}`;
+    languageNotice.style.color = noticeText;
+    
+    const noticeStrong = document.createElement("strong");
+    noticeStrong.textContent = t("reloadNotice");
+    languageNotice.appendChild(noticeStrong);
+    languageNotice.style.display = "none";
+    
+    languageFieldset.appendChild(languageNotice);
+    editorContainer.appendChild(languageFieldset);
+
+    // Buttons container
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.style.display = "flex";
+    buttonsContainer.style.justifyContent = "end";
+    buttonsContainer.style.marginTop = "15px";
+
+    const saveButton = document.createElement("button");
+    saveButton.id = "saveSettings";
+    saveButton.style.padding = "10px 20px";
+    saveButton.style.background = "#4CAF50";
+    saveButton.style.color = "white";
+    saveButton.style.border = "none";
+    saveButton.style.borderRadius = "5px";
+    saveButton.style.cursor = "pointer";
+    saveButton.style.fontWeight = "bold";
+    saveButton.textContent = t("saveButton");
+    buttonsContainer.appendChild(saveButton);
+
+    const closeButton = document.createElement("button");
+    closeButton.id = "closeEditor";
+    closeButton.style.marginLeft = "15px";
+    closeButton.style.padding = "10px 20px";
+    closeButton.style.background = "#f44336";
+    closeButton.style.color = "white";
+    closeButton.style.border = "none";
+    closeButton.style.borderRadius = "5px";
+    closeButton.style.cursor = "pointer";
+    closeButton.textContent = t("cancelButton");
+    buttonsContainer.appendChild(closeButton);
+
+    editorContainer.appendChild(buttonsContainer);
+    editor.appendChild(editorContainer);
+
+    // Add event handlers
+    languageSelect.addEventListener("change", (e) => {
+      languageNotice.style.display = "block";
+    });
+
+    closeButton.addEventListener("click", () => {
+      document.body.removeChild(editor);
+    });
+
     const getInputValue = (id) => {
-      const el = editor.querySelector(`#${id}`);
+      const el = document.getElementById(id);
       if (!el) return null;
       if (el.type === "checkbox") return el.checked;
       if (el.type === "range" || el.type === "number")
@@ -352,155 +686,13 @@
       return el.value;
     };
 
-    const renderEditor = () => {
-      const noticeBg = isDarkMode ? "#4a3c00" : "#fff3cd";
-      const noticeBorder = isDarkMode ? "#ffd700" : "#ffc107";
-      const noticeText = isDarkMode ? "#ffd700" : "#856404";
-
-      editor.innerHTML = `
-        <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%); padding:20px;padding-top: 15px;border:1px solid ${
-          isDarkMode ? "var(--default-border-color)" : "#ddd"
-        };
-          border-radius:8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;z-index:9999; font-family:Arial,sans-serif;width:500px;max-width:90vw;max-height:90vh;
-          overflow-y:auto;color:${
-            isDarkMode ? "#e0e0e0" : "#333"
-        }; background:${
-        isDarkMode ? "var(--post-tooltip-background-color)" : "white"
-        }">
-
-          <h2 style="margin:0 0 20px 0;text-align:center;color:${
-            isDarkMode ? "var(--header-color)" : "#000"
-        }">${t("settings")}</h2>
-
-          <fieldset style="margin-bottom:25px; border:1px solid ${
-            isDarkMode ? "var(--default-border-color)" : "#ddd"
-        }; border-radius:6px; padding:15px">
-            <legend style="color:${
-              isDarkMode ? "var(--header-color)" : "#000"
-        }; padding:0 8px"><strong>${t("formatting")}</strong></legend>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-        }; margin-right:15px">${t("addCommas")}</label>
-              <input type="checkbox" id="addCommas" ${
-                SETTINGS.addCommas ? "checked" : ""
-        } style="transform: scale(1.3);">
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-        }; margin-right:15px">${t("escapeParentheses")}</label>
-              <input type="checkbox" id="escapeParentheses" ${
-                SETTINGS.escapeParentheses ? "checked" : ""
-        } style="transform: scale(1.3);">
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-        }; margin-right:15px">${t("replaceUnderscores")}</label>
-              <input type="checkbox" id="replaceUnderscores" ${
-                SETTINGS.replaceUnderscores ? "checked" : ""
-        } style="transform: scale(1.3);">
-            </div>
-          </fieldset>
-
-          <fieldset style="margin-bottom:25px; border:1px solid ${
-            isDarkMode ? "var(--default-border-color)" : "#ddd"
-        }; border-radius:6px; padding:15px">
-            <legend style="color:${
-              isDarkMode ? "var(--header-color)" : "#000"
-        }; padding:0 8px"><strong>${t("appearance")}</strong></legend>
-
-            <!-- Button Style -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-        }; margin-right:15px">
-                ${t("buttonStyle")}
-              </label>
-              <select id="buttonStyle" style="width:60%; min-width:150px; background:${
-                isDarkMode ? "var(--grey-7)" : "white"
-        }; color:${
-        isDarkMode ? "#fff" : "#333"
-        }; padding:5px; border-radius:4px;">
-                <option value="icon-only" ${
-                  SETTINGS.buttonStyle === "icon-only" ? "selected" : ""
-        }>${t("styleIconOnly")}</option>
-                <option value="icon-and-text" ${
-                  SETTINGS.buttonStyle === "icon-and-text" ? "selected" : ""
-        }>${t("styleIconAndText")}</option>
-                <option value="text-only" ${
-                  SETTINGS.buttonStyle === "text-only" ? "selected" : ""
-        }>${t("styleTextOnly")}</option>
-              </select>
-            </div>
-          </fieldset>
-
-          <fieldset style="margin-bottom:25px; border:1px solid ${
-            isDarkMode ? "var(--default-border-color)" : "#ddd"
-        }; border-radius:6px; padding:15px; position: relative;">
-            <legend style="color:${
-              isDarkMode ? "var(--header-color)" : "#000"
-        }; padding:0 8px"><strong>${t("languageSettings")}</strong></legend>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-              <label style="color:${
-                isDarkMode ? "var(--grey-2)" : "#333"
-        }; margin-right:15px">
-                ${t("language")}
-              </label>
-              <select id="language" style="width:60%; min-width:150px; background:${
-                isDarkMode ? "var(--grey-7)" : "white"
-        }; color:${
-        isDarkMode ? "#fff" : "#333"
-        }; padding:5px; border-radius:4px">
-                <option value="auto" ${
-                  SETTINGS.language === "auto" ? "selected" : ""
-        }>${t("langAuto")}</option>
-                <option value="en" ${
-                  SETTINGS.language === "en" ? "selected" : ""
-        }>${t("langEn")}</option>
-                <option value="ru" ${
-                  SETTINGS.language === "ru" ? "selected" : ""
-        }>${t("langRu")}</option>
-              </select>
-            </div>
-            <div id="languageNotice" class="language-notice"
-                 style="background:${noticeBg}; border-left: 4px solid ${noticeBorder}; color: ${noticeText};">
-              <strong>${t("reloadNotice")}</strong>
-            </div>
-          </fieldset>
-
-          <div style="display:flex; justify-content:end; margin-top:15px">
-            <button id="saveSettings" style="padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold">
-              ${t("saveButton")}
-            </button>
-            <button id="closeEditor" style="margin-left: 15px;padding:10px 20px; background:#f44336; color:white; border:none; border-radius:5px; cursor:pointer">
-              ${t("cancelButton")}
-            </button>
-          </div>
-        </div>
-      `;
-
-      // Update handlers
-
-      // Show notice when language is changed
-      editor.querySelector("#language")?.addEventListener("change", (e) => {
-        const notice = editor.querySelector("#languageNotice");
-        notice.style.display = "block";
-      });
-
-      editor.querySelector("#closeEditor")?.addEventListener("click", () => {
-        document.body.removeChild(editor);
-      });
-    };
-
     const saveSettings = () => {
       const newSettings = {
         addCommas: getInputValue("addCommas"),
         escapeParentheses: getInputValue("escapeParentheses"),
+        escapeColons: getInputValue("escapeColons"),
         replaceUnderscores: getInputValue("replaceUnderscores"),
         language: getInputValue("language"),
-        buttonStyle: getInputValue("buttonStyle"),
       };
 
       // Update global settings
@@ -508,29 +700,15 @@
       GM_setValue("tagCopierSettings", SETTINGS);
 
       // Apply changes
-      applyGlobalStyles();
       document.querySelectorAll(".tag-copy-btn").forEach((btn) => {
         btn.title = t("title");
-        // Update button content based on new style
-        switch (SETTINGS.buttonStyle) {
-          case "icon-and-text":
-            btn.innerHTML = copyIcon + `<span class="btn-text">${t("buttonText")}</span>`;
-            btn.classList.add("with-text");
-            btn.classList.remove("with-text-left", "with-text-right");
-            break;
-          case "text-only":
-            btn.innerHTML = `<span class="btn-text">${t("buttonText")}</span>`;
-            btn.classList.add("with-text");
-            btn.classList.remove("with-text-left", "with-text-right");
-            break;
-          default: // "icon-only"
-            btn.innerHTML = copyIcon;
-            btn.classList.remove("with-text", "with-text-left", "with-text-right");
-        }
+        // Update button content (only icon)
+        btn.innerHTML = '';
+        const iconClone = copyIcon.cloneNode(true);
+        btn.appendChild(iconClone);
       });
 
       // Update button text
-      const saveButton = editor.querySelector("#saveSettings");
       const originalText = saveButton.textContent;
       saveButton.textContent = t("savedButton");
       saveButton.classList.add("saved");
@@ -542,13 +720,7 @@
       }, 3000);
     };
 
-    // Initial render
-    renderEditor();
-
-    // Add save handler AFTER rendering
-    editor
-      .querySelector("#saveSettings")
-      ?.addEventListener("click", saveSettings);
+    saveButton.addEventListener("click", saveSettings);
 
     return editor;
   }
@@ -566,15 +738,12 @@
 
   // Global variables for observer and event handlers
   let observer = null;
-  let tooltipClickHandlers = new WeakMap();
   let throttleTimer = null;
 
   // Optimized observer with throttling
   function initObserver() {
     if (observer) {
       observer.disconnect();
-      // Очищаем обработчики событий при повторной инициализации
-      cleanupEventHandlers();
     }
 
     observer = new MutationObserver(() => {
@@ -590,21 +759,26 @@
     observer.observe(document.body, {
       childList: true,
       subtree: true,
-      attributes: true,
-      attributeFilter: ["data-state"],
     });
   }
 
   // Initialize with optimized observer
-  initObserver();
-  addCopyButton();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initCopyButton(); // Initialize the single copy button
+      initObserver();
+      addCopyButton();
+    });
+  } else {
+    initCopyButton(); // Initialize the single copy button
+    initObserver();
+    addCopyButton();
+  }
 
   // Handle PJAX navigation (used by Danbooru)
   document.addEventListener('pjax:end', function() {
-    // Reinitialize observer after page content changes
-    initObserver();
-    // Add buttons to any existing tooltips
-    addCopyButton();
+    // Reattach hover handlers to new previews
+    attachHoverHandlers();
   });
 
   // Cleanup function for potential script re-initialization
@@ -617,7 +791,9 @@
       clearTimeout(throttleTimer);
       throttleTimer = null;
     }
-    // Очищаем обработчики событий
-    cleanupEventHandlers();
+    // Remove the copy button from the DOM
+    if (copyButton && copyButton.parentNode) {
+      copyButton.parentNode.removeChild(copyButton);
+    }
   });
 })()
