@@ -11,7 +11,4 @@ Adds a 'Copy all tags' button to the thumbnail hover preview tooltip. Copy all o
  - Adds a Settings menu in Tampermonkey
 
 ### 👁️‍🗨️ Screenshots
-<img height="406" alt="изображение" src="https://github.com/user-attachments/assets/216c6fff-0d62-4a73-80fb-409811dd6a25" />
-<img width="406" height="133" alt="изображение" src="https://github.com/user-attachments/assets/b3fde65d-7655-44b6-80b9-8a6c99557323" /> 
-
-
+<img width="304" height="341" alt="Снимок экрана 2025-09-06 024152" src="https://github.com/user-attachments/assets/ec3f2508-b20e-406f-bd6e-694ce159d916" />
