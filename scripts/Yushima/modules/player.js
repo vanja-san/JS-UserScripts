@@ -119,7 +119,7 @@ class KodikPlayer {
     const authButton = this.createElement('button', {
       className: CONSTANTS.AUTH_BUTTON_CLASS,
       textContent: Localization.get('authButtonAuthenticate'),
-      style: 'display: flex; background-color: #3498db; color: white; align-items: center; height: 24px; padding: 2px 4px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75em;'
+      style: 'background-color: #3498db; color: white; align-items: center; height: 24px; padding: 2px 4px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75em;'
     });
 
     authButton.addEventListener('click', () => {
@@ -153,7 +153,7 @@ class KodikPlayer {
       statusText.textContent = Localization.get('authStatusAuthNeeded');
       statusText.style.color = '#e74c3c';
       statusText.style.fontWeight = 'normal';
-      authButton.style.display = 'block';
+      authButton.style.display = 'flex';
       authButton.textContent = Localization.get('authButtonAuthenticate');
       logMessage(Localization.get('authStatusUpdateNotAuthenticated'), 'warn');
     }
