@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Plasheek (Modular)
+// @name         Yushima
 // @namespace    http://tampermonkey.net/
-// @version      2.0.21
+// @version      2.0.22
 // @description  Оптимизированная интеграция плеера Kodik на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       You
 // @match        https://shikimori.one/*
@@ -14,15 +14,15 @@
 // @connect      kodik.info
 // @connect      kodik.biz
 // @run-at       document-idle
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\constants.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\localization.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\settings.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\theme.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\helpers.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\api.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\oauth.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\output.js
-// @require      file://Z:\\User\\.dev\\Shiplaco\\modules\\player.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/constants.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/localization.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/settings.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/theme.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/helpers.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/api.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/oauth.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/output.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/player.js
 // ==/UserScript==
 
 (function() {
