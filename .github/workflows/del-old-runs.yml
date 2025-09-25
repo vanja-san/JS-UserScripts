@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '0 6 * * 1'  # Specify your own schedule
+    - cron: '0 6 * * *'  # Specify your own schedule
 
 jobs:
   delete-old-actions:
