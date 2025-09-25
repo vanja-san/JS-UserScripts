@@ -62,7 +62,7 @@ class OAuthHandler {
     const styles = getThemeStyles(theme);
 
     const codeEntryHtml = `
-      <div id="yushima-code-entry" style="position: fixed; top: 30%; left: 30%; width: 40%; background: ${styles.settingsBg}; padding: 20px; border: 1px solid ${styles.settingsBorder}; z-index: 10002; font-family: Arial, sans-serif; color: ${styles.settingsText}; border-radius: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+      <div id="yushima-code-entry" style="position: fixed; top: 30%; left: 36%; background: ${styles.settingsBg}; padding: 20px; border: 1px solid ${styles.settingsBorder}; z-index: 10002; color: ${styles.settingsText}; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
           <h3 style="margin: 0; color: ${styles.headerColor};">${Localization.get('authEnterCodeTitle')}</h3>
           <button id="close-code-entry" style="background: ${styles.buttonBg}; color: ${styles.buttonColor}; border: none; cursor: pointer; font-size: 16px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">×</button>
