@@ -2,11 +2,12 @@
 // @name         Plasheek
 // @name:ru      Plasheek
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Shiplaco
-// @version      2.0.21
+// @version      2.0.22
 // @description  Оптимизированная интеграция плеера Kodik на сайт Shikimori с автоматическим отслеживанием просмотра
 // @description:ru  Оптимизированная интеграция плеера Kodik на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
 // @match        https://shikimori.one/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=shikimori.one
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
