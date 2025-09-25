@@ -123,12 +123,7 @@ class KodikPlayer {
     });
 
     authButton.addEventListener('click', () => {
-      // Open the authentication page immediately to avoid popup blockers
-      const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
-      const authUrl = `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
-      window.open(authUrl, '_blank');
-
-      // Then show the code input dialog
+      // Show the code input dialog (this will open the authentication page)
       OAuthHandler.showAuthCodeInput();
     });
 
