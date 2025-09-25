@@ -67,7 +67,7 @@ const Localization = {
       // Authentication
       authStatusAuthenticated: 'Authenticated',
       authStatusAuthNeeded: 'OAuth authentication required',
-      authButtonAuthenticate: 'Authenticate with Shikimori',
+      authButtonAuthenticate: 'Authenticate',
       authSuccess: 'Authentication successful!',
       authFailed: 'Authentication failed!',
       authInstructionsStep1: '1. Click the "Authenticate with Shikimori" button',
@@ -183,7 +183,7 @@ const Localization = {
       // Authentication
       authStatusAuthenticated: 'Аутентифицирован',
       authStatusAuthNeeded: 'Требуется OAuth аутентификация',
-      authButtonAuthenticate: 'Аутентифицироваться с Shikimori',
+      authButtonAuthenticate: 'Аутентифицироваться',
       authSuccess: 'Аутентификация успешна!',
       authFailed: 'Аутентификация не удалась!',
       authInstructionsStep1: '1. Нажмите кнопку "Аутентифицироваться с Shikimori"',
