@@ -65,7 +65,6 @@ class OAuthHandler {
       <div id="yushima-code-entry" style="position: fixed; top: 30%; left: 36%; background: ${styles.settingsBg}; padding: 20px; border: 1px solid ${styles.settingsBorder}; z-index: 10002; color: ${styles.settingsText}; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
           <h3 style="margin: 0; color: ${styles.headerColor};">${Localization.get('authEnterCodeTitle')}</h3>
-          <button id="close-code-entry" style="background: ${styles.buttonBg}; color: ${styles.buttonColor}; border: none; cursor: pointer; font-size: 16px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">×</button>
         </div>
         <div style="margin-bottom: 15px;">
           <p style="margin: 0 0 10px 0;">${Localization.get('authInstructionsStep1')}</p>
@@ -86,10 +85,6 @@ class OAuthHandler {
     document.body.insertAdjacentHTML('beforeend', codeEntryHtml);
 
     // Add event listeners
-    document.getElementById('close-code-entry').addEventListener('click', () => {
-      document.getElementById('yushima-code-entry').remove();
-    });
-
     document.getElementById('cancel-code-btn').addEventListener('click', () => {
       document.getElementById('yushima-code-entry').remove();
     });
