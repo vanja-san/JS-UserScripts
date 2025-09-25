@@ -119,7 +119,7 @@ class KodikPlayer {
     const authButton = this.createElement('button', {
       className: CONSTANTS.AUTH_BUTTON_CLASS,
       textContent: Localization.get('authButtonAuthenticate'),
-      style: 'background-color: #3498db; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.75em; margin-left: 5px;'
+      style: 'background-color: #3498db; color: white; border: none; padding: 2px 4px; border-radius: 3px; cursor: pointer; font-size: 0.75em; margin-left: 5px;'
     });
 
     authButton.addEventListener('click', () => {
