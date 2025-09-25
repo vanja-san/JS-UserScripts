@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Plasheek
-// @name:ru      Plasheek
+// @name         Shiplaco
+// @name:ru      Shiplaco
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Shiplaco
-// @version      2.0.23
+// @version      2.0.24
 // @description  Optimized integration of the Kodik player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера Kodik на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
