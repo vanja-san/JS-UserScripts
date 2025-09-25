@@ -77,7 +77,7 @@ class OAuthHandler {
           <input type="text" id="auth-code-input" placeholder="${Localization.get('authEnterCodePlaceholder')}" style="width: 100%; padding: 8px; background: ${styles.settingsInputBg}; color: ${styles.settingsInputText}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; box-sizing: border-box;">
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
-          <button id="apply-code-btn" style="padding: 8px 15px; background: ${styles.headerBg}; color: ${styles.headerColor}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; cursor: pointer;">${Localization.get('authEnterCodeButton')}</button>
+          <button id="apply-code-btn" style="padding: 8px 15px; background: #437b63; color: ${styles.headerColor}; border-radius: 3px; cursor: pointer;">${Localization.get('authEnterCodeButton')}</button>
           <button id="cancel-code-btn" style="padding: 8px 15px; background: ${styles.buttonBg}; color: ${styles.buttonColor}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; cursor: pointer;">${Localization.get('settingsCancelButton')}</button>
         </div>
       </div>
