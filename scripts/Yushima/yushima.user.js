@@ -1,10 +1,13 @@
 // ==UserScript==
 // @name         Yushima
-// @namespace    http://tampermonkey.net/
-// @version      2.0.22
-// @description  Оптимизированная интеграция плеера Kodik на сайт Shikimori с автоматическим отслеживанием просмотра
-// @author       You
+// @name:ru      Yushima
+// @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
+// @version      2.0.25
+// @description  Optimized integration of player on Shikimori website with automatic browsing tracking
+// @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
+// @author       vanja-san
 // @match        https://shikimori.one/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=shikimori.one
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
