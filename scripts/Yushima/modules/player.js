@@ -587,11 +587,8 @@ class KodikPlayer {
    */
   static insertPlayer(playerElement) {
     cleanupExistingPlayer();
-    // Try multiple selectors to find the right place to insert the player
-    let target = document.querySelector('.c-description') || 
-                 document.querySelector('.b-db_entry') || 
-                 document.querySelector('.c-anime-show .b-side-right') ||
-                 document.querySelector('.l-page-content');
+    // Find the main anime entry block
+    let target = document.querySelector('.b-db_entry');
                  
     if (target) {
       target.after(playerElement);
@@ -620,7 +617,9 @@ class KodikPlayer {
    */
   static updateIframeHeight(iframe, container) {
     if (container.clientWidth > 0) {
-      iframe.height = Math.round(container.clientWidth * CONSTANTS.IFRAME_ASPECT_RATIO);
+      const calculatedHeight = Math.round(container.clientWidth * CONSTANTS.IFRAME_ASPECT_RATIO);
+      // Use calculated height but ensure it's not smaller than minimum reasonable size
+      iframe.height = Math.max(calculatedHeight, 360); // Minimum height of 360px
     }
   }
 }
