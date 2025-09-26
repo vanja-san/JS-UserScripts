@@ -598,16 +598,11 @@ class KodikPlayer {
       mainContent.insertBefore(playerElement, mainContent.firstChild);
     }
   }
-  /**
+  /** 
    * Get the appropriate headline text based on the current page language
    * @returns {string} The headline text
    */
   static getHeadlineText() {
-    const currentHeadline = document.querySelector('.subheadline');
-    if (currentHeadline) {
-      const isEnglish = currentHeadline.textContent.includes('Information');
-      return isEnglish ? Localization.get('playerHeadline') : Localization.get('playerHeadline');
-    }
     return Localization.get('playerHeadline');
   }
   /**

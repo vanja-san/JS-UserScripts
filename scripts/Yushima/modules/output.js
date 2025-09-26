@@ -69,11 +69,15 @@ class OutputWindow {
     this.contentElement = document.getElementById('yushima-output-content');
 
     // Обработчики событий для перемещения и изменения размера
-    const header = document.getElementById('yushima-output-header');
-    const resizeHandle = document.getElementById('yushima-output-resize');
-    const closeButton = document.getElementById('yushima-output-close');
-    const clearButton = document.getElementById('yushima-output-clear');
-    const filterSelect = document.getElementById('yushima-message-filter');
+    const elements = {
+      header: document.getElementById('yushima-output-header'),
+      resizeHandle: document.getElementById('yushima-output-resize'),
+      closeButton: document.getElementById('yushima-output-close'),
+      clearButton: document.getElementById('yushima-output-clear'),
+      filterSelect: document.getElementById('yushima-message-filter')
+    };
+    
+    const { header, resizeHandle, closeButton, clearButton, filterSelect } = elements;
 
     // Перемещение окна
     header.addEventListener('mousedown', (e) => {
@@ -88,10 +92,12 @@ class OutputWindow {
     // Изменение размера - теперь из правого нижнего угла
     resizeHandle.addEventListener('mousedown', (e) => {
       this.isResizing = true;
-      this.resizeStart.x = e.clientX;
-      this.resizeStart.y = e.clientY;
-      this.resizeStart.width = parseInt(document.defaultView.getComputedStyle(this.windowElement).width);
-      this.resizeStart.height = parseInt(document.defaultView.getComputedStyle(this.windowElement).height);
+      Object.assign(this.resizeStart, {
+        x: e.clientX,
+        y: e.clientY,
+        width: parseInt(document.defaultView.getComputedStyle(this.windowElement).width),
+        height: parseInt(document.defaultView.getComputedStyle(this.windowElement).height)
+      });
       e.preventDefault();
     });
 
@@ -118,17 +124,21 @@ class OutputWindow {
       if (this.isDragging) {
         const x = e.clientX - this.dragOffset.x;
         const y = e.clientY - this.dragOffset.y;
-        this.windowElement.style.left = x + 'px';
-        this.windowElement.style.top = y + 'px';
-        this.windowElement.style.bottom = 'auto';
-        this.windowElement.style.right = 'auto';
+        Object.assign(this.windowElement.style, {
+          left: x + 'px',
+          top: y + 'px',
+          bottom: 'auto',
+          right: 'auto'
+        });
       } else if (this.isResizing) {
         const widthDiff = e.clientX - this.resizeStart.x;
         const heightDiff = e.clientY - this.resizeStart.y;
         const newWidth = Math.max(380, Math.min(600, this.resizeStart.width + widthDiff)); // Fixed minimum width to 380px
         const newHeight = Math.max(250, Math.min(600, this.resizeStart.height + heightDiff)); // Updated minimum height
-        this.windowElement.style.width = newWidth + 'px';
-        this.windowElement.style.height = newHeight + 'px';
+        Object.assign(this.windowElement.style, {
+          width: newWidth + 'px',
+          height: newHeight + 'px'
+        });
       }
     });
 
@@ -146,40 +156,55 @@ class OutputWindow {
     const styles = getThemeStyles(theme);
 
     // Apply theme styles
-    this.windowElement.style.background = styles.windowBg;
-    this.windowElement.style.borderColor = styles.windowBorder;
-    this.windowElement.style.color = styles.contentColor;
+    Object.assign(this.windowElement.style, {
+      background: styles.windowBg,
+      borderColor: styles.windowBorder,
+      color: styles.contentColor
+    });
 
-    // Update header
-    const header = document.getElementById('yushima-output-header');
-    if (header) {
-      header.style.background = styles.headerBg;
-      header.style.color = styles.headerColor;
+    // Update elements
+    const updateElements = {
+      header: document.getElementById('yushima-output-header'),
+      content: document.getElementById('yushima-output-content'),
+      resizeHandle: document.getElementById('yushima-output-resize'),
+      clearButton: document.getElementById('yushima-output-clear'),
+      closeButton: document.getElementById('yushima-output-close')
+    };
+
+    if (updateElements.header) {
+      Object.assign(updateElements.header.style, {
+        background: styles.headerBg,
+        color: styles.headerColor
+      });
     }
 
     // Update content area - remove background to avoid filling unused space
-    const content = document.getElementById('yushima-output-content');
-    if (content) {
-      content.style.color = styles.contentColor;
+    if (updateElements.content) {
+      Object.assign(updateElements.content.style, {
+        color: styles.contentColor
+      });
     }
 
     // Update resize handle
-    const resizeHandle = document.getElementById('yushima-output-resize');
-    if (resizeHandle) {
-      resizeHandle.style.background = styles.windowBorder;
+    if (updateElements.resizeHandle) {
+      Object.assign(updateElements.resizeHandle.style, {
+        background: styles.windowBorder
+      });
     }
 
     // Update buttons (only clear and close remain)
-    const clearButton = document.getElementById('yushima-output-clear');
-    if (clearButton) {
-      clearButton.style.background = styles.buttonBg;
-      clearButton.style.color = styles.buttonColor;
+    if (updateElements.clearButton) {
+      Object.assign(updateElements.clearButton.style, {
+        background: styles.buttonBg,
+        color: styles.buttonColor
+      });
     }
 
-    const closeButton = document.getElementById('yushima-output-close');
-    if (closeButton) {
-      closeButton.style.background = styles.buttonBg;
-      closeButton.style.color = styles.buttonColor;
+    if (updateElements.closeButton) {
+      Object.assign(updateElements.closeButton.style, {
+        background: styles.buttonBg,
+        color: styles.buttonColor
+      });
     }
 
     this.windowElement.style.display = 'block';
@@ -247,9 +272,11 @@ class OutputWindow {
       };
 
       const messageElement = document.createElement('div');
-      messageElement.style.padding = '2px 0';
-      messageElement.style.color = this.getMessageColor(msg.type, theme);
-      messageElement.style.fontFamily = 'Arial, sans-serif';
+      Object.assign(messageElement.style, {
+        padding: '2px 0',
+        color: this.getMessageColor(msg.type, theme),
+        fontFamily: 'Arial, sans-serif'
+      });
       const icon = typeIcons[msg.type] || '';
       messageElement.innerHTML = `<span style="color: ${theme === 'dark' ? '#888' : '#999'}; font-size: 10px;">[${timestamp}] ${icon}</span> ${msg.message}`;
 
@@ -258,10 +285,12 @@ class OutputWindow {
         const prevMsg = messagesToShow[i - 1];
         if (prevMsg.type === 'error' && msg.type !== 'error') {
           const divider = document.createElement('hr');
-          divider.style.border = 'none';
-          divider.style.height = '1px';
-          divider.style.background = styles.windowBorder;
-          divider.style.margin = '2px 0';
+          Object.assign(divider.style, {
+            border: 'none',
+            height: '1px',
+            background: styles.windowBorder,
+            margin: '2px 0'
+          });
           this.contentElement.appendChild(divider);
         }
       }

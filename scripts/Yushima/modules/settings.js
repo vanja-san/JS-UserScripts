@@ -3,16 +3,11 @@
  */
 class Settings {
   static DEFAULTS = {
-    // Порог прогресса для отметки эпизода как просмотренного (85%)
-    progressThreshold: 0.85,
-    // Включить/выключить автозаметку
-    autoMarkEnabled: true,
-    // Таймаут активности плеера (5 минут)
-    playerActivityTimeout: 300000,
-    // Включить/выключить окно вывода
-    outputWindowEnabled: true,
-    // Показывать окно вывода (по умолчанию скрыто)
-    showOutputWindow: false
+    progressThreshold: 0.85, // Порог прогресса для отметки эпизода как просмотренного (85%)
+    autoMarkEnabled: true, // Включить/выключить автозаметку
+    playerActivityTimeout: 300000, // Таймаут активности плеера (5 минут)
+    outputWindowEnabled: true, // Включить/выключить окно вывода
+    showOutputWindow: false // Показывать окно вывода (по умолчанию скрыто)
   };
 
   static getSetting(key) {

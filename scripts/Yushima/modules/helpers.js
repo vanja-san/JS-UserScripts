@@ -61,8 +61,7 @@ async function getAnimeTitle(animeId) {
     const animeData = await ShikimoriAPI.fetchApi(`/animes/${animeId}`);
     if (animeData) {
       // Check if the page language is in English context by checking for English text elements
-      const currentHeadline = document.querySelector('.subheadline');
-      const isEnglish = currentHeadline && currentHeadline.textContent.includes('Information');
+      const isEnglish = isEnglishPage();
 
       // Prefer English name if English context, otherwise use Russian
       if (isEnglish && animeData.name) {
@@ -81,6 +80,39 @@ async function getAnimeTitle(animeId) {
 }
 
 /**
+ * Create OAuth authorization URL
+ * @returns {string} Authorization URL
+ */
+function createAuthUrl() {
+  const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
+  return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
+}
+
+/**
+ * Make HTTP request using GM_xmlhttpRequest with promise wrapper
+ * @param {Object} options - Request options
+ * @returns {Promise<Object>} Promise that resolves with response data
+ */
+function makeHttpRequest(options) {
+  return new Promise((resolve, reject) => {
+    GM_xmlhttpRequest({
+      ...options,
+      onload: resolve,
+      onerror: reject
+    });
+  });
+}
+
+/**
+ * Determine if current page is in English based on headline content
+ * @returns {boolean} Whether the page is in English
+ */
+function isEnglishPage() {
+  const currentHeadline = document.querySelector('.subheadline');
+  return currentHeadline && currentHeadline.textContent.includes('Information');
+}
+
+/** 
  * Clean up ALL existing players and their resources to prevent memory leaks
  */
 function cleanupExistingPlayer() {

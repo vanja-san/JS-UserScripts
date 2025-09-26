@@ -56,13 +56,7 @@ class ShikimoriAPI {
           return null;
         }
       }
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          ...options,
-          onload: resolve,
-          onerror: reject
-        });
-      });
+      const response = await makeHttpRequest(options);
       if (response.status === 200) {
         return JSON.parse(response.responseText);
       } else {
@@ -155,18 +149,14 @@ class ShikimoriAPI {
       params.append('client_id', clientId);
       params.append('client_secret', clientSecret);
       params.append('refresh_token', refreshToken);
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          method: 'POST',
-          url: CONSTANTS.OAUTH.TOKEN_URL,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Yushima'
-          },
-          data: params.toString(),
-          onload: resolve,
-          onerror: reject
-        });
+      const response = await makeHttpRequest({
+        method: 'POST',
+        url: CONSTANTS.OAUTH.TOKEN_URL,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Yushima'
+        },
+        data: params.toString()
       });
       if (response.status === 200) {
         const tokenData = JSON.parse(response.responseText);
@@ -220,18 +210,14 @@ class ShikimoriAPI {
       params.append('client_secret', clientSecret);
       params.append('code', code);
       params.append('redirect_uri', CONSTANTS.OAUTH.REDIRECT_URI);
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          method: 'POST',
-          url: CONSTANTS.OAUTH.TOKEN_URL,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Yushima'
-          },
-          data: params.toString(),
-          onload: resolve,
-          onerror: reject
-        });
+      const response = await makeHttpRequest({
+        method: 'POST',
+        url: CONSTANTS.OAUTH.TOKEN_URL,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Yushima'
+        },
+        data: params.toString()
       });
       if (response.status === 200) {
         const tokenData = JSON.parse(response.responseText);
@@ -297,19 +283,15 @@ class ShikimoriAPI {
         logMessage(Localization.get('noAccessTokenForUpdate'), 'error');
         return false;
       }
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          method: method,
-          url: `https://shikimori.one/api${endpoint}`,
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Yushima',
-            'Authorization': `Bearer ${token}`
-          },
-          data: JSON.stringify(params),
-          onload: resolve,
-          onerror: reject
-        });
+      const response = await makeHttpRequest({
+        method: method,
+        url: `https://shikimori.one/api${endpoint}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Yushima',
+          'Authorization': `Bearer ${token}`
+        },
+        data: JSON.stringify(params)
       });
       if ([200, 201].includes(response.status)) {
         return true;
@@ -351,19 +333,15 @@ class ShikimoriAPI {
         logMessage(Localization.get('noAccessTokenForUpdate'), 'error');
         return false;
       }
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          method: 'POST',
-          url: 'https://shikimori.one/api/v2/user_rates',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Yushima',
-            'Authorization': `Bearer ${token}`
-          },
-          data: JSON.stringify(params),
-          onload: resolve,
-          onerror: reject
-        });
+      const response = await makeHttpRequest({
+        method: 'POST',
+        url: 'https://shikimori.one/api/v2/user_rates',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Yushima',
+          'Authorization': `Bearer ${token}`
+        },
+        data: JSON.stringify(params)
       });
       if (response.status === 201) {
         return true;
@@ -387,17 +365,13 @@ class ShikimoriAPI {
       if (!token) {
         return null;
       }
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          method: 'GET',
-          url: 'https://shikimori.one/api/users/whoami',
-          headers: {
-            'User-Agent': 'Yushima',
-            'Authorization': `Bearer ${token}`
-          },
-          onload: resolve,
-          onerror: reject
-        });
+      const response = await makeHttpRequest({
+        method: 'GET',
+        url: 'https://shikimori.one/api/users/whoami',
+        headers: {
+          'User-Agent': 'Yushima',
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (response.status === 200) {
         const userData = JSON.parse(response.responseText);
@@ -429,17 +403,13 @@ class ShikimoriAPI {
         target_id: animeId,
         target_type: 'Anime'
       });
-      const response = await new Promise((resolve, reject) => {
-        GM_xmlhttpRequest({
-          method: 'GET',
-          url: `https://shikimori.one/api/v2/user_rates?${params}`,
-          headers: {
-            'User-Agent': 'Yushima',
-            'Authorization': `Bearer ${token}`
-          },
-          onload: resolve,
-          onerror: reject
-        });
+      const response = await makeHttpRequest({
+        method: 'GET',
+        url: `https://shikimori.one/api/v2/user_rates?${params}`,
+        headers: {
+          'User-Agent': 'Yushima',
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (response.status === 200) {
         const rates = JSON.parse(response.responseText);

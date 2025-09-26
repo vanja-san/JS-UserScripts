@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.27
+// @version      2.0.28
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -20,8 +20,8 @@
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/constants.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/localization.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/settings.js
-// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/theme.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/helpers.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/theme.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/api.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/oauth.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/output.js

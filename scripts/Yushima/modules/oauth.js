@@ -24,13 +24,12 @@ class OAuthHandler {
 
     return isAuthenticated;
   }
-  /**
+  /** 
    * Initiate OAuth authentication flow
    */
   static initiateAuthFlow() {
     // Use the out-of-band flow as originally designed
-    const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo'; // Use the known client ID
-    const authUrl = `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
+    const authUrl = createAuthUrl();
     window.open(authUrl, '_blank');
     logMessage('Please authorize the application in the opened window. After authorizing, you will be redirected to a page with an authorization code. The code should appear in your browsers address bar. The script will automatically detect the code if you return to this page.', 'info');
   }
@@ -48,13 +47,12 @@ class OAuthHandler {
     }
     return success;
   }
-  /**
+  /** 
    * Show authentication code input dialog
    */
   static async showAuthCodeInput() {
     // Open the authentication page in a new window
-    const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
-    const authUrl = `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
+    const authUrl = createAuthUrl();
     window.open(authUrl, '_blank');
 
     // Show the code input dialog
@@ -122,11 +120,6 @@ class OAuthHandler {
    * @returns {string} Language code ('en' or 'ru')
    */
   static getCurrentLanguage() {
-    const currentHeadline = document.querySelector('.subheadline');
-    if (currentHeadline) {
-      const isEnglish = currentHeadline.textContent.includes('Information');
-      return isEnglish ? 'en' : 'ru';
-    }
-    return 'ru';
+    return isEnglishPage() ? 'en' : 'ru';
   }
 }
