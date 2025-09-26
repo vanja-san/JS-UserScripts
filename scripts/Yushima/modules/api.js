@@ -2,22 +2,34 @@
  * Shikimori API interaction class
  */
 class ShikimoriAPI {
-  /**
+  /** 
    * Check if current page is an anime page
    * @param {Location} url - The URL object to check
    * @returns {boolean} Whether the page is an anime page
    */
   static isAnimePage(url = window.location) {
-    return CONSTANTS.ANIME_PATH_REGEX.test(url.pathname);
+    return CONSTANTS.ANIME_PATH_REGEX.test(url.pathname) || 
+           document.querySelector('.c-anime-show') !== null ||
+           document.querySelector('.b-db_entry') !== null;
   }
   
-  /**
+  /** 
    * Extract anime ID from current URL
    * @returns {string|null} Anime ID or null if not found
    */
   static getAnimeId() {
     const match = window.location.pathname.match(CONSTANTS.ANIME_ID_REGEX);
-    return match ? match[1] : null;
+    if (match) {
+      return match[1];
+    }
+    
+    // Also check for anime ID in page elements as a fallback
+    const animeShowElement = document.querySelector('.c-anime-show');
+    if (animeShowElement && animeShowElement.dataset && animeShowElement.dataset.animeId) {
+      return animeShowElement.dataset.animeId;
+    }
+    
+    return null;
   }
   
   /**

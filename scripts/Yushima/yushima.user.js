@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.26
+// @version      2.0.27
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -60,12 +60,15 @@
    */
   async function initializePlayer() {
     const currentTime = Date.now();
-    if (initializationInProgress || (currentTime - lastInitializationTime) < 1500) {
+    if (initializationInProgress || (currentTime - lastInitializationTime) < 1000) {
       return;
     }
     initializationInProgress = true;
     lastInitializationTime = currentTime;
     try {
+      // Wait a bit more to ensure the page content is fully loaded
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       if (!ShikimoriAPI.isAnimePage()) {
         return;
       }
@@ -101,89 +104,110 @@
   // Initial delay before initializing player to ensure DOM is ready
   setTimeout(async () => {
     await safeInitializePlayer();
+    
+    // Enhanced MutationObserver to detect changes in page content
     const observer = new MutationObserver(async (mutations) => {
-      if (ShikimoriAPI.isAnimePage()) {
-        const currentAnimeId = ShikimoriAPI.getAnimeId();
-        if (currentAnimeId) {
-          setTimeout(async () => {
-            if (!document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
-              if (!initializationInProgress) {
-                await safeInitializePlayer();
-              }
-            } else {
-              const allPlayers = document.querySelectorAll(`.${CONSTANTS.PLAYER_CLASS}`);
-              if (allPlayers.length > 1) {
-                for (let i = 1; i < allPlayers.length; i++) {
-                  allPlayers[i].remove();
+      let pageChanged = false;
+      let animePageDetected = false;
+      
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          // Check if significant content elements have changed
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // If the main content area is updated, it likely means page change
+              if (node.classList && 
+                  (node.classList.contains('container') || 
+                   node.classList.contains('l-page-content') ||
+                   node.classList.contains('b-content'))) {
+                pageChanged = true;
+                
+                // Check if anime content was added
+                if (node.querySelector && 
+                    (node.querySelector('.c-anime-show') || 
+                     node.querySelector('.b-db_entry'))) {
+                  animePageDetected = true;
                 }
+              }
+              
+              // Check for anime-specific elements that would indicate an anime page
+              if (node.querySelector && 
+                  (node.querySelector('.c-anime-show') || 
+                   node.querySelector('.b-db_entry'))) {
+                pageChanged = true;
+                animePageDetected = true;
               }
             }
-          }, CONSTANTS.PLAYER_INIT_DELAY);
+          }
+          
+          // Also check nodes that were removed (in case anime content was removed)
+          for (const node of mutation.removedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.querySelector && 
+                  (node.querySelector('.c-anime-show') || 
+                   node.querySelector('.b-db_entry'))) {
+                pageChanged = true;
+              }
+            }
+          }
         }
-      } else {
-        // On non-anime pages, ensure player is removed
-        cleanupExistingPlayer();
       }
-    });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-    const originalPushState = history.pushState;
-    history.pushState = function() {
-      originalPushState.apply(this, arguments);
-      setTimeout(() => {
-        if (ShikimoriAPI.isAnimePage()) {
+      
+      if (pageChanged) {
+        await new Promise(resolve => setTimeout(resolve, 400)); // Additional delay for page to load
+        if (ShikimoriAPI.isAnimePage() || animePageDetected) {
           const currentAnimeId = ShikimoriAPI.getAnimeId();
           if (currentAnimeId) {
-            setTimeout(async () => {
-              if (!document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
-                if (!initializationInProgress) {
-                  await safeInitializePlayer();
-                }
-              } else {
-                const allPlayers = document.querySelectorAll(`.${CONSTANTS.PLAYER_CLASS}`);
-                if (allPlayers.length > 1) {
-                  for (let i = 1; i < allPlayers.length; i++) {
-                    allPlayers[i].remove();
-                  }
-                }
-              }
-            }, CONSTANTS.PLAYER_INIT_DELAY);
+            if (!initializationInProgress) {
+              await safeInitializePlayer();
+            }
           }
         } else {
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
-      }, 100);
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+      originalPushState.apply(this, arguments);
+      setTimeout(async () => {
+        if (ShikimoriAPI.isAnimePage()) {
+          const currentAnimeId = ShikimoriAPI.getAnimeId();
+          if (currentAnimeId) {
+            if (!initializationInProgress) {
+              await safeInitializePlayer();
+            }
+          }
+        } else {
+          // On non-anime pages, ensure player is removed
+          cleanupExistingPlayer();
+        }
+      }, 150);
     };
+    
     // Also handle popstate events for browser back/forward navigation
     window.addEventListener('popstate', async () => {
       setTimeout(async () => {
         if (ShikimoriAPI.isAnimePage()) {
           const currentAnimeId = ShikimoriAPI.getAnimeId();
           if (currentAnimeId) {
-            setTimeout(async () => {
-              if (!document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
-                if (!initializationInProgress) {
-                  await safeInitializePlayer();
-                }
-              } else {
-                const allPlayers = document.querySelectorAll(`.${CONSTANTS.PLAYER_CLASS}`);
-                if (allPlayers.length > 1) {
-                  for (let i = 1; i < allPlayers.length; i++) {
-                   allPlayers[i].remove();
-                }
-              }
+            if (!initializationInProgress) {
+              await safeInitializePlayer();
             }
-          }, CONSTANTS.PLAYER_INIT_DELAY);
+          }
+        } else {
+          // On non-anime pages, ensure player is removed
+          cleanupExistingPlayer();
         }
-      } else {
-        // On non-anime pages, ensure player is removed
-        cleanupExistingPlayer();
-      }
-     }, 100);
-   });
+      }, 150);
+    });
   }, CONSTANTS.PLAYER_INIT_DELAY);
 
   // Register Tampermonkey menu commands

@@ -581,15 +581,24 @@ class KodikPlayer {
     });
     return element;
   }
-  /**
+  /** 
    * Insert the player element into the appropriate location on the page
    * @param {HTMLElement} playerElement - The player wrapper element
    */
   static insertPlayer(playerElement) {
     cleanupExistingPlayer();
-    const target = document.querySelector('.c-description, .b-db_entry');
+    // Try multiple selectors to find the right place to insert the player
+    let target = document.querySelector('.c-description') || 
+                 document.querySelector('.b-db_entry') || 
+                 document.querySelector('.c-anime-show .b-side-right') ||
+                 document.querySelector('.l-page-content');
+                 
     if (target) {
       target.after(playerElement);
+    } else {
+      // As a fallback, insert at the beginning of main content
+      const mainContent = document.querySelector('.l-page-content, .container, main') || document.body;
+      mainContent.insertBefore(playerElement, mainContent.firstChild);
     }
   }
   /**
