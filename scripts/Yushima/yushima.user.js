@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.25
+// @version      2.0.26
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -90,13 +90,8 @@
     }
   }, 1000);
 
-  let playerAlreadyInitialized = false;
-
   // Function to safely initialize the player with duplicate protection
   async function safeInitializePlayer() {
-    if (document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
-      return;
-    }
     if (initializationInProgress) {
       return;
     }
@@ -105,10 +100,7 @@
 
   // Initial delay before initializing player to ensure DOM is ready
   setTimeout(async () => {
-    if (!playerAlreadyInitialized) {
-      await safeInitializePlayer();
-      playerAlreadyInitialized = true;
-    }
+    await safeInitializePlayer();
     const observer = new MutationObserver(async (mutations) => {
       if (ShikimoriAPI.isAnimePage()) {
         const currentAnimeId = ShikimoriAPI.getAnimeId();
@@ -128,6 +120,9 @@
             }
           }, CONSTANTS.PLAYER_INIT_DELAY);
         }
+      } else {
+        // On non-anime pages, ensure player is removed
+        cleanupExistingPlayer();
       }
     });
     observer.observe(document.body, {
@@ -156,9 +151,39 @@
               }
             }, CONSTANTS.PLAYER_INIT_DELAY);
           }
+        } else {
+          // On non-anime pages, ensure player is removed
+          cleanupExistingPlayer();
         }
       }, 100);
     };
+    // Also handle popstate events for browser back/forward navigation
+    window.addEventListener('popstate', async () => {
+      setTimeout(async () => {
+        if (ShikimoriAPI.isAnimePage()) {
+          const currentAnimeId = ShikimoriAPI.getAnimeId();
+          if (currentAnimeId) {
+            setTimeout(async () => {
+              if (!document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
+                if (!initializationInProgress) {
+                  await safeInitializePlayer();
+                }
+              } else {
+                const allPlayers = document.querySelectorAll(`.${CONSTANTS.PLAYER_CLASS}`);
+                if (allPlayers.length > 1) {
+                  for (let i = 1; i < allPlayers.length; i++) {
+                   allPlayers[i].remove();
+                }
+              }
+            }
+          }, CONSTANTS.PLAYER_INIT_DELAY);
+        }
+      } else {
+        // On non-anime pages, ensure player is removed
+        cleanupExistingPlayer();
+      }
+     }, 100);
+   });
   }, CONSTANTS.PLAYER_INIT_DELAY);
 
   // Register Tampermonkey menu commands
