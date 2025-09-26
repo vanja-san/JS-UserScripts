@@ -12,20 +12,13 @@ class KodikPlayer {
    * @param {string} animeId - The anime ID
    */
   static async createPlayer(animeId) {
-    if (document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
-      return;
-    }
+    // Remove any existing players before creating a new one
+    cleanupExistingPlayer();
     const episode = await ShikimoriAPI.getWatchingEpisode(animeId);
     const playerElement = this.createPlayerElement(animeId, episode);
     if (playerElement) {
-      if (!document.querySelector(`.${CONSTANTS.PLAYER_CLASS}`)) {
         this.insertPlayer(playerElement);
         this.addPlayerEventListeners(playerElement, animeId, episode);
-      } else {
-        if (playerElement.parentNode) {
-          playerElement.remove();
-        }
-      }
     } else {
       logMessage(Localization.get('failedToCreatePlayer'), 'error');
     }
