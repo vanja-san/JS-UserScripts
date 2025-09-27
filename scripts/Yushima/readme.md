@@ -1,6 +1,8 @@
 ## ✅ Встраиваемый плеер для Shikimori
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✔-lightgreen?logo=tampermonkey) ![ScriptCat](https://img.shields.io/badge/ScriptCat-❓-grey?logo=scriptcat) ![Violentmonkey](https://img.shields.io/badge/Violentmonkey-❓-grey?logo=violentmonkey)
 
+⭐ Если вам понравилось, поставьте звёздочку на репозиторий!
+
 ### 👁️‍🗨️ Скриншоты
 Будут позже...
 
