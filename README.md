@@ -8,7 +8,7 @@ A collection of quality-of-life userscripts for various websites.
 > <img src="https://img.shields.io/badge/Nexus_Russian_Localizer-Adds_Russian_translation_to_NexusMods_website.-474747?style=for-the-badge&logo=nexusmods&logoColor=white" alt="Nexus Russian Localizer - Adds Russian translation to NexusMods website."><br />
 > <a href="https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus%20Russian%20Localizer/NRL.user.js"><img src="https://img.shields.io/badge/Install-633d63?style=for-the-badge" alt="Install"></a>
 > <a href="./scripts/Nexus Russian Localizer/"><img src="https://img.shields.io/badge/ReadMe_%26_Screenshots-663447?style=for-the-badge" alt="ReadMe & Screenshots"></a>
-> <a href=""><img src="https://img.shields.io/badge/Greasyfork-26736e?style=for-the-badge" alt="Greasyfork"></a>
+> <a href="#Nexus_Russian_Localizer"><img src="https://img.shields.io/badge/Greasyfork-26736e?style=for-the-badge" alt="Greasyfork"></a>
 >
 > <img src="https://img.shields.io/badge/Booru_Tags_Hauler-One--click_tags_copy_from_the_hover_preview_tooltip_(Danbooru|Safebooru|Hijiribe).-474747?style=for-the-badge&logo=hackthebox&logoColor=white" alt="Booru Tag Hauler - One-click tags copy from the hover preview tooltip."><br />
 > <a href="https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler/Booru_Tags_Hauler.user.js"><img src="https://img.shields.io/badge/Install-633d63?style=for-the-badge" alt="Install"></a>
