@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.1.0
+// @version         2.1.1
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -19,7 +19,7 @@
 
   // Константы
   const CONFIG = {
-    CACHE_VERSION: 'v1.1.1',
+    CACHE_VERSION: 'v1.0.1',
     DB_NAME: 'translationCache',
     DB_VERSION: 1,
     STORE_NAME: 'translations',
@@ -192,10 +192,12 @@
       "Most endorsed": "Самые одобренные",
       "What's new": "Что нового",
       "Categories": "Категории",
+      "New Release": "Новый релиз",
+      "Browse mods": "Посмотреть моды",
       "Welcome back,": "С возвращением,",
       "All games": "Все игры",
       "My games": "Мои игры",
-      "Trending": "Набирающие популярность",
+      "Trending": "Популярные",
       "Mod updates": "Обновления модов",
       "Tracked mods": "Отслеживание модов",
       "My stuff": "Мои вещи",
