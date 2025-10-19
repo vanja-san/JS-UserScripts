@@ -166,6 +166,8 @@
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
+        // Also reinitialize output window after navigation
+        setTimeout(reinitializeOutputWindow, 100);
       }
     });
     
@@ -189,6 +191,8 @@
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
+        // Also reinitialize output window after navigation
+        setTimeout(reinitializeOutputWindow, 100);
       }, 150);
     };
     
@@ -206,6 +210,8 @@
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
+        // Also reinitialize output window after navigation
+        setTimeout(reinitializeOutputWindow, 100);
       }, 150);
     });
   }, CONSTANTS.PLAYER_INIT_DELAY);
@@ -239,4 +245,27 @@
       }
     }
   }, 1000);
+  
+  // Reinitialize the output window after page navigation
+  // The output window element might be removed during AJAX navigation
+  function reinitializeOutputWindow() {
+    if (Settings.getSetting('outputWindowEnabled') && 
+        Settings.getSetting('showOutputWindow')) {
+      // If the output window element no longer exists in the DOM, 
+      // we need to recreate it
+      if (!document.getElementById('yushima-output-window')) {
+        OutputWindow.windowElement = null; // Reset reference
+        OutputWindow.show(); // Recreate and show the window
+      } else {
+        // If element exists, just ensure it's displayed properly
+        const windowElement = document.getElementById('yushima-output-window');
+        if (windowElement) {
+          windowElement.style.display = 'block';
+        }
+      }
+    }
+  }
+
+  // Check and restore output window after navigation
+  setTimeout(reinitializeOutputWindow, 1500);
 })();
