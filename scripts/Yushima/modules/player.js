@@ -14,11 +14,13 @@ class KodikPlayer {
   static async createPlayer(animeId) {
     // Remove any existing players before creating a new one
     cleanupExistingPlayer();
-    const episode = await ShikimoriAPI.getWatchingEpisode(animeId);
-    const playerElement = this.createPlayerElement(animeId, episode);
+    const result = await ShikimoriAPI.getWatchingEpisode(animeId);
+    const episode = result.episode;
+    const maxEpisodes = result.maxEpisodes;
+    const playerElement = this.createPlayerElement(animeId, episode, maxEpisodes);
     if (playerElement) {
         this.insertPlayer(playerElement);
-        this.addPlayerEventListeners(playerElement, animeId, episode);
+        this.addPlayerEventListeners(playerElement, animeId, episode, maxEpisodes);
     } else {
       logMessage(Localization.get('failedToCreatePlayer'), 'error');
     }
@@ -27,9 +29,10 @@ class KodikPlayer {
    * Create the player DOM element
    * @param {string} animeId - The anime ID
    * @param {number} episode - The episode number
+   * @param {number} maxEpisodes - Maximum number of episodes for the anime (0 if unknown)
    * @returns {HTMLElement|null} The player wrapper element
    */
-  static createPlayerElement(animeId, episode) {
+  static createPlayerElement(animeId, episode, maxEpisodes) {
     const headlineText = this.getHeadlineText();
     const headline = this.createElement('div', {
       className: 'subheadline m5',
@@ -94,6 +97,10 @@ class KodikPlayer {
     });
     wrapper.append(headline, container);
     wrapper.resizeObserver = resizeObserver;
+    
+    // Store maxEpisodes for later use in marking episodes
+    wrapper.maxEpisodes = maxEpisodes;
+    
     return wrapper;
   }
   /**
@@ -156,8 +163,9 @@ class KodikPlayer {
    * @param {HTMLElement} playerElement - Player element
    * @param {string} animeId - Anime ID
    * @param {number} episode - Episode number
+   * @param {number} maxEpisodes - Maximum number of episodes for the anime (0 if unknown)
    */
-  static addPlayerEventListeners(playerElement, animeId, episode) {
+  static addPlayerEventListeners(playerElement, animeId, episode, maxEpisodes) {
     try {
       // --- ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ---
       const iframe = playerElement.querySelector('iframe.iframe-player');
@@ -170,6 +178,15 @@ class KodikPlayer {
 
       // Функция для пометки эпизода как просмотренного
       const markAsWatched = async () => {
+        // Проверяем, не превышает ли текущая серия максимум для этого аниме
+        if (maxEpisodes > 0 && episode > maxEpisodes) {
+          logMessage(Localization.get('playerEpisodeExceedsMax', { 
+            episode: episode, 
+            maxEpisodes: maxEpisodes 
+          }), 'warn');
+          return false; // Не отмечаем серию как просмотренную
+        }
+        
         if (hasMarkedAsWatched) return;
         const isAuthenticated = await OAuthHandler.isAuthenticated();
         if (isAuthenticated) {

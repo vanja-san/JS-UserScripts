@@ -70,21 +70,26 @@ class ShikimoriAPI {
   }
   
   /**
-   * Get the episode number the user is currently watching
+   * Get the episode number the user is currently watching and max episodes for anime
    * @param {string} animeId - The anime ID
-   * @returns {Promise<number>} Episode number to watch
+   * @returns {Promise<Object>} Object containing episode number and max episodes
    */
   static async getWatchingEpisode(animeId) {
     if (!animeId || typeof animeId !== 'string' || !/^\d+$/.test(animeId)) {
       logMessage(Localization.get('invalidAnimeId', { animeId: animeId }), 'error');
-      return 1; // Default to episode 1
+      return { episode: 1, maxEpisodes: 0 }; // Default to episode 1 with unknown max
     }
     try {
       const data = await this.fetchApi(`/animes/${animeId}`);
       if (!data) {
         logMessage(Localization.get('animeNotFound'), 'warn');
-        return 1;
+        return { episode: 1, maxEpisodes: 0 }; // Default to episode 1 with unknown max
       }
+      
+      // Get the max episodes from the anime data
+      // The field might be called 'episodes' in the API response
+      const maxEpisodes = data.episodes || 0;
+      
       // Try multiple possible data structures for user rate
       let userRate = data.user_rate || data.userRate;
       if (!userRate && data.rates && Array.isArray(data.rates) && data.rates.length > 0) {
@@ -92,17 +97,17 @@ class ShikimoriAPI {
       }
 
       if (userRate && typeof userRate.episodes === 'number' && userRate.episodes >= 0) {
-        return userRate.episodes + 1;
+        return { episode: userRate.episodes + 1, maxEpisodes };
       }
       // Try alternative field names
       if (userRate && (typeof userRate.episode === 'number' || typeof userRate.watched_episodes === 'number')) {
         const episodeValue = userRate.episode || userRate.watched_episodes || 0;
-        return episodeValue + 1;
+        return { episode: episodeValue + 1, maxEpisodes };
       }
-      return 1; // Default to episode 1 if no user rate or invalid data
+      return { episode: 1, maxEpisodes }; // Default to episode 1 if no user rate or invalid data
     } catch (error) {
       logMessage(Localization.get('getWatchingEpisodeError', { error: error.message }), 'error');
-      return 1;
+      return { episode: 1, maxEpisodes: 0 };
     }
   }
   

@@ -17,6 +17,16 @@ class Settings {
 
   static setSetting(key, value) {
     GM_setValue(key, value);
+    
+    // If output window setting changed, we might need to update UI elements
+    // Although menu commands can't be unregistered, we ensure UI is in sync
+    if (key === 'outputWindowEnabled') {
+      // If disabling output window, hide it
+      if (!value && typeof OutputWindow !== 'undefined') {
+        OutputWindow.hide();
+        Settings.setSetting('showOutputWindow', false);
+      }
+    }
   }
 
   static getAllSettings() {

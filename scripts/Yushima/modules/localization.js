@@ -54,6 +54,7 @@ const Localization = {
       playerThresholdReached: 'Episode {episode} reached {threshold}% - threshold for marking as watched',
       playerMarkSuccess: 'Successfully marked episode {episode} for anime {title} as watched',
       playerCannotMark: 'Cannot mark episode as watched - not authenticated',
+      playerEpisodeExceedsMax: 'Episode {episode} exceeds max episodes ({maxEpisodes}) for this anime, not marking as watched',
       playerVideoEndedMark: 'Player: Video ended - marking as watched',
 
       // Performance and statistics messages
@@ -170,6 +171,7 @@ const Localization = {
       playerThresholdReached: 'Эпизод {episode} достиг {threshold}% порога для пометки как просмотренное',
       playerMarkSuccess: 'Эпизод {episode} для аниме «{title}» успешно помечен как просмотренный',
       playerCannotMark: 'Без авторизации невозможно пометить эпизод как просмотренный',
+      playerEpisodeExceedsMax: 'Эпизод {episode} превышает максимальное количество серий ({maxEpisodes}) для этого аниме, не отмечаем как просмотренный',
       playerVideoEndedMark: 'Плеер: Видео завершено и помечено как просмотренное',
 
       // Performance and statistics messages

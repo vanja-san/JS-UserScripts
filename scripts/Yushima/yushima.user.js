@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.28
+// @version      2.0.30
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -166,6 +166,8 @@
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
+        // Also reinitialize output window after navigation
+        setTimeout(reinitializeOutputWindow, 100);
       }
     });
     
@@ -189,6 +191,8 @@
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
+        // Also reinitialize output window after navigation
+        setTimeout(reinitializeOutputWindow, 100);
       }, 150);
     };
     
@@ -206,6 +210,8 @@
           // On non-anime pages, ensure player is removed
           cleanupExistingPlayer();
         }
+        // Also reinitialize output window after navigation
+        setTimeout(reinitializeOutputWindow, 100);
       }, 150);
     });
   }, CONSTANTS.PLAYER_INIT_DELAY);
@@ -216,14 +222,18 @@
       Settings.showSettingsDialog();
     });
 
-    // Only register the output window command if it's enabled
-    if (Settings.getSetting('outputWindowEnabled')) {
-      GM_registerMenuCommand(Localization.get('menuShowOutput'), () => {
+    // Register the output window command regardless of setting initially
+    // but check the setting when the command is executed
+    GM_registerMenuCommand(Localization.get('menuShowOutput'), () => {
+      // Check if output window is enabled before showing it
+      if (Settings.getSetting('outputWindowEnabled')) {
         OutputWindow.show();
         Settings.setSetting('showOutputWindow', true);
         logMessage(Localization.get('menuOutputShown'), 'info');
-      });
-    }
+      } else {
+        alert(Localization.get('settingsOutputWindowEnabledLabel') + ' ' + Localization.get('settingsSavedRefresh'));
+      }
+    });
   }
 
   // Initialize the output window with the correct visibility state
@@ -235,4 +245,27 @@
       }
     }
   }, 1000);
+  
+  // Reinitialize the output window after page navigation
+  // The output window element might be removed during AJAX navigation
+  function reinitializeOutputWindow() {
+    if (Settings.getSetting('outputWindowEnabled') && 
+        Settings.getSetting('showOutputWindow')) {
+      // If the output window element no longer exists in the DOM, 
+      // we need to recreate it
+      if (!document.getElementById('yushima-output-window')) {
+        OutputWindow.windowElement = null; // Reset reference
+        OutputWindow.show(); // Recreate and show the window
+      } else {
+        // If element exists, just ensure it's displayed properly
+        const windowElement = document.getElementById('yushima-output-window');
+        if (windowElement) {
+          windowElement.style.display = 'block';
+        }
+      }
+    }
+  }
+
+  // Check and restore output window after navigation
+  setTimeout(reinitializeOutputWindow, 1500);
 })();
