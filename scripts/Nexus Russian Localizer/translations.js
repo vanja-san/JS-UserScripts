@@ -1464,4 +1464,10 @@ const DICTIONARIES = {
 }
 
 // Экспорт для использования в пользовательском скрипте
-window.NRL_TRANSLATIONS = DICTIONARIES;
+// Совместимость с UserScript
+if (typeof window !== 'undefined') {
+  window.NRL_TRANSLATIONS = DICTIONARIES;
+}
+
+// Совместимость с ES6 модулями для будущего использования
+export default DICTIONARIES;

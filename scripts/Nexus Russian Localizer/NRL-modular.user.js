@@ -1,28 +1,27 @@
-// ==UserScript==
-// @name            Nexus Russian Localizer DEV
-// @name:ru         Nexus Russian Localizer DEV
-// @namespace       http://tampermonkey.net/
-// @description     Add Russian localization for Nexus Mods.
-// @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.3.0-dev
-// @author          vanja-san
-// @match           https://*.nexusmods.com/*
-// @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
-// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL-dev.user.js
-// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL-dev.user.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/translations.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/config.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/lru-cache.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/helpers.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/context-matcher.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-cache.js
-// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-engine.js
-// @grant           none
-// @license         MIT
-// ==/UserScript==
+import { CONFIG } from './src/config.js';
+import { LRUCache, contextCheckCache, headingElementsCache, IGNORED_CLASSES, templateCache } from './src/lru-cache.js';
+import { pluralize, createPluralizationTemplates, DYNAMIC_TEMPLATES } from './src/helpers.js';
+import { ContextMatcher } from './src/context-matcher.js';
+import { TranslationCache } from './src/translation-cache.js';
+import { TranslationEngine } from './src/translation-engine.js';
 
 (function() {
   'use strict';
+
+  // Функция для получения приоритетных элементов
+  function getPriorityElements() {
+    return CONFIG.PRIORITY_SELECTORS.flatMap(selector =>
+                                             Array.from(document.querySelectorAll(selector))
+                                            ).filter(el => el.offsetParent !== null); // Только видимые элементы
+  }
+
+  // Предзагрузка ключевых переводов
+  async function preloadCriticalTranslations(cache) {
+    const criticalTerms = ['Download', 'Mods', 'Games', 'Collections', 'Media', 'Community', 'Support', 'Home', 'Search', 'Login', 'Register'];
+    await Promise.all(criticalTerms.map(term =>
+                                        cache.getCachedTranslation(term)
+                                       ));
+  }
 
   // Основная функция инициализации
   async function init() {
@@ -51,10 +50,7 @@
 
       // Обрабатываем приоритетные элементы в первую очередь
       const priorityElements = getPriorityElements();
-      const priorityLen = priorityElements.length;
-      for (let i = 0; i < priorityLen; i++) {
-        await translator.translateNode(priorityElements[i]);
-      }
+      await translator.translateElementBatch(priorityElements);
 
       // Обрабатываем все остальные элементы батчами
       const allElements = document.querySelectorAll('body *');
@@ -106,34 +102,6 @@
       };
 
       simpleTranslate(document.body);
-    }
-  }
-
-  // Функция для получения приоритетных элементов
-  function getPriorityElements() {
-    const selectors = window.CONFIG?.PRIORITY_SELECTORS || ['h1', 'h2', 'h3', 'nav', 'button', 'a', '[data-translate-priority="high"]'];
-    const result = [];
-    const len = selectors.length;
-    
-    for (let i = 0; i < len; i++) {
-      const elements = document.querySelectorAll(selectors[i]);
-      for (let j = 0; j < elements.length; j++) {
-        const el = elements[j];
-        if (el.offsetParent !== null) { // Только видимые элементы
-          result.push(el);
-        }
-      }
-    }
-    
-    return result;
-  }
-
-  // Предзагрузка ключевых переводов
-  async function preloadCriticalTranslations(cache) {
-    const criticalTerms = ['Download', 'Mods', 'Games', 'Collections', 'Media', 'Community', 'Support', 'Home', 'Search', 'Login', 'Register'];
-    const len = criticalTerms.length;
-    for (let i = 0; i < len; i++) {
-      await cache.getCachedTranslation(criticalTerms[i]); // Выполняем последовательно, а не параллельно, чтобы не перегружать
     }
   }
 

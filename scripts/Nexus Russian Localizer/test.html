@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRL Test Page</title>
+    <script>
+        // Mock window.NRL_TRANSLATIONS для тестирования
+        window.NRL_TRANSLATIONS = {
+            main: {
+                "Home": "Главная",
+                "Games": "Игры",
+                "Mods": "Моды",
+                "All mods": "Все моды",
+                "Download": "Скачать",
+                "Endorse": "Одобрить",
+                "Subscribe": "Подписаться",
+                "Comments": "Комментарии"
+            },
+            contextual: {},
+            months: {},
+            translatableAttributes: ['title', 'placeholder', 'alt']
+        };
+    </script>
+</head>
+<body>
+    <h1>Home</h1>
+    <nav>
+        <a href="#">Games</a>
+        <a href="#">Mods</a>
+        <a href="#">All mods</a>
+    </nav>
+    <button title="Download this mod">Download</button>
+    <p>Endorse this mod if you like it</p>
+    <input placeholder="Write a comment..." type="text">
+    <div>
+        <span>Subscribe to updates</span>
+        <span>Comments: 42</span>
+    </div>
+    
+    <script>
+        // Здесь будет код из NRL-dev.user.js для тестирования
+        // Загружаем скрипт после определения mock-данных
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = './NRL-dev.user.js';
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
