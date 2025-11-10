@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name            Nexus Russian Localizer
-// @name:ru         Nexus Russian Localizer
+// @name            Nexus Russian Localizer DEV
+// @name:ru         Nexus Russian Localizer DEV
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
