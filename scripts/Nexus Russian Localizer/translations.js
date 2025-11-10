@@ -1468,6 +1468,3 @@ const DICTIONARIES = {
 if (typeof window !== 'undefined') {
   window.NRL_TRANSLATIONS = DICTIONARIES;
 }
-
-// Совместимость с ES6 модулями для будущего использования
-export default DICTIONARIES;
