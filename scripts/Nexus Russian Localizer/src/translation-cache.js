@@ -99,11 +99,11 @@ class TranslationCache {
       const transaction = this.db.transaction([window.CONFIG?.STORE_NAME || 'translations'], 'readwrite');
       const store = transaction.objectStore(window.CONFIG?.STORE_NAME || 'translations');
       const item = {
-        key: `${window.CONFIG?.CACHE_VERSION || 'v1.0.1'}:${key}`,
+        key: `${window.CONFIG?.CACHE_VERSION || 'v1.0.2'}:${key}`,
         value: value,
         compressed: isCompressed,
         timestamp: Date.now(),
-        version: window.CONFIG?.CACHE_VERSION || 'v1.0.1'
+        version: window.CONFIG?.CACHE_VERSION || 'v1.0.2'
       };
       store.put(item);
     } catch (e) {
@@ -120,11 +120,11 @@ class TranslationCache {
 
       translations.forEach(([key, value, isCompressed = false]) => {
         store.put({
-          key: `${window.CONFIG?.CACHE_VERSION || 'v1.0.1'}:${key}`,
+          key: `${window.CONFIG?.CACHE_VERSION || 'v1.0.2'}:${key}`,
           value,
           compressed: isCompressed,
           timestamp: Date.now(),
-          version: window.CONFIG?.CACHE_VERSION || 'v1.0.1'
+          version: window.CONFIG?.CACHE_VERSION || 'v1.0.2'
         });
       });
 
@@ -140,7 +140,7 @@ class TranslationCache {
     try {
       const transaction = this.db.transaction([window.CONFIG?.STORE_NAME || 'translations'], 'readonly');
       const store = transaction.objectStore(window.CONFIG?.STORE_NAME || 'translations');
-      const request = store.get(`${window.CONFIG?.CACHE_VERSION || 'v1.0.1'}:${key}`);
+      const request = store.get(`${window.CONFIG?.CACHE_VERSION || 'v1.0.2'}:${key}`);
 
       return new Promise((resolve) => {
         request.onerror = () => resolve(null);
