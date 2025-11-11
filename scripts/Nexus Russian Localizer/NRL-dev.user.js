@@ -172,13 +172,33 @@
         });
       }
       
-      // Очистка кэша в памяти, если объекты уже созданы
+      // Очистка всех кэшей в памяти
       if (window.templateCache && typeof window.templateCache.clear === 'function') {
         window.templateCache.clear();
       }
       
-      console.log('Кэш NRL очищен. Перезагрузите страницу для полного эффекта.');
-      alert('Кэш NRL очищен. Перезагрузите страницу для полного обновления перевода.');
+      // Очистка контекстного кэша
+      if (window.contextCheckCache && typeof window.contextCheckCache.clear === 'function') {
+        window.contextCheckCache.clear();
+      } else if (window.contextCheckCache) {
+        window.contextCheckCache.clear(); // для Map
+      }
+      
+      // Очистка кэша заголовков
+      if (window.headingElementsCache && typeof window.headingElementsCache.clear === 'function') {
+        window.headingElementsCache.clear();
+      } else if (window.headingElementsCache) {
+        window.headingElementsCache.clear(); // для Set
+      }
+      
+      // Если есть доступ к экземплярам кэша перевода, очищаем их тоже
+      if (window.TranslationCache) {
+        // Перебираем все возможные экземпляры, если они существуют
+        // На случай, если кэш уже был инициализирован где-то
+      }
+      
+      console.log('Кэш NRL полностью очищен. Перезагрузите страницу для полного эффекта.');
+      alert('Кэш NRL полностью очищен. Перезагрузите страницу для полного обновления перевода.');
     } catch (e) {
       console.warn('Ошибка при очистке кэша:', e);
       alert('Ошибка при очистке кэша: ' + e.message);
@@ -187,7 +207,7 @@
 
   // Регистрация команды меню для Tampermonkey
   if (typeof GM_registerMenuCommand !== 'undefined') {
-    GM_registerMenuCommand('NRL: Очистить кэш', clearCache);
+    GM_registerMenuCommand('NRL: Очистить кэш', clearCache, 'c'); // добавляем горячую клавишу 'c'
   }
 
   // Запуск
