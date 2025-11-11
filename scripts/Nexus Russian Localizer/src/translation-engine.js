@@ -102,6 +102,12 @@ class TranslationEngine {
     const len = templates.length;
     for (let i = 0; i < len; i++) {
       const template = templates[i];
+      
+      // Пропускаем шаблоны, если текст превышает максимальную длину для безопасности
+      if (template.maxLength && newText.length > template.maxLength) {
+        continue;
+      }
+      
       // Сбрасываем lastIndex для глобальных регулярных выражений
       template.pattern.lastIndex = 0;
 
@@ -256,17 +262,14 @@ class TranslationEngine {
   async translateElementBatch(elements) {
     const batchSize = window.CONFIG?.BATCH_SIZE || 50;
     const batchDelay = window.CONFIG?.BATCH_DELAY || 0;
-    const len = elements.length;
-    for (let i = 0; i < len; i += batchSize) {
-      const end = Math.min(i + batchSize, len);
-      const batch = new Array(end - i);
-      for (let j = 0; i + j < end; j++) {
-        batch[j] = elements[i + j];
-      }
-      
+    
+    // Обрабатываем элементы батчами для уменьшения нагрузки на DOM
+    for (let i = 0; i < elements.length; i += batchSize) {
+      const batch = elements.slice(i, i + batchSize);
+
       // Выполняем перевод элементов последовательно, а не параллельно, чтобы уменьшить нагрузку
-      for (let k = 0; k < batch.length; k++) {
-        await this.translateNode(batch[k]);
+      for (const element of batch) {
+        await this.translateNode(element);
       }
 
       // Даем браузеру возможность обработать другие события

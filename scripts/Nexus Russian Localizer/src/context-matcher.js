@@ -65,16 +65,23 @@ class ContextMatcher {
   }
 
   findTranslation(text, element) {
+    if (!text || !element) return null;
+    
     const rules = this.#rulesCache.get(text);
     if (!rules) return null;
 
-    for (const rule of rules) {
-      if (this.match(element, rule.compiledSelector)) {
-        return {
-          translation: rule.translation,
-          context: rule.context
-        };
+    try {
+      for (const rule of rules) {
+        if (this.match(element, rule.compiledSelector)) {
+          return {
+            translation: rule.translation,
+            context: rule.context
+          };
+        }
       }
+    } catch (error) {
+      console.warn('Ошибка при поиске контекстного перевода:', error);
+      return null;
     }
 
     return null;

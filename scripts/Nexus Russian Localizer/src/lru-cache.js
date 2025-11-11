@@ -46,3 +46,18 @@ window.headingElementsCache = new Set();
 window.IGNORED_CLASSES = new Set(['no-translate', 'ignore-translation', 'code', 'pre']);
 window.templateCache = new LRUCache(500);
 window.LRUCache = LRUCache;
+
+// Ограничение размера для предотвращения утечек памяти
+const CONTEXT_CHECK_CACHE_LIMIT = 10000;
+function checkAndTrimContextCache() {
+  if (window.contextCheckCache?.size > CONTEXT_CHECK_CACHE_LIMIT) {
+    // Удаляем старые записи если кэш превышает лимит
+    const keys = Array.from(window.contextCheckCache.keys());
+    for (let i = 0; i < keys.length - (CONTEXT_CHECK_CACHE_LIMIT * 0.8); i++) {
+      window.contextCheckCache.delete(keys[i]);
+    }
+  }
+}
+
+// Добавляем периодическую проверку размера кэша
+setInterval(checkAndTrimContextCache, 30000); // каждые 30 секунд

@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name            Nexus Russian Localizer
-// @name:ru         Nexus Russian Localizer
+// @name            Nexus Russian Localizer (Clear Cache)
+// @name:ru         Nexus Russian Localizer (Очистка кэша)
 // @namespace       http://tampermonkey.net/
-// @description     Add Russian localization for Nexus Mods.
-// @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.3.0
+// @description     Add Russian localization for Nexus Mods with cache clearing.
+// @description:ru  Добавляет русскую локализацию для сайта Nexus Mods с очисткой кэша.
+// @version         2.3.1
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
-// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js
-// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js
+// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL-clear-cache.user.js
+// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL-clear-cache.user.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/translations.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/config.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/lru-cache.js
@@ -17,7 +17,6 @@
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/context-matcher.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-cache.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-engine.js
-// @grant           GM_registerMenuCommand
 // @grant           none
 // @license         MIT
 // ==/UserScript==
@@ -25,8 +24,33 @@
 (function() {
   'use strict';
 
-  // Основная функция инициализации
+  // Очистка кэша перед запуском
+  async function clearCache() {
+    try {
+      // Очистка IndexedDB
+      if ('indexedDB' in window) {
+        const deleteReq = indexedDB.deleteDatabase(window.CONFIG?.DB_NAME || 'translationCache');
+        await new Promise((resolve) => {
+          deleteReq.onsuccess = () => resolve();
+          deleteReq.onerror = () => resolve(); // Просто продолжаем, даже если ошибка
+        });
+      }
+      
+      // Очистка кэша в памяти, если объекты уже созданы
+      if (window.templateCache && typeof window.templateCache.clear === 'function') {
+        window.templateCache.clear();
+      }
+      
+      console.log('Кэш NRL очищен');
+    } catch (e) {
+      console.warn('Ошибка при очистке кэша:', e);
+    }
+  }
+
   async function init() {
+    // Сначала очищаем кэш
+    await clearCache();
+
     try {
       // Скрываем контент до завершения перевода
       document.documentElement.style.visibility = 'hidden';

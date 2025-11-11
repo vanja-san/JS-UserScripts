@@ -52,17 +52,23 @@ class TranslationCache {
       };
     `;
 
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    this.worker = new Worker(URL.createObjectURL(blob));
+    try {
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      this.worker = new Worker(URL.createObjectURL(blob));
 
-    this.worker.onmessage = (e) => {
-      const { type, id, result } = e.data;
-      if (type === 'compressed') {
-        this.handleCompressed(id, result);
-      } else if (type === 'decompressed') {
-        this.handleDecompressed(id, result);
-      }
-    };
+      this.worker.onmessage = (e) => {
+        const { type, id, result } = e.data;
+        if (type === 'compressed') {
+          this.handleCompressed(id, result);
+        } else if (type === 'decompressed') {
+          this.handleDecompressed(id, result);
+        }
+      };
+    } catch (error) {
+      console.warn('Ошибка инициализации Web Worker:', error);
+      // Используем резервный вариант без воркера
+      this.worker = null;
+    }
   }
 
   async initDB() {

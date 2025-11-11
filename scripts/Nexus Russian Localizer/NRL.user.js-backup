@@ -17,7 +17,6 @@
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/context-matcher.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-cache.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-engine.js
-// @grant           GM_registerMenuCommand
 // @grant           none
 // @license         MIT
 // ==/UserScript==

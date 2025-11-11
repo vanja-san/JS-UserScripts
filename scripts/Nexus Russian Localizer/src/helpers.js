@@ -44,6 +44,22 @@ window.DYNAMIC_TEMPLATES = [
       return `${num} ${window.pluralize(num, units[unit])} назад`;
     }
   },
+  // Безопасные версии шаблонов с ограничениями на длину строк
+  {
+    pattern: /(\d+)\s*GB/gi,
+    replacement: "$1 ГБ",
+    maxLength: 20 // Ограничение длины строки для безопасности
+  },
+  {
+    pattern: /(\d+)\s*MB/gi,
+    replacement: "$1 МБ",
+    maxLength: 20
+  },
+  {
+    pattern: /(\d+)\s*KB/gi,
+    replacement: "$1 КБ",
+    maxLength: 20
+  },
 
   // Шаблоны с плюрализацией (только для отдельных слов, без ago)
   ...window.createPluralizationTemplates([

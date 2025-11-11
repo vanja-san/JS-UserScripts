@@ -17,6 +17,7 @@
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/context-matcher.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-cache.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/src/translation-engine.js
+// @grant           GM_registerMenuCommand
 // @grant           none
 // @license         MIT
 // ==/UserScript==
@@ -57,7 +58,29 @@
       }
 
       // Обрабатываем все остальные элементы батчами
-      const allElements = document.querySelectorAll('body *');
+      // Используем TreeWalker для более эффективного обхода DOM
+      const allElements = [];
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_ELEMENT,
+        {
+          acceptNode: function(node) {
+            // Пропускаем скрытые элементы и элементы без текстового содержимого
+            if (node.offsetParent === null && node.tagName !== 'BODY') {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+      
+      let node;
+      while (node = walker.nextNode()) {
+        if (node !== document.body) { // Исключаем сам body элемент
+          allElements.push(node);
+        }
+      }
+      
       await translator.translateElementBatch(allElements);
 
       // Показываем контент после завершения перевода
@@ -135,6 +158,36 @@
     for (let i = 0; i < len; i++) {
       await cache.getCachedTranslation(criticalTerms[i]); // Выполняем последовательно, а не параллельно, чтобы не перегружать
     }
+  }
+
+  // Функция для очистки кэша
+  async function clearCache() {
+    try {
+      // Очистка IndexedDB
+      if ('indexedDB' in window) {
+        const deleteReq = indexedDB.deleteDatabase(window.CONFIG?.DB_NAME || 'translationCache');
+        await new Promise((resolve) => {
+          deleteReq.onsuccess = () => resolve();
+          deleteReq.onerror = () => resolve(); // Просто продолжаем, даже если ошибка
+        });
+      }
+      
+      // Очистка кэша в памяти, если объекты уже созданы
+      if (window.templateCache && typeof window.templateCache.clear === 'function') {
+        window.templateCache.clear();
+      }
+      
+      console.log('Кэш NRL очищен. Перезагрузите страницу для полного эффекта.');
+      alert('Кэш NRL очищен. Перезагрузите страницу для полного обновления перевода.');
+    } catch (e) {
+      console.warn('Ошибка при очистке кэша:', e);
+      alert('Ошибка при очистке кэша: ' + e.message);
+    }
+  }
+
+  // Регистрация команды меню для Tampermonkey
+  if (typeof GM_registerMenuCommand !== 'undefined') {
+    GM_registerMenuCommand('NRL: Очистить кэш', clearCache);
   }
 
   // Запуск
