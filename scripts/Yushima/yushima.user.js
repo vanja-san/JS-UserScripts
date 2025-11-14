@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.34
+// @version      2.0.35
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -71,13 +71,37 @@
       // Authentication was successful in another tab
       logMessage(Localization.get('authSuccess'), 'success');
       // Refresh the page to update the UI based on new authentication state
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000); // Small delay to allow the message to be logged
+      window.location.reload();
     }
     // Clear the stored timestamp so we don't keep refreshing
     localStorage.removeItem('yushima_auth_timestamp');
   }
+
+  // Set up periodic checks for authentication status from other tabs
+  setInterval(async () => {
+    const authTimestamp = localStorage.getItem('yushima_auth_timestamp');
+    if (authTimestamp) {
+      const timestamp = parseInt(authTimestamp);
+      const now = Date.now();
+      // Only consider it fresh if it's within the last 30 seconds
+      if (now - timestamp < 30000) {
+        logMessage(Localization.get('authSuccess'), 'success');
+        window.location.reload();
+      }
+      // Clear the stored timestamp so we don't keep refreshing
+      localStorage.removeItem('yushima_auth_timestamp');
+    } else {
+      // Also check if the user has become authenticated without going through our process
+      const isAuthenticated = await OAuthHandler.isAuthenticated();
+      if (isAuthenticated) {
+        // Update auth cache since authentication state has changed
+        if (typeof OAuthHandler !== 'undefined' && OAuthHandler.lastAuthCheck !== undefined) {
+          OAuthHandler.lastAuthCheck = 0;
+          OAuthHandler.lastAuthResult = null;
+        }
+      }
+    }
+  }, 2000); // Check every 2 seconds
 
   // Also check if we're on an authorization callback page with code in path
   const pathSegments = window.location.pathname.split('/');
