@@ -51,22 +51,49 @@ class OAuthHandler {
    * Show authentication code input dialog
    */
   static showAuthCodeInput() {
-    // First, check if there's already an authorization code in the current URL
-    const urlParams = new URLSearchParams(window.location.search);
-    let code = urlParams.get('code');
+    // Check if there's already an authorization code in the current URL (in the path)
+    const pathSegments = window.location.pathname.split('/');
+    const authorizeIndex = pathSegments.indexOf('authorize');
+
+    let code = null;
+    if (authorizeIndex !== -1 && authorizeIndex + 1 < pathSegments.length) {
+      code = pathSegments[authorizeIndex + 1]; // The code is the next segment after 'authorize'
+      // Verify it looks like a valid code (alphanumeric, hyphens, underscores, and dots)
+      if (code && !/^[a-zA-Z0-9._-]+$/.test(code)) {
+        code = null; // Not a valid code format
+      }
+    }
+
+    // Check also in query parameters (for fallback compatibility)
+    if (!code) {
+      const urlParams = new URLSearchParams(window.location.search);
+      code = urlParams.get('code');
+    }
 
     // Check also in hash
     if (!code && window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       code = hashParams.get('code');
+
+      // Also try regex match for hash in format #code=... or &#code=...
+      if (!code) {
+        const match = window.location.hash.match(/[#&]code=([^&]*)/);
+        if (match) {
+          code = decodeURIComponent(match[1]);
+        }
+      }
     }
 
     // If we found a code in the URL, process it directly
     if (code) {
       // Remove the code from URL to prevent duplicate processing
+      // For path-based codes, we need to reconstruct the URL
+      const newPath = pathSegments.slice(0, authorizeIndex + 1).join('/') + '/';
       const currentUrl = new URL(window.location.href);
+      currentUrl.pathname = newPath;
       currentUrl.searchParams.delete('code');
       currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, '');
+
       if (currentUrl.href !== window.location.href) {
         window.history.replaceState({}, document.title, currentUrl.href);
       }
