@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.5.0-dev
+// @version         2.5.1-dev
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -57,6 +57,9 @@
       for (let i = 0; i < priorityLen; i++) {
         await translator.translateNode(priorityElements[i]);
       }
+
+      // Обрабатываем элементы с всплывающими подсказками немедленно
+      await processTooltipElements();
 
       // Обрабатываем все остальные элементы батчами
       // Используем TreeWalker для более эффективного обхода DOM
@@ -325,6 +328,61 @@
   // Регистрация команды меню для Tampermonkey
   if (typeof GM_registerMenuCommand !== 'undefined') {
     GM_registerMenuCommand('NRL: Очистить кэш', clearCache, 'c'); // добавляем горячую клавишу 'c'
+  }
+
+  // Функция для обработки элементов с всплывающими подсказками
+  async function processTooltipElements() {
+    // Находим элементы с атрибутами подсказок
+    const tooltipSelectors = [
+      '[title]',
+      '[data-tooltip]',
+      '[data-original-title]',
+      '[data-bs-title]',
+      '[data-bs-tooltip]',
+      '[data-toggle="tooltip"]',
+      '[data-toggle="popover"]'
+    ];
+
+    const elements = [];
+    for (const selector of tooltipSelectors) {
+      elements.push(...Array.from(document.querySelectorAll(selector)));
+    }
+
+    for (const element of elements) {
+      // Обрабатываем атрибуты подсказок
+      const title = element.getAttribute('title');
+      if (title && title.trim()) {
+        let translated = window.NRL_TRANSLATIONS?.main[title];
+        if (!translated) {
+          translated = window.dateFormatter.format(title);
+        }
+        if (translated && translated !== title) {
+          element.setAttribute('title', translated);
+        }
+      }
+
+      const dataTooltip = element.getAttribute('data-tooltip');
+      if (dataTooltip && dataTooltip.trim()) {
+        let translated = window.NRL_TRANSLATIONS?.main[dataTooltip];
+        if (!translated) {
+          translated = window.dateFormatter.format(dataTooltip);
+        }
+        if (translated && translated !== dataTooltip) {
+          element.setAttribute('data-tooltip', translated);
+        }
+      }
+
+      const dataOriginalTitle = element.getAttribute('data-original-title');
+      if (dataOriginalTitle && dataOriginalTitle.trim()) {
+        let translated = window.NRL_TRANSLATIONS?.main[dataOriginalTitle];
+        if (!translated) {
+          translated = window.dateFormatter.format(dataOriginalTitle);
+        }
+        if (translated && translated !== dataOriginalTitle) {
+          element.setAttribute('data-original-title', translated);
+        }
+      }
+    }
   }
 
   // Запуск

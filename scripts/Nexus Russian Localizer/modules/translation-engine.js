@@ -73,6 +73,11 @@ class TranslationEngine {
         }
       }
 
+      // Apply date formatting if no direct translation found
+      if (!translated) {
+        translated = window.dateFormatter.format(currentValue);
+      }
+
       // If no direct translation found, check cache
       if (!translated) {
         translated = await this.#cache.getCachedTranslation(currentValue);
@@ -233,6 +238,19 @@ class TranslationEngine {
       }
     }
 
+    // Специальная обработка всплывающих элементов
+    if (element.classList &&
+        (element.classList.contains('tooltip') ||
+         element.classList.contains('popover') ||
+         element.classList.contains('tippy-box') ||
+         element.classList.contains('qtip') ||
+         element.classList.contains('ui-tooltip') ||
+         element.className.includes('tip') ||
+         element.className.includes('popper'))) {
+      // Если это всплывающий элемент, обрабатываем его текст немедленно
+      await this.translateImmediateTextContent(element);
+    }
+
     // Специальная обработка заголовков
     const tagName = element.tagName.toLowerCase();
     if (tagName >= 'h1' && tagName <= 'h6') {
@@ -255,6 +273,40 @@ class TranslationEngine {
     const childNodes = element.childNodes;
     for (let i = 0; i < childNodes.length; i++) {
       await this.translateNode(childNodes[i]);
+    }
+  }
+
+  // Метод для немедленного перевода текстового содержимого элемента
+  async translateImmediateTextContent(element) {
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+
+    let textNode;
+    while (textNode = walker.nextNode()) {
+      const originalText = textNode.textContent.trim();
+      if (originalText) {
+        let translated = window.NRL_TRANSLATIONS?.main[originalText];
+        if (!translated) {
+          // Проверяем контекстные правила
+          const contextualResult = this.#contextMatcher?.findTranslation(originalText, element);
+          if (contextualResult) {
+            translated = contextualResult.translation;
+          }
+        }
+
+        // Применяем форматирование дат
+        if (!translated) {
+          translated = window.dateFormatter.format(originalText);
+        }
+
+        if (translated && translated !== originalText) {
+          textNode.textContent = translated;
+        }
+      }
     }
   }
 
@@ -337,6 +389,32 @@ class TranslationEngine {
 
           // Handle attribute changes (for title, placeholder, etc.)
           if (mutation.type === 'attributes' && mutation.target) {
+            // Быстро переводим атрибуты, если они изменились
+            if (mutation.attributeName === 'title' || mutation.attributeName === 'data-tooltip') {
+              const newValue = mutation.target.getAttribute(mutation.attributeName);
+              if (newValue) {
+                let translated = await this.#cache.getCachedTranslation(newValue);
+                if (!translated) {
+                  // Проверяем контекстные правила
+                  const contextualResult = this.#contextMatcher?.findTranslation(newValue, mutation.target);
+                  if (contextualResult) {
+                    translated = contextualResult.translation;
+                  } else {
+                    // Проверяем общий словарь
+                    translated = window.NRL_TRANSLATIONS?.main[newValue];
+                  }
+                }
+
+                // Применяем форматирование дат, если текст не был переведен из словаря
+                if (!translated) {
+                  translated = window.dateFormatter.format(newValue);
+                }
+
+                if (translated && translated !== newValue) {
+                  mutation.target.setAttribute(mutation.attributeName, translated);
+                }
+              }
+            }
             nodesToProcess.add(mutation.target);
           }
 
@@ -350,7 +428,7 @@ class TranslationEngine {
         for (const node of nodesToProcess) {
           await this.translateNode(node);
         }
-      }, 100); // 100мс задержка для объединения изменений
+      }, 50); // уменьшил задержку до 50мс для более быстрой реакции на всплывающие элементы
     });
 
     // Use config options for mutation observer
