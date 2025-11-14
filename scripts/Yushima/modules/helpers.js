@@ -27,7 +27,7 @@ async function fetchSecretsFromGist() {
 function fetchEncodedSecretsBackup() {
   try {
     // This uses an encoded form of the default secrets to avoid plaintext in source
-    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRUWdPaFp1MHNhaF9Dbnp3Z0xLSVVXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsakZ6c0daTGpfOHJLQUxrcHFzcWVOODhBMkVaa3oifQ==";
+    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRQ2dPaFp1MHNhaF9DandoTElXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsakZ6c0daTGpfOHJLQUxrcHFxRW44QTJFWmsifQ==";
     const decodedSecrets = atob(encodedSecrets);
     const secrets = JSON.parse(decodedSecrets);
     return {
@@ -84,7 +84,7 @@ async function getAnimeTitle(animeId) {
  * @returns {Promise<string>} Authorization URL (asynchronously fetches client_id)
  */
 async function createAuthUrl() {
-  let clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo'; // fallback default
+  let clientId = 'QGgOhZu0sah_CnzwgLIWu6Nil8STVCirCYhlAq7tmo'; // fallback default
 
   // Fetch secrets from gist to get the correct client_id
   const remoteSecrets = await fetchSecretsFromGist();
