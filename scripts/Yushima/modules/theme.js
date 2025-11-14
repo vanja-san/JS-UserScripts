@@ -58,8 +58,8 @@ function getThemeStyles(theme) {
   if (theme === 'dark') {
     return {
       // Темная тема
-      windowBg: '#2d2d2d',
-      windowBorder: '#444',
+      windowBg: '#212121',
+      windowBorder: '#333',
       headerBg: '#3a3a3a',
       headerColor: '#e0e0e0',
       contentBg: '#1e1e1e',
