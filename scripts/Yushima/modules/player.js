@@ -122,9 +122,9 @@ class KodikPlayer {
       style: 'background-color: #3498db; color: white; align-items: center; height: 24px; padding: 2px 4px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75em;'
     });
 
-    authButton.addEventListener('click', () => {
+    authButton.addEventListener('click', async () => {
       // Show the code input dialog (this will open the authentication page)
-      OAuthHandler.showAuthCodeInput();
+      await OAuthHandler.showAuthCodeInput();
     });
 
     authContainer.appendChild(statusText);

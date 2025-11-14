@@ -11,11 +11,11 @@ async function fetchSecretsFromGist() {
         client_secret: secrets.client_secret
       };
     } else {
-      logMessage('Failed to fetch secrets from Gist: ' + response.status, 'error');
+      logMessage(`Failed to fetch secrets from Gist: ${response.status}. This might be due to GitHub API rate limits or network issues. Using fallback secrets.`, 'error');
       return fetchEncodedSecretsBackup();
     }
   } catch (error) {
-    logMessage('Error fetching secrets from Gist: ' + error.message, 'error');
+    logMessage(`Error fetching secrets from Gist: ${error.message}. This might be due to GitHub API rate limits or network issues. Using fallback secrets.`, 'error');
     return fetchEncodedSecretsBackup();
   }
 }
@@ -27,7 +27,7 @@ async function fetchSecretsFromGist() {
 function fetchEncodedSecretsBackup() {
   try {
     // This uses an encoded form of the default secrets to avoid plaintext in source
-    const encodedSecrets = "";
+    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRUWdPaFp1MHNhaF9Dbnp3Z0xLSVVXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsakZ6c0daTGpfOHJLQUxrcHFzcWVOODhBMkVaa3oifQ==";
     const decodedSecrets = atob(encodedSecrets);
     const secrets = JSON.parse(decodedSecrets);
     return {
@@ -81,10 +81,17 @@ async function getAnimeTitle(animeId) {
 
 /**
  * Create OAuth authorization URL
- * @returns {string} Authorization URL
+ * @returns {Promise<string>} Authorization URL (asynchronously fetches client_id)
  */
-function createAuthUrl() {
-  const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
+async function createAuthUrl() {
+  let clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo'; // fallback default
+
+  // Fetch secrets from gist to get the correct client_id
+  const remoteSecrets = await fetchSecretsFromGist();
+  if (remoteSecrets && remoteSecrets.client_id) {
+    clientId = remoteSecrets.client_id;
+  }
+
   return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
 }
 
