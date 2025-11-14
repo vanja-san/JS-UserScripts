@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.32
+// @version      2.0.33
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -58,7 +58,40 @@
   };
 
   // Check for authorization code in URL (for OAuth callback)
+  // This now includes checking for codes in the path (like /oauth/authorize/CODE)
   checkForAuthorizationCode();
+
+  // Also check if we're on an authorization callback page with code in path
+  const pathSegments = window.location.pathname.split('/');
+  const authorizeIndex = pathSegments.indexOf('authorize');
+  if (authorizeIndex !== -1 && authorizeIndex + 1 < pathSegments.length) {
+    const code = pathSegments[authorizeIndex + 1]; // The code is the next segment after 'authorize'
+    // Verify it looks like a valid code (alphanumeric, hyphens, underscores, and dots)
+    if (code && /^[a-zA-Z0-9._-]+$/.test(code)) {
+      // Process the authorization code directly
+      OAuthHandler.processAuthorizationCode(code).then(success => {
+        if (success) {
+          logMessage(Localization.get('authSuccess'), 'success');
+
+          // Try to close this tab since we're done with authentication
+          // This only works if the tab was opened by a script (like window.open)
+          try {
+            window.close();
+          } catch (e) {
+            // If we can't close the tab, redirect back to main site
+            // In some browsers, window.close() only works for tabs opened via window.open()
+            console.log('Could not close tab automatically, redirecting...');
+
+            // Try to redirect user's attention back to the original tab
+            alert(Localization.get('authSuccess') + ' You can now close this tab and return to the original page.');
+          }
+        } else {
+          logMessage(Localization.get('authFailed'), 'error');
+          alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+        }
+      });
+    }
+  }
 
   // Flag to prevent duplicate initialization
   let initializationInProgress = false;

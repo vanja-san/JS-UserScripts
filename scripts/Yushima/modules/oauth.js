@@ -30,8 +30,14 @@ class OAuthHandler {
   static initiateAuthFlow() {
     // Use the out-of-band flow as originally designed
     const authUrl = createAuthUrl();
-    window.open(authUrl, '_blank');
-    logMessage('Please authorize the application in the opened window. After authorizing, you will be redirected to a page with an authorization code. The code should appear in your browsers address bar. The script will automatically detect the code if you return to this page.', 'info');
+    // Use a named window so we can potentially reference it later
+    const authWindow = window.open(authUrl, 'shikimori_auth_window', 'width=800,height=600,scrollbars=yes,resizable=yes');
+
+    if (authWindow) {
+      logMessage('Please authorize the application in the opened window. After authorizing, the window will automatically close and you will be back on this page.', 'info');
+    } else {
+      logMessage('Please authorize the application in the opened window. After authorizing, you will be redirected to a page with an authorization code. The code should appear in your browsers address bar. The script will automatically detect the code if you return to this page.', 'info');
+    }
   }
   /**
    * Process authorization code from URL parameters
