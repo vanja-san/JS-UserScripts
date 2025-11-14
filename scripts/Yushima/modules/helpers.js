@@ -102,15 +102,31 @@ async function getAnimeTitle(animeId) {
  * @returns {Promise<string>} Authorization URL (asynchronously fetches client_id)
  */
 async function createAuthUrl() {
-  let clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo'; // fallback default
-
-  // Fetch secrets from gist to get the correct client_id
-  const remoteSecrets = await fetchSecretsFromGist();
-  if (remoteSecrets && remoteSecrets.client_id) {
-    clientId = remoteSecrets.client_id;
+  try {
+    const remoteSecrets = await fetchSecretsFromGist();
+    
+    if (!remoteSecrets || !remoteSecrets.client_id) {
+      throw new Error('No client_id from Gist');
+    }
+    
+    const clientId = remoteSecrets.client_id;
+    
+    // Валидация client_id
+    if (typeof clientId !== 'string' || clientId.length < 10) {
+      throw new Error('Invalid client_id format');
+    }
+    
+    logMessage(`Using client_id: ${clientId.substring(0, 8)}...`, 'info');
+    
+    return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
+    
+  } catch (error) {
+    logMessage(`Error creating auth URL: ${error.message}. Using fallback.`, 'error');
+    
+    // Fallback client_id
+    const fallbackClientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
+    return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${fallbackClientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
   }
-
-  return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
 }
 
 /**

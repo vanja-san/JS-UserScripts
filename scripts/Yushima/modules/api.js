@@ -142,7 +142,7 @@ class ShikimoriAPI {
 
       // Fetch secrets from gist
       const remoteSecrets = await fetchSecretsFromGist();
-      if (remoteSecrets && remoteSecrets.client_secret) {
+      if (remoteSecrets && remoteSecrets.client_id) {
         clientId = remoteSecrets.client_id;
         clientSecret = remoteSecrets.client_secret;
       }
@@ -202,7 +202,7 @@ class ShikimoriAPI {
 
       // Fetch secrets from gist
       const remoteSecrets = await fetchSecretsFromGist();
-      if (remoteSecrets && remoteSecrets.client_secret) {
+      if (remoteSecrets && remoteSecrets.client_id) {
         clientId = remoteSecrets.client_id;
         clientSecret = remoteSecrets.client_secret;
       }
