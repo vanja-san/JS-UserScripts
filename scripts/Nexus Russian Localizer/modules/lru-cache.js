@@ -43,21 +43,33 @@ class LRUCache {
 // Кэш для проверки контекста
 window.contextCheckCache = new Map();
 window.headingElementsCache = new Set();
-window.IGNORED_CLASSES = new Set(['no-translate', 'ignore-translation', 'code', 'pre']);
-window.templateCache = new LRUCache(500);
+window.IGNORED_CLASSES = new Set(['no-translate', 'ignore-translation', 'code', 'pre', 'notranslate']);
+window.templateCache = new LRUCache(1000); // Increased from 500 to 1000
 window.LRUCache = LRUCache;
 
 // Ограничение размера для предотвращения утечек памяти
-const CONTEXT_CHECK_CACHE_LIMIT = 10000;
+const CONTEXT_CHECK_CACHE_LIMIT = 15000; // Increased from 10000
 function checkAndTrimContextCache() {
   if (window.contextCheckCache?.size > CONTEXT_CHECK_CACHE_LIMIT) {
     // Удаляем старые записи если кэш превышает лимит
     const keys = Array.from(window.contextCheckCache.keys());
-    for (let i = 0; i < keys.length - (CONTEXT_CHECK_CACHE_LIMIT * 0.8); i++) {
-      window.contextCheckCache.delete(keys[i]);
+    const excessCount = keys.length - Math.floor(CONTEXT_CHECK_CACHE_LIMIT * 0.8);
+    if (excessCount > 0) {
+      for (let i = 0; i < excessCount; i++) {
+        window.contextCheckCache.delete(keys[i]);
+      }
     }
   }
 }
 
 // Добавляем периодическую проверку размера кэша
 setInterval(checkAndTrimContextCache, 30000); // каждые 30 секунд
+
+// Добавим функцию для очистки кэшей при необходимости
+window.clearAllCaches = function() {
+  window.contextCheckCache.clear();
+  window.headingElementsCache.clear();
+  if (window.templateCache && typeof window.templateCache.clear === 'function') {
+    window.templateCache.clear();
+  }
+};

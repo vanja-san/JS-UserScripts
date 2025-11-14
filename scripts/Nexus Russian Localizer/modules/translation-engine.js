@@ -25,9 +25,10 @@ class TranslationEngine {
   async translateAttributes(element) {
     if (!element || !element.attributes) return;
 
+    // Create a specific cache for this element to handle attribute translation
     let processedAttrsForElement = this.#processedAttrs.get(element);
     if (!processedAttrsForElement) {
-      processedAttrsForElement = new Set();
+      processedAttrsForElement = new Map(); // Use Map instead of Set to store original values
       this.#processedAttrs.set(element, processedAttrsForElement);
     }
 
@@ -35,44 +36,56 @@ class TranslationEngine {
     const len = attrs.length;
     for (let i = 0; i < len; i++) {
       const attr = attrs[i];
-      if (processedAttrsForElement.has(attr)) continue;
 
-      const value = element.getAttribute(attr);
-      if (!value) continue;
+      const currentValue = element.getAttribute(attr);
+      if (!currentValue) continue;
 
-      // Быстрая проверка: пропускаем чисто числовые значения и текст на кириллице
-      const firstChar = value.charCodeAt(0);
-      if ((firstChar >= 48 && firstChar <= 57) || // цифры
-          (firstChar >= 1040 && firstChar <= 1103) || firstChar === 1105 || firstChar === 1025) { // кириллица
-        if (/^\d+$/.test(value) || 
-            ((firstChar >= 1040 && firstChar <= 1103) || firstChar === 1105 || firstChar === 1025) && !/[a-zA-Z]/.test(value)) {
-          processedAttrsForElement.add(attr);
+      // Get the original value if this attribute was previously translated
+      const originalValue = processedAttrsForElement.get(attr) || currentValue;
+
+      // Check if the value has changed since last translation
+      if (currentValue === processedAttrsForElement.get(`last_${attr}`)) {
+        continue; // Skip if value hasn't changed
+      }
+
+      // Skip if value appears to be already translated (contains cyrillic)
+      const firstChar = currentValue.charCodeAt(0);
+      if ((firstChar >= 1040 && firstChar <= 1103) || firstChar === 1105 || firstChar === 1025) {
+        if (!/[a-zA-Z]/.test(currentValue)) {
+          processedAttrsForElement.set(`last_${attr}`, currentValue);
           continue;
         }
       }
 
-      // Проверяем кэш первым (наиболее быстрая операция)
-      let translated = await this.#cache.getCachedTranslation(value);
+      // Skip if purely numeric
+      if (/^\d+$/.test(currentValue)) {
+        processedAttrsForElement.set(`last_${attr}`, currentValue);
+        continue;
+      }
+
+      // Check for direct translation first
+      let translated = window.NRL_TRANSLATIONS?.main[currentValue];
       if (!translated) {
-        // Проверяем контекстные правила для атрибутов
-        const contextualResult = this.#contextMatcher?.findTranslation(value, element);
+        // Check context matching
+        const contextualResult = this.#contextMatcher?.findTranslation(currentValue, element);
         if (contextualResult) {
           translated = contextualResult.translation;
-          
-          // Кэшируем контекстный перевод
-          await this.#cache.cacheTranslation(value, contextualResult.context, translated);
-        } else {
-          // Если не нашли контекстный перевод, используем общий словарь
-          translated = window.NRL_TRANSLATIONS?.main[value];
-          if (translated) {
-            await this.#cache.cacheTranslation(value, '', translated);
-          }
         }
       }
 
-      if (translated) {
+      // If no direct translation found, check cache
+      if (!translated) {
+        translated = await this.#cache.getCachedTranslation(currentValue);
+      }
+
+      if (translated && translated !== currentValue) {
         element.setAttribute(attr, translated);
-        processedAttrsForElement.add(attr);
+        // Store the original value to detect if it changes back
+        processedAttrsForElement.set(attr, originalValue);
+        processedAttrsForElement.set(`last_${attr}`, currentValue);
+      } else {
+        // Update the last value but don't translate
+        processedAttrsForElement.set(`last_${attr}`, currentValue);
       }
     }
   }
@@ -138,8 +151,8 @@ class TranslationEngine {
   }
 
   async translateTextNode(node) {
-    if (this.#processedNodes.has(node)) return false;
-
+    // Don't use WeakSet for text nodes as they get recreated frequently
+    // Instead, compare the text content to see if it's been processed
     const originalText = node.textContent;
     let text = originalText.trim();
     if (!text) return false;
@@ -147,13 +160,11 @@ class TranslationEngine {
     // Быстрая проверка: пропускаем чисто числовые значения
     const firstChar = text.charCodeAt(0);
     if (firstChar >= 48 && firstChar <= 57 && /^\d+$/.test(text)) {
-      this.#processedNodes.add(node);
       return false;
     }
 
     // Быстрая проверка: пропускаем комбинации чисел и специальных символов
     if (/^[\d\s\.\,\-\+\:\%]+$/.test(text)) {
-      this.#processedNodes.add(node);
       return false;
     }
 
@@ -162,27 +173,17 @@ class TranslationEngine {
     const firstCode = text.charCodeAt(0);
     if ((firstCode >= 1040 && firstCode <= 1103) || firstCode === 1105 || firstCode === 1025) { // А-я, Ё, ё
       if (!/[a-zA-Z]/.test(text)) {
-        this.#processedNodes.add(node);
         return false;
       }
     }
 
     const element = node.parentNode;
 
-    // 0. Сначала проверяем кэш (наиболее быстрая операция)
-    let cachedTranslation = await this.#cache.getCachedTranslation(text);
-    if (cachedTranslation) {
-      node.textContent = cachedTranslation;
-      this.#processedNodes.add(node);
-      return true;
-    }
-
     // 1. Затем проверяем контекстные правила (самые специфичные)
     const contextualResult = this.#contextMatcher?.findTranslation(text, element);
     if (contextualResult) {
       node.textContent = contextualResult.translation;
       await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
-      this.#processedNodes.add(node);
       return true;
     }
 
@@ -191,31 +192,35 @@ class TranslationEngine {
     if (directTranslation) {
       node.textContent = directTranslation;
       await this.#cache.cacheTranslation(text, '', directTranslation);
-      this.#processedNodes.add(node);
       return true;
     }
 
-    // 3. Пробуем применить все динамические шаблоны
+    // 3. Сначала проверяем кэш (наиболее быстрая операция) - moved to after direct check for better flow
+    let cachedTranslation = await this.#cache.getCachedTranslation(text);
+    if (cachedTranslation && cachedTranslation !== text) {
+      node.textContent = cachedTranslation;
+      return true;
+    }
+
+    // 4. Пробуем применить все динамические шаблоны
     const dynamicResult = await this.applyDynamicTemplates(originalText, element);
     if (dynamicResult.replaced) {
       node.textContent = dynamicResult.text;
-      this.#processedNodes.add(node);
       return true;
     }
 
-    this.#processedNodes.add(node);
+    // 5. If we reach here, we couldn't translate, but still need to remember we processed this
     return false;
   }
 
   async translateElement(element) {
-    if (!element || this.#processedNodes.has(element)) return;
+    if (!element) return;
 
     // Пропускаем элементы с определенными классами
     const elementClasses = element.classList;
-    if (elementClasses.length > 0) {
+    if (elementClasses && elementClasses.length > 0) {
       for (let i = 0; i < elementClasses.length; i++) {
         if (window.IGNORED_CLASSES.has(elementClasses[i])) {
-          this.#processedNodes.add(element);
           return;
         }
       }
@@ -232,7 +237,6 @@ class TranslationEngine {
       if (text && window.NRL_TRANSLATIONS?.main[text]) {
         element.textContent = window.NRL_TRANSLATIONS.main[text];
         await this.#cache.cacheTranslation(text, '', window.NRL_TRANSLATIONS.main[text]);
-        this.#processedNodes.add(element);
         return;
       }
     }
@@ -245,24 +249,25 @@ class TranslationEngine {
     for (let i = 0; i < childNodes.length; i++) {
       await this.translateNode(childNodes[i]);
     }
-
-    this.#processedNodes.add(element);
   }
 
   async translateNode(node) {
-    if (this.#processedNodes.has(node)) return;
+    if (!node) return;
 
     if (node.nodeType === Node.TEXT_NODE) {
       await this.translateTextNode(node);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
+      // Only use WeakSet for elements, not text nodes
+      if (this.#processedNodes.has(node)) return;
       await this.translateElement(node);
+      this.#processedNodes.add(node);
     }
   }
 
   async translateElementBatch(elements) {
-    const batchSize = window.CONFIG?.BATCH_SIZE || 50;
-    const batchDelay = window.CONFIG?.BATCH_DELAY || 0;
-    
+    const batchSize = window.CONFIG?.BATCH_SIZE || 30; // Updated default
+    const batchDelay = window.CONFIG?.BATCH_DELAY || 10; // Updated default
+
     // Обрабатываем элементы батчами для уменьшения нагрузки на DOM
     for (let i = 0; i < elements.length; i += batchSize) {
       const batch = elements.slice(i, i + batchSize);
@@ -282,37 +287,58 @@ class TranslationEngine {
   observeMutations() {
     // Используем дебаунсинг для оптимизации частых вызовов
     let timeoutId = null;
-    
+
     this.#observer = new MutationObserver((mutations) => {
       // Откладываем обработку, чтобы объединить несколько изменений
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      
+
       timeoutId = setTimeout(async () => {
         const nodesToProcess = new Set();
-        
+
         for (const mutation of mutations) {
+          // Handle added nodes
           for (const node of mutation.addedNodes) {
-            if (node.nodeType === Node.ELEMENT_NODE && node.isConnected && node.offsetParent !== null) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
               nodesToProcess.add(node);
-              
-              // Рекурсивно добавляем дочерние элементы
-              const walker = document.createTreeWalker(
-                node,
-                NodeFilter.SHOW_ELEMENT,
-                null,
-                false
-              );
-              
-              let child;
-              while (child = walker.nextNode()) {
-                nodesToProcess.add(child);
+
+              // Check if node is visible (even if currently hidden)
+              const isVisible = node.offsetParent !== null || node.tagName === 'BODY' ||
+                               getComputedStyle(node).display !== 'none' ||
+                               getComputedStyle(node).visibility !== 'hidden';
+
+              if (isVisible) {
+                // Рекурсивно добавляем дочерние элементы
+                const walker = document.createTreeWalker(
+                  node,
+                  NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+                  null,
+                  false
+                );
+
+                let child;
+                while (child = walker.nextNode()) {
+                  nodesToProcess.add(child);
+                }
               }
+            } else if (mutation.type === 'childList' && node.nodeType === Node.TEXT_NODE) {
+              // Handle direct text node changes
+              nodesToProcess.add(node);
             }
           }
+
+          // Handle attribute changes (for title, placeholder, etc.)
+          if (mutation.type === 'attributes' && mutation.target) {
+            nodesToProcess.add(mutation.target);
+          }
+
+          // Handle characterData changes (text content changes)
+          if (mutation.type === 'characterData' && mutation.target) {
+            nodesToProcess.add(mutation.target);
+          }
         }
-        
+
         // Обрабатываем накопленные узлы
         for (const node of nodesToProcess) {
           await this.translateNode(node);
@@ -320,10 +346,17 @@ class TranslationEngine {
       }, 100); // 100мс задержка для объединения изменений
     });
 
-    this.#observer.observe(document.body, {
+    // Use config options for mutation observer
+    const options = window.CONFIG?.MUTATION_OBSERVER_OPTIONS || {
       childList: true,
-      subtree: true
-    });
+      subtree: true,
+      attributes: true,
+      attributeFilter: window.NRL_TRANSLATIONS?.translatableAttributes || ['title', 'placeholder', 'alt', 'data-tooltip', 'aria-label', 'value'],
+      characterData: true,
+      characterDataOldValue: true
+    };
+
+    this.#observer.observe(document.body, options);
   }
 
   cleanup() {

@@ -78,6 +78,8 @@ class TranslationCache {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         this.db = request.result;
+        // Проверим, нужно ли обновить версию кэша
+        this.cleanupOldVersions();
         resolve(this.db);
       };
 
@@ -89,6 +91,42 @@ class TranslationCache {
           store.createIndex('timestamp', 'timestamp', { unique: false });
         }
       };
+    });
+  }
+
+  // Метод для очистки старых версий кэша
+  async cleanupOldVersions() {
+    if (!this.db) return;
+
+    try {
+      const transaction = this.db.transaction([window.CONFIG?.STORE_NAME || 'translations'], 'readwrite');
+      const store = transaction.objectStore(window.CONFIG?.STORE_NAME || 'translations');
+      const allRecords = await this.getAllRecords(store);
+
+      const currentVersion = window.CONFIG?.CACHE_VERSION || 'v1.0.2';
+      const keysToDelete = [];
+
+      for (const record of allRecords) {
+        if (!record.key.includes(currentVersion)) {
+          keysToDelete.push(record.key);
+        }
+      }
+
+      // Удаляем устаревшие записи
+      for (const key of keysToDelete) {
+        store.delete(key);
+      }
+    } catch (e) {
+      console.warn('Ошибка при очистке старых версий кэша:', e);
+    }
+  }
+
+  // Вспомогательный метод для получения всех записей из хранилища
+  async getAllRecords(store) {
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
     });
   }
 
