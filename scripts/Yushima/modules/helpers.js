@@ -4,23 +4,41 @@ async function fetchSecretsFromGist() {
     if (response.status === 200) {
       const gistData = await response.json();
       const content = Object.values(gistData.files)[0].content;
-      const decodedSecrets = atob(content.trim());
-      const secrets = JSON.parse(decodedSecrets);
 
-      // Проверяем, что полученные данные соответствуют ожидаемому формату
-      // client_id должен быть длиной 43 символа и содержать только допустимые символы
-      if (secrets.client_id && secrets.client_secret &&
-          secrets.client_id.length === 43 &&
-          /^[a-zA-Z0-9_-]+$/.test(secrets.client_id) &&
-          /^[a-zA-Z0-9_-]+$/.test(secrets.client_secret)) {
-        return {
-          client_id: secrets.client_id,
-          client_secret: secrets.client_secret
-        };
-      } else {
-        logMessage('Invalid secrets format received from Gist. Using fallback secrets.', 'warn');
-        return fetchEncodedSecretsBackup();
+      // Попробуем сначала распарсить содержимое как JSON (старый формат, для обратной совместимости)
+      try {
+        const secrets = JSON.parse(content);
+        if (secrets.client_id && secrets.client_secret) {
+          // Это старый формат с обоими значениями
+          if (secrets.client_id.length === 43 &&
+              /^[a-zA-Z0-9_-]+$/.test(secrets.client_id) &&
+              /^[a-zA-Z0-9_-]+$/.test(secrets.client_secret)) {
+            return {
+              client_id: secrets.client_id,
+              client_secret: secrets.client_secret
+            };
+          }
+        }
+      } catch (parseError) {
+        // Если парсинг JSON не удался, попробуем как Base64-кодированный client_secret (новый формат)
+        try {
+          const decodedSecret = atob(content.trim());
+          // Проверим, является ли это валидным client_secret
+          if (/^[a-zA-Z0-9_-]+$/.test(decodedSecret)) {
+            // Вернем стандартный client_id и полученный client_secret
+            return {
+              client_id: 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo', // стандартный client_id
+              client_secret: decodedSecret
+            };
+          }
+        } catch (base64Error) {
+          // Если и это не сработало, формат неверен
+          logMessage('Invalid secrets format in Gist (neither JSON nor Base64 client_secret). Using fallback secrets.', 'warn');
+        }
       }
+
+      logMessage('Invalid secrets format received from Gist. Using fallback secrets.', 'warn');
+      return fetchEncodedSecretsBackup();
     } else {
       logMessage(`Failed to fetch secrets from Gist: ${response.status}. This might be due to GitHub API rate limits or network issues. Using fallback secrets.`, 'error');
       return fetchEncodedSecretsBackup();
