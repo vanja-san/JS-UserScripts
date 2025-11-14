@@ -6,10 +6,21 @@ async function fetchSecretsFromGist() {
       const content = Object.values(gistData.files)[0].content;
       const decodedSecrets = atob(content.trim());
       const secrets = JSON.parse(decodedSecrets);
-      return {
-        client_id: secrets.client_id,
-        client_secret: secrets.client_secret
-      };
+
+      // Проверяем, что полученные данные соответствуют ожидаемому формату
+      // client_id должен быть длиной 43 символа и содержать только допустимые символы
+      if (secrets.client_id && secrets.client_secret &&
+          secrets.client_id.length === 43 &&
+          /^[a-zA-Z0-9_-]+$/.test(secrets.client_id) &&
+          /^[a-zA-Z0-9_-]+$/.test(secrets.client_secret)) {
+        return {
+          client_id: secrets.client_id,
+          client_secret: secrets.client_secret
+        };
+      } else {
+        logMessage('Invalid secrets format received from Gist. Using fallback secrets.', 'warn');
+        return fetchEncodedSecretsBackup();
+      }
     } else {
       logMessage(`Failed to fetch secrets from Gist: ${response.status}. This might be due to GitHub API rate limits or network issues. Using fallback secrets.`, 'error');
       return fetchEncodedSecretsBackup();
@@ -27,7 +38,7 @@ async function fetchSecretsFromGist() {
 function fetchEncodedSecretsBackup() {
   try {
     // This uses an encoded form of the default secrets to avoid plaintext in source
-    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRQ2dPaFp1MHNhaF9DandoTElXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsakZ6c0daTGpfOHJLQUxrcHFxRW44QTJFWmsifQ==";
+    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRQ2dPaFp1MHNhaF9Dbnp3Z0xLSVVXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFxRW44QTJFWmsifQ==";
     const decodedSecrets = atob(encodedSecrets);
     const secrets = JSON.parse(decodedSecrets);
     return {
@@ -84,7 +95,7 @@ async function getAnimeTitle(animeId) {
  * @returns {Promise<string>} Authorization URL (asynchronously fetches client_id)
  */
 async function createAuthUrl() {
-  let clientId = 'QGgOhZu0sah_CnzwgLIWu6Nil8STVCirCYhlAq7tmo'; // fallback default
+  let clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo'; // fallback default
 
   // Fetch secrets from gist to get the correct client_id
   const remoteSecrets = await fetchSecretsFromGist();

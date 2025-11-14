@@ -137,7 +137,7 @@ class ShikimoriAPI {
     try {
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
-      let clientId = 'QGgOhZu0sah_CnzwgLIWu6Nil8STVCirCYhlAq7tmo'; // Use the known client ID
+      let clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo'; // Use the known client ID
       let clientSecret = ''; // Will be fetched from gist
 
       // Fetch secrets from gist
@@ -197,7 +197,7 @@ class ShikimoriAPI {
     try {
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
-      let clientId = 'QGgOhZu0sah_CnzwgLIWu6Nil8STVCirCYhlAq7tmo';
+      let clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
       let clientSecret = '';
 
       // Fetch secrets from gist
