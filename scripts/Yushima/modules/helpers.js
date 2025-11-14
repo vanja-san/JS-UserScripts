@@ -38,7 +38,7 @@ async function fetchSecretsFromGist() {
 function fetchEncodedSecretsBackup() {
   try {
     // This uses an encoded form of the default secrets to avoid plaintext in source
-    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRQ2dPaFp1MHNhaF9Dbnp3Z0xLSVVXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFxRW44QTJFWmsifQ==";
+    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRUGdPaFp1MHNhaF9Dbnp3Z0xLSVVXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaayJ9";
     const decodedSecrets = atob(encodedSecrets);
     const secrets = JSON.parse(decodedSecrets);
     return {
