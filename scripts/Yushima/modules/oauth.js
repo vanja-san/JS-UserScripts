@@ -51,6 +51,39 @@ class OAuthHandler {
    * Show authentication code input dialog
    */
   static showAuthCodeInput() {
+    // First, check if there's already an authorization code in the current URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let code = urlParams.get('code');
+
+    // Check also in hash
+    if (!code && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      code = hashParams.get('code');
+    }
+
+    // If we found a code in the URL, process it directly
+    if (code) {
+      // Remove the code from URL to prevent duplicate processing
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('code');
+      currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, '');
+      if (currentUrl.href !== window.location.href) {
+        window.history.replaceState({}, document.title, currentUrl.href);
+      }
+
+      // Process the authorization code
+      OAuthHandler.processAuthorizationCode(code).then(success => {
+        if (success) {
+          logMessage(Localization.get('authSuccess'), 'success');
+          window.location.reload();
+        } else {
+          logMessage(Localization.get('authFailed'), 'error');
+          alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+        }
+      });
+      return; // Exit early, no need to show the dialog
+    }
+
     // Open the authentication page in a new window
     const authUrl = createAuthUrl();
     window.open(authUrl, '_blank');
@@ -78,6 +111,7 @@ class OAuthHandler {
           <input type="text" id="auth-url-input" placeholder="${Localization.get('authUrlInputLabel')}" style="width: 100%; padding: 8px; margin-top: 8px; background: ${styles.settingsInputBg}; color: ${styles.settingsInputText}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; box-sizing: border-box;">
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button id="auto-paste-btn" style="padding: 8px 15px; background: #8e69c9; color: ${styles.headerColor}; border-radius: 3px; cursor: pointer;">${Localization.get('authAutoPasteButton')}</button>
           <button id="apply-code-btn" style="padding: 8px 15px; background: #437b63; color: ${styles.headerColor}; border-radius: 3px; cursor: pointer;">${Localization.get('authEnterCodeButton')}</button>
           <button id="apply-url-btn" style="padding: 8px 15px; background: #437b63; color: ${styles.headerColor}; border-radius: 3px; cursor: pointer;">${Localization.get('authApplyCodeFromUrlButton')}</button>
           <button id="cancel-code-btn" style="padding: 8px 15px; background: ${styles.buttonBg}; color: ${styles.buttonColor}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; cursor: pointer;">${Localization.get('settingsCancelButton')}</button>
@@ -161,6 +195,14 @@ class OAuthHandler {
       } else {
         alert('Please enter a URL with the authorization code.');
       }
+    });
+
+    document.getElementById('auto-paste-btn').addEventListener('click', () => {
+      // Вставляем текущий URL в поле ввода
+      document.getElementById('auth-url-input').value = window.location.href;
+
+      // Автоматически обрабатываем URL
+      document.getElementById('apply-url-btn').click();
     });
 
     // Allow Enter key to submit in code input

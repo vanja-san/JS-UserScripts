@@ -87,6 +87,7 @@ const Localization = {
       authUrlDetected: 'Please return to this page after authorizing, or paste the URL you were redirected to:',
       authUrlInputLabel: 'Paste full URL with authorization code:',
       authApplyCodeFromUrlButton: 'Apply code from URL',
+      authAutoPasteButton: 'Auto Paste URL',
 
       // Menu commands
       menuSettings: 'Settings',
@@ -206,6 +207,7 @@ const Localization = {
       authUrlDetected: 'Пожалуйста, вернитесь на эту страницу после авторизации или вставьте URL, на который вас перенаправило:',
       authUrlInputLabel: 'Вставьте полный URL с кодом авторизации:',
       authApplyCodeFromUrlButton: 'Применить код из URL',
+      authAutoPasteButton: 'Автоматически вставить URL',
 
       // Menu commands
       menuSettings: 'Настройки',
