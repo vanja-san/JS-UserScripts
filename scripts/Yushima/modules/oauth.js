@@ -27,9 +27,9 @@ class OAuthHandler {
   /**
    * Initiate OAuth authentication flow
    */
-  static async initiateAuthFlow() {
+  static initiateAuthFlow() {
     // Use the out-of-band flow as originally designed
-    const authUrl = await createAuthUrl();
+    const authUrl = createAuthUrl();
     window.open(authUrl, '_blank');
     logMessage('Please authorize the application in the opened window. After authorizing, you will be redirected to a page with an authorization code. The code should appear in your browsers address bar. The script will automatically detect the code if you return to this page.', 'info');
   }
@@ -50,9 +50,9 @@ class OAuthHandler {
   /** 
    * Show authentication code input dialog
    */
-  static async showAuthCodeInput() {
+  static showAuthCodeInput() {
     // Open the authentication page in a new window
-    const authUrl = await createAuthUrl();
+    const authUrl = createAuthUrl();
     window.open(authUrl, '_blank');
 
     // Show the code input dialog

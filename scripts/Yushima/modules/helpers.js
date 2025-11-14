@@ -1,41 +1,23 @@
 async function fetchSecretsFromGist() {
-  try {
-    const response = await fetch('https://api.github.com/gists/38004606679e706b40b4090d115407ad');
-    if (response.status === 200) {
-      const gistData = await response.json();
-      const content = Object.values(gistData.files)[0].content;
-
-      // Декодируем содержимое как Base64 (предполагаем, что в Gist хранится Base64-кодированый JSON)
-      try {
-        const decodedContent = atob(content.trim());
-        const secrets = JSON.parse(decodedContent);
-
-        // Проверяем, что полученные данные соответствуют ожидаемому формату
-        if (secrets.client_id && secrets.client_secret &&
-            secrets.client_id.length === 43 &&
-            /^[a-zA-Z0-9_-]+$/.test(secrets.client_id) &&
-            /^[a-zA-Z0-9_-]+$/.test(secrets.client_secret)) {
-          return {
-            client_id: secrets.client_id,
-            client_secret: secrets.client_secret
-          };
-        } else {
-          logMessage('Invalid secrets format in Gist (incorrect structure). Using fallback secrets.', 'warn');
-          return fetchEncodedSecretsBackup();
-        }
-      } catch (decodeError) {
-        // Если декодирование Base64 или парсинг JSON не удался
-        logMessage('Invalid secrets format in Gist (not Base64-encoded JSON). Using fallback secrets.', 'warn');
-        return fetchEncodedSecretsBackup();
+  // Получаем client_secret из GM-хранилища (устаревшее название функции для обратной совместимости)
+  const storedSecret = GM_getValue('yushima_client_secret');
+  if (storedSecret) {
+    try {
+      // Декодируем Base64-закодированный client_secret
+      const decodedSecret = atob(storedSecret);
+      if (/^[a-zA-Z0-9_-]+$/.test(decodedSecret)) {
+        return {
+          client_id: 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo', // фиксированный client_id
+          client_secret: decodedSecret
+        };
       }
-    } else {
-      logMessage(`Failed to fetch secrets from Gist: ${response.status}. This might be due to GitHub API rate limits or network issues. Using fallback secrets.`, 'error');
-      return fetchEncodedSecretsBackup();
+    } catch (decodeError) {
+      logMessage('Error decoding stored client_secret. Using fallback secrets.', 'error');
     }
-  } catch (error) {
-    logMessage(`Error fetching secrets from Gist: ${error.message}. This might be due to GitHub API rate limits or network issues. Using fallback secrets.`, 'error');
-    return fetchEncodedSecretsBackup();
   }
+
+  // Если не удалось получить из хранилища, используем резервные значения
+  return fetchEncodedSecretsBackup();
 }
 
 /**
@@ -43,19 +25,60 @@ async function fetchSecretsFromGist() {
  * @returns {Object|null} Object containing client_id, client_secret
  */
 function fetchEncodedSecretsBackup() {
+  // Используем фиксированный client_id и Base64-закодированный client_secret
+  const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
+  const encodedSecret = 'dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==';
+
   try {
-    // This uses an encoded form of the default secrets to avoid plaintext in source
-    const encodedSecrets = "eyJjbGllbnRfaWQiOiJRUGdPaFp1MHNhaF9Dbnp3Z0xLSVVXdTZObWlsOFNUVkNpclNZaGxBcTd0bW8iLCJjbGllbnRfc2VjcmV0Ijoidk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaayJ9";
-    const decodedSecrets = atob(encodedSecrets);
-    const secrets = JSON.parse(decodedSecrets);
+    const decodedSecret = atob(encodedSecret);
     return {
-      client_id: secrets.client_id,
-      client_secret: secrets.client_secret
+      client_id: clientId,
+      client_secret: decodedSecret
     };
   } catch (error) {
     logMessage('Error decoding fallback secrets: ' + error.message, 'error');
     return null;
   }
+}
+
+/**
+ * Set client_secret in GM storage (Base64 encoded)
+ * @param {string} secret - The client_secret to store
+ */
+function setClientSecret(secret) {
+  try {
+    // Проверяем, что secret имеет правильный формат
+    if (/^[a-zA-Z0-9_-]+$/.test(secret)) {
+      // Кодируем secret в Base64 для хранения
+      const encodedSecret = btoa(secret);
+      GM_setValue('yushima_client_secret', encodedSecret);
+      logMessage('Client secret successfully stored in GM storage', 'success');
+      return true;
+    } else {
+      logMessage('Invalid client_secret format', 'error');
+      return false;
+    }
+  } catch (error) {
+    logMessage('Error storing client_secret: ' + error.message, 'error');
+    return false;
+  }
+}
+
+/**
+ * Get client_secret from GM storage
+ * @returns {string|null} The decoded client_secret or null if not found
+ */
+function getClientSecret() {
+  const storedSecret = GM_getValue('yushima_client_secret');
+  if (storedSecret) {
+    try {
+      return atob(storedSecret);
+    } catch (error) {
+      logMessage('Error decoding stored client_secret: ' + error.message, 'error');
+      return null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -99,34 +122,13 @@ async function getAnimeTitle(animeId) {
 
 /**
  * Create OAuth authorization URL
- * @returns {Promise<string>} Authorization URL (asynchronously fetches client_id)
+ * @returns {string} Authorization URL
  */
-async function createAuthUrl() {
-  try {
-    const remoteSecrets = await fetchSecretsFromGist();
-    
-    if (!remoteSecrets || !remoteSecrets.client_id) {
-      throw new Error('No client_id from Gist');
-    }
-    
-    const clientId = remoteSecrets.client_id;
-    
-    // Валидация client_id
-    if (typeof clientId !== 'string' || clientId.length < 10) {
-      throw new Error('Invalid client_id format');
-    }
-    
-    logMessage(`Using client_id: ${clientId.substring(0, 8)}...`, 'info');
-    
-    return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
-    
-  } catch (error) {
-    logMessage(`Error creating auth URL: ${error.message}. Using fallback.`, 'error');
-    
-    // Fallback client_id
-    const fallbackClientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
-    return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${fallbackClientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
-  }
+function createAuthUrl() {
+  // Используем фиксированный client_id
+  const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
+
+  return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
 }
 
 /**

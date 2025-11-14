@@ -24,9 +24,9 @@
             console.log('✗ Ошибка: резервные данные отсутствуют');
         }
         
-        // Тестируем асинхронный вызов createAuthUrl
-        const authUrl = await createAuthUrl();
-        console.log('✓ Асинхронный вызов createAuthUrl выполнен:', authUrl.includes('client_id='));
+        // Тестируем синхронный вызов createAuthUrl
+        const authUrl = createAuthUrl();
+        console.log('✓ Синхронный вызов createAuthUrl выполнен:', authUrl.includes('client_id='));
         
         console.log('Все тесты пройдены успешно!');
     } catch (error) {

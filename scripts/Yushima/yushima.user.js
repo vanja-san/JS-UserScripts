@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.31
+// @version      2.0.32
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -30,6 +30,15 @@
 
 (function() {
   'use strict';
+
+  // Initialize client_secret in GM storage if not already present
+  // This ensures the secret is available for OAuth requests
+  const storedSecret = GM_getValue('yushima_client_secret');
+  if (!storedSecret) {
+    // Set the Base64-encoded client_secret for the first time
+    GM_setValue('yushima_client_secret', 'dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==');
+  }
+
   // Prevent multiple executions of the script by checking if it's already running
   if (window.plasheekScriptRunning) {
     return;
