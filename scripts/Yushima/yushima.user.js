@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.0.33
+// @version      2.0.34
 // @description  Optimized integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -61,6 +61,24 @@
   // This now includes checking for codes in the path (like /oauth/authorize/CODE)
   checkForAuthorizationCode();
 
+  // Check if another tab has completed authentication successfully
+  const authTimestamp = localStorage.getItem('yushima_auth_timestamp');
+  if (authTimestamp) {
+    const timestamp = parseInt(authTimestamp);
+    const now = Date.now();
+    // Only consider it fresh if it's within the last 30 seconds
+    if (now - timestamp < 30000) {
+      // Authentication was successful in another tab
+      logMessage(Localization.get('authSuccess'), 'success');
+      // Refresh the page to update the UI based on new authentication state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Small delay to allow the message to be logged
+    }
+    // Clear the stored timestamp so we don't keep refreshing
+    localStorage.removeItem('yushima_auth_timestamp');
+  }
+
   // Also check if we're on an authorization callback page with code in path
   const pathSegments = window.location.pathname.split('/');
   const authorizeIndex = pathSegments.indexOf('authorize');
@@ -72,6 +90,10 @@
       OAuthHandler.processAuthorizationCode(code).then(success => {
         if (success) {
           logMessage(Localization.get('authSuccess'), 'success');
+
+          // Store the success status in localStorage so the main tab can detect it
+          localStorage.setItem('yushima_auth_success', Date.now().toString());
+          localStorage.setItem('yushima_auth_timestamp', Date.now().toString());
 
           // Try to close this tab since we're done with authentication
           // This only works if the tab was opened by a script (like window.open)
