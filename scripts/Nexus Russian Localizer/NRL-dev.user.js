@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.4.2-dev
+// @version         2.4.3-dev
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -14,6 +14,7 @@
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/config.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/lru-cache.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/helpers.js
+// @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/date-formatter.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/context-matcher.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/translation-cache.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/translation-engine.js
@@ -181,18 +182,25 @@
             return;
           }
 
-          // Пробуем динамические шаблоны
+          // Сначала применяем форматирование дат
+          let newText = window.dateFormatter.format(text);
+          if (newText !== text) {
+            node.textContent = newText;
+            return;
+          }
+
+          // Затем пробуем динамические шаблоны
           for (const template of window.DYNAMIC_TEMPLATES) {
-            if (template.pattern.test(text)) {
+            if (template.pattern.test(newText)) {
               template.pattern.lastIndex = 0; // сбрасываем для повторного использования
               if (template.replacer) {
-                const newText = text.replace(template.pattern, (...args) => template.replacer(...args));
+                newText = newText.replace(template.pattern, (...args) => template.replacer(...args));
                 if (newText !== text) {
                   node.textContent = newText;
                   return;
                 }
               } else if (template.replacement) {
-                const newText = text.replace(template.pattern, template.replacement);
+                newText = newText.replace(template.pattern, template.replacement);
                 if (newText !== text) {
                   node.textContent = newText;
                   return;

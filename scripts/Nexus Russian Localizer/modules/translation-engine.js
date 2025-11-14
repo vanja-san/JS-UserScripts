@@ -111,16 +111,23 @@ class TranslationEngine {
     let newText = text;
     let replaced = false;
 
+    // Сначала применяем форматирование дат
+    const dateFormatted = window.dateFormatter.format(newText);
+    if (dateFormatted !== newText) {
+      newText = dateFormatted;
+      replaced = true;
+    }
+
     const templates = window.DYNAMIC_TEMPLATES;
     const len = templates.length;
     for (let i = 0; i < len; i++) {
       const template = templates[i];
-      
+
       // Пропускаем шаблоны, если текст превышает максимальную длину для безопасности
       if (template.maxLength && newText.length > template.maxLength) {
         continue;
       }
-      
+
       // Сбрасываем lastIndex для глобальных регулярных выражений
       template.pattern.lastIndex = 0;
 
