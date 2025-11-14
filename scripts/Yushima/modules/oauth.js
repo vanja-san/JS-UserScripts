@@ -56,7 +56,7 @@ class OAuthHandler {
   /** 
    * Show authentication code input dialog
    */
-  static showAuthCodeInput() {
+  static async showAuthCodeInput() {
     // Check if there's already an authorization code in the current URL (in the path)
     const pathSegments = window.location.pathname.split('/');
     const authorizeIndex = pathSegments.indexOf('authorize');
@@ -105,21 +105,28 @@ class OAuthHandler {
       }
 
       // Process the authorization code
-      OAuthHandler.processAuthorizationCode(code).then(success => {
-        if (success) {
-          logMessage(Localization.get('authSuccess'), 'success');
-          window.location.reload();
-        } else {
-          logMessage(Localization.get('authFailed'), 'error');
-          alert(Localization.get('authFailed') + ' ' + 'Please try again.');
-        }
-      });
+      const success = await OAuthHandler.processAuthorizationCode(code);
+      if (success) {
+        logMessage(Localization.get('authSuccess'), 'success');
+        window.location.reload();
+      } else {
+        logMessage(Localization.get('authFailed'), 'error');
+        alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+      }
+      return; // Exit early, no need to show the dialog
+    }
+
+    // Check if user is already authenticated (could happen if auth completed in another tab)
+    const isAuth = await OAuthHandler.isAuthenticated();
+    if (isAuth) {
+      logMessage('User is already authenticated', 'info');
+      alert('User is already authenticated. No need to enter an authorization code.');
       return; // Exit early, no need to show the dialog
     }
 
     // Open the authentication page in a new window
     const authUrl = createAuthUrl();
-    window.open(authUrl, '_blank');
+    window.open(authUrl, 'shikimori_auth_window', 'width=800,height=600,scrollbars=yes,resizable=yes');
 
     // Show the code input dialog
     const theme = getSiteTheme();
