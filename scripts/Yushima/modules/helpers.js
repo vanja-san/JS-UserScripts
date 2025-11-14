@@ -1,18 +1,18 @@
 async function fetchSecretsFromGist() {
-  // Получаем client_secret из GM-хранилища (устаревшее название функции для обратной совместимости)
-  const storedSecret = GM_getValue('yushima_client_secret');
-  if (storedSecret) {
+  // Получаем OAuth конфигурацию из GM-хранилища
+  const storedConfig = GM_getValue('yushima_config_auth');
+  if (storedConfig) {
     try {
-      // Декодируем Base64-закодированный client_secret
-      const decodedSecret = atob(storedSecret);
-      if (/^[a-zA-Z0-9_-]+$/.test(decodedSecret)) {
+      // Декодируем Base64-закодированную конфигурацию
+      const decodedConfig = atob(storedConfig);
+      if (/^[a-zA-Z0-9_-]+$/.test(decodedConfig)) {
         return {
           client_id: 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo', // фиксированный client_id
-          client_secret: decodedSecret
+          client_secret: decodedConfig
         };
       }
     } catch (decodeError) {
-      logMessage('Error decoding stored client_secret. Using fallback secrets.', 'error');
+      logMessage('Error decoding stored config. Using fallback values.', 'error');
     }
   }
 
@@ -42,39 +42,39 @@ function fetchEncodedSecretsBackup() {
 }
 
 /**
- * Set client_secret in GM storage (Base64 encoded)
- * @param {string} secret - The client_secret to store
+ * Set OAuth configuration value in GM storage
+ * @param {string} value - The OAuth configuration value to store
  */
-function setClientSecret(secret) {
+function setOAuthConfig(value) {
   try {
-    // Проверяем, что secret имеет правильный формат
-    if (/^[a-zA-Z0-9_-]+$/.test(secret)) {
-      // Кодируем secret в Base64 для хранения
-      const encodedSecret = btoa(secret);
-      GM_setValue('yushima_client_secret', encodedSecret);
-      logMessage('Client secret successfully stored in GM storage', 'success');
+    // Проверяем, что значение имеет правильный формат
+    if (/^[a-zA-Z0-9_-]+$/.test(value)) {
+      // Кодируем значение в Base64 для хранения
+      const encodedValue = btoa(value);
+      GM_setValue('yushima_config_auth', encodedValue);
+      logMessage('OAuth config value successfully stored in GM storage', 'success');
       return true;
     } else {
-      logMessage('Invalid client_secret format', 'error');
+      logMessage('Invalid config value format', 'error');
       return false;
     }
   } catch (error) {
-    logMessage('Error storing client_secret: ' + error.message, 'error');
+    logMessage('Error storing config value: ' + error.message, 'error');
     return false;
   }
 }
 
 /**
- * Get client_secret from GM storage
- * @returns {string|null} The decoded client_secret or null if not found
+ * Get OAuth configuration value from GM storage
+ * @returns {string|null} The decoded config value or null if not found
  */
-function getClientSecret() {
-  const storedSecret = GM_getValue('yushima_client_secret');
-  if (storedSecret) {
+function getOAuthConfig() {
+  const storedValue = GM_getValue('yushima_config_auth');
+  if (storedValue) {
     try {
-      return atob(storedSecret);
+      return atob(storedValue);
     } catch (error) {
-      logMessage('Error decoding stored client_secret: ' + error.message, 'error');
+      logMessage('Error decoding stored config value: ' + error.message, 'error');
       return null;
     }
   }
