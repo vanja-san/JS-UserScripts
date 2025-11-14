@@ -159,16 +159,65 @@ function cleanupExistingPlayer() {
  * Check URL for authorization code and process it if present
  */
 async function checkForAuthorizationCode() {
+  // Проверяем параметр code в URL
   const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
+  let code = urlParams.get('code');
+
+  // Проверяем также, может быть, это URL, который был скопирован с кодом авторизации
+  if (!code) {
+    // Ищем код авторизации в хеше URL (на случай, если он есть в #fragment)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    code = hashParams.get('code');
+  }
+
+  // А также проверяем хеш в формате #code=... как альтернативу
+  if (!code && window.location.hash) {
+    const match = window.location.hash.match(/[#&]code=([^&]*)/);
+    if (match) {
+      code = decodeURIComponent(match[1]);
+    }
+  }
+
   if (code) {
+    // Удаляем параметр code из URL, чтобы избежать повторной обработки
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('code');
+    currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, '');
+    if (currentUrl.href !== window.location.href) {
+      window.history.replaceState({}, document.title, currentUrl.href);
+    }
+
     const success = await OAuthHandler.processAuthorizationCode(code);
     if (success) {
       logMessage(Localization.get('authSuccess'), 'success');
-      window.location.reload();
+      // Добавляем небольшую задержку перед перезагрузкой для отображения сообщения
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } else {
       logMessage(Localization.get('authFailed'), 'error');
       alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+    }
+  } else {
+    // Дополнительно проверяем, может быть, пользователь скопировал URL с кодом вручную
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('code=')) {
+      const manualCodeMatch = currentUrl.match(/[?&]code=([^&]*)/);
+      if (manualCodeMatch) {
+        const manualCode = decodeURIComponent(manualCodeMatch[1]);
+        if (manualCode) {
+          const success = await OAuthHandler.processAuthorizationCode(manualCode);
+          if (success) {
+            logMessage(Localization.get('authSuccess'), 'success');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else {
+            logMessage(Localization.get('authFailed'), 'error');
+            alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+          }
+        }
+      }
     }
   }
 }

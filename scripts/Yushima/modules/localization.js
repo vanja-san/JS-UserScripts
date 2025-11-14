@@ -85,6 +85,8 @@ const Localization = {
       authRequiredMessage: 'Authentication required - Click authenticate button to enable auto-marking',
       authInstructions: 'Authorization code detected in URL. Processing authentication...',
       authUrlDetected: 'Please return to this page after authorizing, or paste the URL you were redirected to:',
+      authUrlInputLabel: 'Paste full URL with authorization code:',
+      authApplyCodeFromUrlButton: 'Apply code from URL',
 
       // Menu commands
       menuSettings: 'Settings',
@@ -202,6 +204,8 @@ const Localization = {
       authRequiredMessage: 'Требуется аутентификация - Нажмите кнопку аутентификации, чтобы включить автопометку',
       authInstructions: 'Код авторизации обнаружен в URL. Обработка аутентификации...',
       authUrlDetected: 'Пожалуйста, вернитесь на эту страницу после авторизации или вставьте URL, на который вас перенаправило:',
+      authUrlInputLabel: 'Вставьте полный URL с кодом авторизации:',
+      authApplyCodeFromUrlButton: 'Применить код из URL',
 
       // Menu commands
       menuSettings: 'Настройки',

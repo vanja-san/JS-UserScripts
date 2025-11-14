@@ -72,9 +72,14 @@ class OAuthHandler {
           <p style="margin: 0 0 15px 0;">${Localization.get('authInstructionsStep5')}</p>
           <label style="display: block; margin-bottom: 5px;">${Localization.get('authEnterCodeLabel')}</label>
           <input type="text" id="auth-code-input" placeholder="${Localization.get('authEnterCodePlaceholder')}" style="width: 100%; padding: 8px; background: ${styles.settingsInputBg}; color: ${styles.settingsInputText}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; box-sizing: border-box;">
+          <div style="margin-top: 10px; font-size: 0.8em; color: ${styles.settingsText};">
+            ${Localization.get('authUrlDetected')}
+          </div>
+          <input type="text" id="auth-url-input" placeholder="${Localization.get('authUrlInputLabel')}" style="width: 100%; padding: 8px; margin-top: 8px; background: ${styles.settingsInputBg}; color: ${styles.settingsInputText}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; box-sizing: border-box;">
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
           <button id="apply-code-btn" style="padding: 8px 15px; background: #437b63; color: ${styles.headerColor}; border-radius: 3px; cursor: pointer;">${Localization.get('authEnterCodeButton')}</button>
+          <button id="apply-url-btn" style="padding: 8px 15px; background: #437b63; color: ${styles.headerColor}; border-radius: 3px; cursor: pointer;">${Localization.get('authApplyCodeFromUrlButton')}</button>
           <button id="cancel-code-btn" style="padding: 8px 15px; background: ${styles.buttonBg}; color: ${styles.buttonColor}; border: 1px solid ${styles.settingsBorder}; border-radius: 3px; cursor: pointer;">${Localization.get('settingsCancelButton')}</button>
         </div>
       </div>
@@ -107,10 +112,68 @@ class OAuthHandler {
       }
     });
 
-    // Allow Enter key to submit
+    document.getElementById('apply-url-btn').addEventListener('click', async () => {
+      const urlInput = document.getElementById('auth-url-input');
+      const url = urlInput.value.trim();
+
+      if (url) {
+        // Extract code from URL
+        let code = null;
+        try {
+          const urlObj = new URL(url);
+          code = urlObj.searchParams.get('code');
+
+          // Also try to extract from hash
+          if (!code) {
+            const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+            code = hashParams.get('code');
+          }
+
+          // Also try regex match
+          if (!code) {
+            const match = url.match(/[?&]code=([^&]*)/);
+            if (match) {
+              code = decodeURIComponent(match[1]);
+            }
+          }
+        } catch (e) {
+          // URL is malformed, try regex directly on string
+          const match = url.match(/[?&]code=([^&]*)/);
+          if (match) {
+            code = decodeURIComponent(match[1]);
+          }
+        }
+
+        if (code) {
+          document.getElementById('yushima-code-entry').remove();
+          const success = await OAuthHandler.processAuthorizationCode(code);
+          if (success) {
+            logMessage(Localization.get('authSuccess'), 'success');
+            // Refresh the page to update the UI
+            window.location.reload();
+          } else {
+            logMessage(Localization.get('authFailed'), 'error');
+            alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+          }
+        } else {
+          alert('No authorization code found in the provided URL.');
+        }
+      } else {
+        alert('Please enter a URL with the authorization code.');
+      }
+    });
+
+    // Allow Enter key to submit in code input
     document.getElementById('auth-code-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         document.getElementById('apply-code-btn').click();
+      }
+    });
+
+    // Allow Enter key to submit in URL input
+    document.getElementById('auth-url-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('apply-url-btn').click();
       }
     });
   }
