@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.5.5-dev
+// @version         2.5.6-dev
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -50,6 +50,9 @@
 
       // Предзагрузка ключевых переводов
       await preloadCriticalTranslations(cache);
+
+      // Обрабатываем элементы времени немедленно
+      await processTimeElements();
 
       // Обрабатываем приоритетные элементы в первую очередь
       const priorityElements = getPriorityElements();
@@ -103,7 +106,7 @@
       // Начинаем наблюдение за изменениями DOM
       translator.observeMutations();
 
-      // Добавим повторную проверку через 5 секунд для динамически загруженного контента
+      // Повторная проверка через 1.5 секунды для динамически загруженного контента
       setTimeout(async () => {
         const allElements = [];
         const walker = document.createTreeWalker(
@@ -159,7 +162,7 @@
         }
 
         await translator.translateElementBatch(allElements);
-      }, 5000); // Проверяем снова через 5 секунд
+      }, 1500); // Проверяем снова через 1.5 секунды
 
       // Очистка при выгрузке страницы
       window.addEventListener('beforeunload', () => {
@@ -414,6 +417,48 @@
   // Регистрация команды меню для Tampermonkey
   if (typeof GM_registerMenuCommand !== 'undefined') {
     GM_registerMenuCommand('NRL: Очистить кэш', clearCache, 'c'); // добавляем горячую клавишу 'c'
+  }
+
+  // Функция для обработки элементов времени
+  async function processTimeElements() {
+    const timeElements = document.querySelectorAll('time');
+
+    for (const element of timeElements) {
+      let text = element.textContent.trim();
+      if (text) {
+        // Применяем форматирование дат
+        let translated = window.dateFormatter.format(text);
+        if (translated !== text) {
+          element.textContent = translated;
+        } else {
+          // Проверяем общий словарь
+          translated = window.NRL_TRANSLATIONS?.main[text];
+          if (translated && translated !== text) {
+            element.textContent = translated;
+          } else {
+            // Пробуем динамические шаблоны
+            for (const template of window.DYNAMIC_TEMPLATES) {
+              if (template.pattern.test(text)) {
+                template.pattern.lastIndex = 0; // сбрасываем для повторного использования
+                if (template.replacer) {
+                  const newText = text.replace(template.pattern, (...args) => template.replacer(...args));
+                  if (newText !== text) {
+                    element.textContent = newText;
+                    break;
+                  }
+                } else if (template.replacement) {
+                  const newText = text.replace(template.pattern, template.replacement);
+                  if (newText !== text) {
+                    element.textContent = newText;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   // Функция для обработки элементов с всплывающими подсказками

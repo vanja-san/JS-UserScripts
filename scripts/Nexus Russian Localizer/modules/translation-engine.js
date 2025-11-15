@@ -512,7 +512,7 @@ class TranslationEngine {
         for (const node of nodesToProcess) {
           await this.translateNode(node);
         }
-      }, 50); // уменьшил задержку до 50мс для более быстрой реакции на всплывающие элементы
+      }, 25); // уменьшил задержку до 25мс для более быстрой реакции на изменения
     });
 
     // Use config options for mutation observer
