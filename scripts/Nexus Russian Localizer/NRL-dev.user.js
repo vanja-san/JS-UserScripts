@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.5.6-dev
+// @version         2.5.8-dev
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -65,40 +65,40 @@
       await processTooltipElements();
 
       // Обрабатываем все остальные элементы батчами
-      // Используем TreeWalker для более эффективного обхода DOM
-      const allElements = [];
-      const walker = document.createTreeWalker(
-        document.body,
-        NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
-        {
-          acceptNode: function(node) {
-            // Include more elements that might be initially hidden but become visible later
-            if (node === document.body) {
-              return NodeFilter.FILTER_REJECT; // Исключаем сам body элемент
-            }
+      // Быстрая обработка элементов времени и дат для ускорения отображения
+      // Используем оптимизированный подход: сначала конкретные элементы, потом все остальное
+      const specificElements = [];
 
-            // Check if element is in ignored classes
-            if (node.nodeType === Node.ELEMENT_NODE &&
-                node.classList &&
-                window.IGNORED_CLASSES) {
-              for (let i = 0; i < node.classList.length; i++) {
-                if (window.IGNORED_CLASSES.has(node.classList[i])) {
-                  return NodeFilter.FILTER_REJECT;
-                }
-              }
-            }
-
-            return NodeFilter.FILTER_ACCEPT;
-          }
-        }
-      );
-
-      let node;
-      while (node = walker.nextNode()) {
-        allElements.push(node);
+      // Сначала обрабатываем теги времени для быстрой отрисовки дат
+      const timeElements = document.querySelectorAll('time');
+      for (const element of timeElements) {
+        specificElements.push(element);
       }
 
-      await translator.translateElementBatch(allElements);
+      // Затем обрабатываем важные элементы, содержащие текст
+      const importantSelectors = 'h1, h2, h3, h4, h5, h6, p, span, div, a, button, li, td, th, small, label, caption';
+      const importantElements = document.querySelectorAll(importantSelectors);
+      for (const element of importantElements) {
+        // Проверяем, есть ли у элемента текстовое содержимое для перевода
+        if (element.textContent && element.textContent.trim()) {
+          // Проверяем игнорируемые классы
+          let shouldIgnore = false;
+          if (element.classList) {
+            for (let i = 0; i < element.classList.length; i++) {
+              if (window.IGNORED_CLASSES.has(element.classList[i])) {
+                shouldIgnore = true;
+                break;
+              }
+            }
+          }
+          if (!shouldIgnore) {
+            specificElements.push(element);
+          }
+        }
+      }
+
+      // Обрабатываем найденные элементы
+      await translator.translateElementBatch(specificElements);
 
       // Показываем контент после завершения перевода
       document.documentElement.style.visibility = '';

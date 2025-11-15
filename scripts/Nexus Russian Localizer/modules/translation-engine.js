@@ -181,7 +181,6 @@ class TranslationEngine {
     }
 
     // Быстрая проверка: если текст уже на кириллице, пропускаем
-    // Проверяем только первый символ, чтобы избежать полного перебора
     const firstCode = text.charCodeAt(0);
     if ((firstCode >= 1040 && firstCode <= 1103) || firstCode === 1105 || firstCode === 1025) { // А-я, Ё, ё
       if (!/[a-zA-Z]/.test(text)) {
@@ -189,13 +188,10 @@ class TranslationEngine {
       }
     }
 
-    const element = node.parentNode;
-
-    // 1. Затем проверяем контекстные правила (самые специфичные)
-    const contextualResult = this.#contextMatcher?.findTranslation(text, element);
-    if (contextualResult) {
-      node.textContent = contextualResult.translation;
-      await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
+    // 1. Сначала проверяем кэш (наиболее быстрая операция)
+    let cachedTranslation = await this.#cache.getCachedTranslation(text);
+    if (cachedTranslation && cachedTranslation !== text) {
+      node.textContent = cachedTranslation;
       return true;
     }
 
@@ -207,14 +203,16 @@ class TranslationEngine {
       return true;
     }
 
-    // 3. Сначала проверяем кэш (наиболее быстрая операция) - moved to after direct check for better flow
-    let cachedTranslation = await this.#cache.getCachedTranslation(text);
-    if (cachedTranslation && cachedTranslation !== text) {
-      node.textContent = cachedTranslation;
+    // 3. Затем проверяем контекстные правила
+    const element = node.parentNode;
+    const contextualResult = this.#contextMatcher?.findTranslation(text, element);
+    if (contextualResult) {
+      node.textContent = contextualResult.translation;
+      await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
       return true;
     }
 
-    // 4. Пробуем применить все динамические шаблоны
+    // 4. Пробуем применить динамические шаблоны
     const dynamicResult = await this.applyDynamicTemplates(originalText, element);
     if (dynamicResult.replaced) {
       node.textContent = dynamicResult.text;
@@ -227,6 +225,15 @@ class TranslationEngine {
 
   async translateElement(element) {
     if (!element) return;
+
+    // Быстрая проверка: сначала проверяем специальные теги
+    const tagName = element.tagName.toLowerCase();
+
+    // Специальная обработка элементов времени - делаем это быстрее
+    if (tagName === 'time') {
+      await this.handleTimeElement(element);
+      return; // Выходим сразу после обработки времени, чтобы ускорить
+    }
 
     // Проверяем, нужно ли пропустить этот элемент
     const elementClasses = element.classList;
@@ -266,7 +273,6 @@ class TranslationEngine {
     }
 
     // Специальная обработка заголовков
-    const tagName = element.tagName.toLowerCase();
     if (tagName >= 'h1' && tagName <= 'h6') {
       if (window.headingElementsCache.has(element)) return;
       window.headingElementsCache.add(element);
@@ -278,12 +284,6 @@ class TranslationEngine {
         await this.#cache.cacheTranslation(text, '', window.NRL_TRANSLATIONS.main[text]);
         return;
       }
-    }
-
-    // Специальная обработка элементов времени
-    if (tagName === 'time') {
-      // Обрабатываем текст внутри time элемента
-      await this.handleTimeElement(element);
     }
 
     // Переводим атрибуты элемента
