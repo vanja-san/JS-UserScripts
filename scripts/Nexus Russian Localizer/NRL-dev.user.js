@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.5.4-dev
+// @version         2.5.5-dev
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -136,15 +136,6 @@
                       return NodeFilter.FILTER_REJECT;
                     }
                   }
-                }
-              }
-
-              // Проверяем также на всплывающие элементы по className
-              if (node.nodeType === Node.ELEMENT_NODE && node.className) {
-                if (typeof node.className.includes === 'function' &&
-                    (node.className.includes('tip') || node.className.includes('popper'))) {
-                  // Включаем элементы с классами, содержащими 'tip' или 'popper'
-                  return NodeFilter.FILTER_ACCEPT;
                 }
               }
 

@@ -250,21 +250,6 @@ class TranslationEngine {
       }
     }
 
-    // Специальная обработка всплывающих элементов
-    if (element.classList &&
-        (element.classList.contains('tooltip') ||
-         element.classList.contains('popover') ||
-         element.classList.contains('tippy-box') ||
-         element.classList.contains('qtip') ||
-         element.classList.contains('ui-tooltip'))) {
-      // Если это всплывающий элемент, обрабатываем его текст немедленно
-      await this.translateImmediateTextContent(element);
-    } else if (element.className && typeof element.className.includes === 'function' &&
-               (element.className.includes('tip') || element.className.includes('popper'))) {
-      // Обработка элементов с классами, содержащими 'tip' или 'popper'
-      await this.translateImmediateTextContent(element);
-    }
-
     // Специальная обработка элементов, видимых только для программ чтения с экрана
     if (element.classList && element.classList.contains('sr-only')) {
       // Даже если элемент визуально скрыт, его текст нужно перевести для доступности
