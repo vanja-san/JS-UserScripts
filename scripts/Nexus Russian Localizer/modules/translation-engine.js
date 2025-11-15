@@ -256,10 +256,12 @@ class TranslationEngine {
          element.classList.contains('popover') ||
          element.classList.contains('tippy-box') ||
          element.classList.contains('qtip') ||
-         element.classList.contains('ui-tooltip') ||
-         element.className.includes('tip') ||
-         element.className.includes('popper'))) {
+         element.classList.contains('ui-tooltip'))) {
       // Если это всплывающий элемент, обрабатываем его текст немедленно
+      await this.translateImmediateTextContent(element);
+    } else if (element.className && typeof element.className.includes === 'function' &&
+               (element.className.includes('tip') || element.className.includes('popper'))) {
+      // Обработка элементов с классами, содержащими 'tip' или 'popper'
       await this.translateImmediateTextContent(element);
     }
 
