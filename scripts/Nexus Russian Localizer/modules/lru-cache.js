@@ -44,6 +44,8 @@ class LRUCache {
 window.contextCheckCache = new Map();
 window.headingElementsCache = new Set();
 window.IGNORED_CLASSES = new Set(['no-translate', 'ignore-translation', 'code', 'pre', 'notranslate']);
+// Классы, которые НЕ нужно игнорировать (всегда обрабатывать, даже если похожи на игнорируемые)
+window.ALWAYS_TRANSLATE_CLASSES = new Set(['sr-only']); // Обрабатываем даже если элементы скрыты
 window.templateCache = new LRUCache(1000); // Increased from 500 to 1000
 window.LRUCache = LRUCache;
 

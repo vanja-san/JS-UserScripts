@@ -228,12 +228,24 @@ class TranslationEngine {
   async translateElement(element) {
     if (!element) return;
 
-    // Пропускаем элементы с определенными классами
+    // Проверяем, нужно ли пропустить этот элемент
     const elementClasses = element.classList;
     if (elementClasses && elementClasses.length > 0) {
+      // Проверяем, есть ли классы, которые нужно всегда переводить
+      let alwaysTranslate = false;
       for (let i = 0; i < elementClasses.length; i++) {
-        if (window.IGNORED_CLASSES.has(elementClasses[i])) {
-          return;
+        if (window.ALWAYS_TRANSLATE_CLASSES && window.ALWAYS_TRANSLATE_CLASSES.has(elementClasses[i])) {
+          alwaysTranslate = true;
+          break;
+        }
+      }
+
+      // Если не всегда переводить, проверяем игнорируемые классы
+      if (!alwaysTranslate) {
+        for (let i = 0; i < elementClasses.length; i++) {
+          if (window.IGNORED_CLASSES.has(elementClasses[i])) {
+            return;
+          }
         }
       }
     }
@@ -251,6 +263,21 @@ class TranslationEngine {
       await this.translateImmediateTextContent(element);
     }
 
+    // Специальная обработка элементов, видимых только для программ чтения с экрана
+    if (element.classList && element.classList.contains('sr-only')) {
+      // Даже если элемент визуально скрыт, его текст нужно перевести для доступности
+      await this.translateImmediateTextContent(element);
+    }
+
+    // Обработка элементов, на которые ссылается aria-describedby
+    const ariaDescribedBy = element.getAttribute('aria-describedby');
+    if (ariaDescribedBy) {
+      const tooltipElement = document.getElementById(ariaDescribedBy);
+      if (tooltipElement) {
+        await this.translateImmediateTextContent(tooltipElement);
+      }
+    }
+
     // Специальная обработка заголовков
     const tagName = element.tagName.toLowerCase();
     if (tagName >= 'h1' && tagName <= 'h6') {
@@ -264,6 +291,12 @@ class TranslationEngine {
         await this.#cache.cacheTranslation(text, '', window.NRL_TRANSLATIONS.main[text]);
         return;
       }
+    }
+
+    // Специальная обработка элементов времени
+    if (tagName === 'time') {
+      // Обрабатываем текст внутри time элемента
+      await this.handleTimeElement(element);
     }
 
     // Переводим атрибуты элемента
@@ -307,6 +340,57 @@ class TranslationEngine {
           textNode.textContent = translated;
         }
       }
+    }
+  }
+
+  // Метод для обработки элементов времени
+  async handleTimeElement(element) {
+    const originalText = element.textContent.trim();
+    if (!originalText) return;
+
+    // Проверяем формат времени, например "1 hour ago", "2 days ago"
+    const timeAgoPattern = /(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i;
+    if (timeAgoPattern.test(originalText)) {
+      // Это формат времени "ago", применяем динамические шаблоны
+      for (const template of window.DYNAMIC_TEMPLATES) {
+        if (template.pattern.test(originalText)) {
+          template.pattern.lastIndex = 0; // сбрасываем для повторного использования
+          if (template.replacer) {
+            const newText = originalText.replace(template.pattern, (...args) => template.replacer(...args));
+            if (newText !== originalText) {
+              element.textContent = newText;
+              return;
+            }
+          } else if (template.replacement) {
+            const newText = originalText.replace(template.pattern, template.replacement);
+            if (newText !== originalText) {
+              element.textContent = newText;
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    // Если это дата в формате "DD MMM YYYY", применяем форматирование дат
+    let translated = window.dateFormatter.format(originalText);
+    if (translated !== originalText) {
+      element.textContent = translated;
+      return;
+    }
+
+    // Проверяем общий словарь
+    translated = window.NRL_TRANSLATIONS?.main[originalText];
+    if (translated && translated !== originalText) {
+      element.textContent = translated;
+      return;
+    }
+
+    // Проверяем кэш
+    translated = await this.#cache.getCachedTranslation(originalText);
+    if (translated && translated !== originalText) {
+      element.textContent = translated;
+      return;
     }
   }
 
@@ -415,6 +499,19 @@ class TranslationEngine {
                 }
               }
             }
+
+            // Обработка атрибута aria-describedby - это может указывать на подсказку
+            if (mutation.attributeName === 'aria-describedby') {
+              const describedById = mutation.target.getAttribute('aria-describedby');
+              if (describedById) {
+                // Находим элемент подсказки и переводим его, если он существует
+                const tooltipElement = document.getElementById(describedById);
+                if (tooltipElement) {
+                  await this.translateElement(tooltipElement);
+                }
+              }
+            }
+
             nodesToProcess.add(mutation.target);
           }
 

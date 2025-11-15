@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.5.1-dev
+// @version         2.5.3-dev
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -118,10 +118,33 @@
               if (node.nodeType === Node.ELEMENT_NODE &&
                   node.classList &&
                   window.IGNORED_CLASSES) {
-                for (let i = 0; i < node.classList.length; i++) {
-                  if (window.IGNORED_CLASSES.has(node.classList[i])) {
-                    return NodeFilter.FILTER_REJECT;
+                // Проверяем, есть ли классы, которые нужно всегда переводить
+                let alwaysTranslate = false;
+                if (window.ALWAYS_TRANSLATE_CLASSES) {
+                  for (let i = 0; i < node.classList.length; i++) {
+                    if (window.ALWAYS_TRANSLATE_CLASSES.has(node.classList[i])) {
+                      alwaysTranslate = true;
+                      break;
+                    }
                   }
+                }
+
+                // Если не всегда переводить, проверяем игнорируемые классы
+                if (!alwaysTranslate && window.IGNORED_CLASSES) {
+                  for (let i = 0; i < node.classList.length; i++) {
+                    if (window.IGNORED_CLASSES.has(node.classList[i])) {
+                      return NodeFilter.FILTER_REJECT;
+                    }
+                  }
+                }
+              }
+
+              // Включаем элементы с aria-describedby для обработки (они могут указывать на подсказки)
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const ariaDescribedBy = node.getAttribute('aria-describedby');
+                if (ariaDescribedBy) {
+                  // Не отфильтровываем элементы с aria-describedby
+                  return NodeFilter.FILTER_ACCEPT;
                 }
               }
 
@@ -212,6 +235,69 @@
             }
           }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const tagName = node.tagName.toLowerCase();
+
+          // Специальная обработка элементов времени
+          if (tagName === 'time') {
+            let text = node.textContent.trim();
+            if (text) {
+              // Применяем форматирование дат
+              let translated = window.dateFormatter.format(text);
+              if (translated !== text) {
+                node.textContent = translated;
+              } else {
+                // Проверяем общий словарь
+                translated = window.NRL_TRANSLATIONS?.main[text];
+                if (translated && translated !== text) {
+                  node.textContent = translated;
+                }
+              }
+            }
+          }
+
+          // Обработка элементов, связанных через aria-describedby
+          const ariaDescribedBy = node.getAttribute('aria-describedby');
+          if (ariaDescribedBy) {
+            const tooltipElement = document.getElementById(ariaDescribedBy);
+            if (tooltipElement) {
+              // Обрабатываем текст в элементе подсказки
+              let text = tooltipElement.textContent.trim();
+              if (text) {
+                // Применяем форматирование дат
+                let translated = window.dateFormatter.format(text);
+                if (translated !== text) {
+                  tooltipElement.textContent = translated;
+                } else {
+                  // Проверяем общий словарь
+                  translated = window.NRL_TRANSLATIONS?.main[text];
+                  if (translated && translated !== text) {
+                    tooltipElement.textContent = translated;
+                  } else {
+                    // Пробуем динамические шаблоны
+                    for (const template of window.DYNAMIC_TEMPLATES) {
+                      if (template.pattern.test(text)) {
+                        template.pattern.lastIndex = 0; // сбрасываем для повторного использования
+                        if (template.replacer) {
+                          const newText = text.replace(template.pattern, (...args) => template.replacer(...args));
+                          if (newText !== text) {
+                            tooltipElement.textContent = newText;
+                            break;
+                          }
+                        } else if (template.replacement) {
+                          const newText = text.replace(template.pattern, template.replacement);
+                          if (newText !== text) {
+                            tooltipElement.textContent = newText;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           // Переводим атрибуты элемента
           const attrs = window.NRL_TRANSLATIONS?.translatableAttributes || ['title', 'placeholder', 'alt', 'data-tooltip', 'aria-label', 'value'];
           for (const attr of attrs) {
