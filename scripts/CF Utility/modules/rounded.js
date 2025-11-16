@@ -69,7 +69,8 @@
     // Target elements configuration - specify corner type and selectors for elements that should have rounded corners
     // Format: ['cornerClass', ['selector1', 'selector2', ...]]
     const targetElements = [
-        ['rounded-corner-small', ['button', 'input']]
+        ['rounded-corner-small', ['button', 'input']],
+        ['rounded-corner-medium', ['.project-tile', '.author']]
     ];
 
     // Apply rounded corners to target elements based on configuration
