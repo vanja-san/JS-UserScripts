@@ -9,7 +9,6 @@
     // Default settings
     const defaultSettings = {
         enabled: true,
-        theme: 'default',
         // Add more settings as needed
     };
 
@@ -35,7 +34,11 @@
     // Update settings
     function updateSettings(newSettings) {
         const currentSettings = getSettings();
-        const updatedSettings = { ...currentSettings, ...newSettings };
+        // Only update the fields that are in newSettings, don't override theme
+        const updatedSettings = { ...currentSettings };
+        for (const [key, value] of Object.entries(newSettings)) {
+            updatedSettings[key] = value;
+        }
         saveSettings(updatedSettings);
         return updatedSettings;
     }
@@ -101,22 +104,6 @@
         `;
         form.appendChild(enabledLabel);
 
-        // Theme selection
-        const themeLabel = setStyles(document.createElement('label'), {
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '15px',
-            gap: '8px'
-        });
-        themeLabel.innerHTML = `
-            <span>Theme:</span>
-            <select id="cfutility_theme">
-                <option value="default" ${settings.theme === 'default' ? 'selected' : ''}>System</option>
-                <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
-                <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option>
-            </select>
-        `;
-        form.appendChild(themeLabel);
 
         // Save button with event listener
         const saveButton = setStyles(document.createElement('button'), {
@@ -128,8 +115,7 @@
         saveButton.textContent = 'Save Settings';
         saveButton.addEventListener('click', function() {
             const newSettings = {
-                enabled: document.getElementById('cfutility_enabled').checked,
-                theme: document.getElementById('cfutility_theme').value
+                enabled: document.getElementById('cfutility_enabled').checked
             };
             updateSettings(newSettings);
 
