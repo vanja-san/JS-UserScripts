@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name            Nexus Russian Localizer DEV
-// @name:ru         Nexus Russian Localizer DEV
+// @name            Nexus Russian Localizer
+// @name:ru         Nexus Russian Localizer
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
@@ -8,8 +8,8 @@
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
-// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL-dev.user.js
-// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL-dev.user.js
+// @downloadURL     https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js
+// @updateURL       https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/NRL.user.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/translations.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/config.js
 // @require         https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus Russian Localizer/modules/lru-cache.js
