@@ -179,6 +179,7 @@
             alert(window.cfUtilityLocalization ?
                 window.cfUtilityLocalization.getText('settingsSaved') : 'Settings saved successfully!');
         });
+        form.appendChild(saveButton);
 
         // Cancel button with event listener
         const cancelButton = setStyles(document.createElement('button'), {
@@ -249,7 +250,9 @@
         if (settingsMenuId !== null) {
             GM_unregisterMenuCommand(settingsMenuId);
         }
-        settingsMenuId = GM_registerMenuCommand('CF Utility Settings', showSettings);
+        const menuTitle = window.cfUtilityLocalization ?
+            window.cfUtilityLocalization.getText('settingsTitle') : 'CF Utility Settings';
+        settingsMenuId = GM_registerMenuCommand(menuTitle, showSettings);
     }
 
     // Expose functions globally so they can be used by the main script
