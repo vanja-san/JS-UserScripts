@@ -1,29 +1,15 @@
 (function() {
     'use strict';
 
-    // Wait for both the settings and localization modules to be available
-    function waitForModules() {
-        return new Promise((resolve) => {
-            const checkModules = () => {
-                if (window.cfUtilitySettings && window.cfUtilityLocalization) {
-                    resolve({
-                        settings: window.cfUtilitySettings,
-                        localization: window.cfUtilityLocalization
-                    });
-                } else {
-                    setTimeout(checkModules, 100);
-                }
-            };
-            checkModules();
-        });
-    }
-
     // Check if rounded corners are enabled in settings
-    async function isRoundedCornersEnabled() {
+    function isRoundedCornersEnabled() {
         try {
-            const modules = await waitForModules();
-            const settings = modules.settings.getSettings();
-            return settings.roundedCornersEnabled !== false; // Default to true if not set
+            if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
+                const settings = window.cfUtilitySettings.getSettings();
+                return settings.roundedCornersEnabled !== false; // Default to true if not set
+            }
+            // If settings module is not available yet, default to enabled
+            return true;
         } catch (error) {
             // If there's an error accessing settings, default to enabled
             return true;
@@ -31,8 +17,8 @@
     }
 
     // Create and inject the CSS for rounded corners
-    async function injectRoundedStyles() {
-        if (!(await isRoundedCornersEnabled())) {
+    function injectRoundedStyles() {
+        if (!isRoundedCornersEnabled()) {
             return; // Don't inject styles if rounded corners are disabled
         }
 
@@ -74,8 +60,8 @@
     ];
 
     // Apply rounded corners to target elements based on configuration
-    async function applyRoundedCornersToTargets() {
-        if (!(await isRoundedCornersEnabled())) {
+    function applyRoundedCornersToTargets() {
+        if (!isRoundedCornersEnabled()) {
             return;
         }
 
@@ -130,17 +116,17 @@
     }
 
     // Initialize the rounded corners functionality
-    async function initRoundedCorners() {
-        if (await isRoundedCornersEnabled()) {
-            await injectRoundedStyles();
+    function initRoundedCorners() {
+        if (isRoundedCornersEnabled()) {
+            injectRoundedStyles();
             applyRoundedCorners();
-            await applyRoundedCornersToTargets();
+            applyRoundedCornersToTargets();
         }
     }
 
     // Handle dynamic content using MutationObserver
     function setupMutationObserver() {
-        const observer = new MutationObserver(async function(mutations) {
+        const observer = new MutationObserver(function(mutations) {
             let shouldUpdate = false;
             let shouldApplyTargets = false;
 
@@ -267,15 +253,15 @@
                 }
             });
 
-            if (shouldUpdate && await isRoundedCornersEnabled()) {
+            if (shouldUpdate && isRoundedCornersEnabled()) {
                 // Apply rounded corners to any new elements that match
                 setTimeout(applyRoundedCorners, 0); // Use setTimeout to ensure DOM is fully updated
             }
 
-            if (shouldApplyTargets && await isRoundedCornersEnabled()) {
+            if (shouldApplyTargets && isRoundedCornersEnabled()) {
                 // Apply target rounded corners to matching elements
-                setTimeout(async () => {
-                    await applyRoundedCornersToTargets();
+                setTimeout(() => {
+                    applyRoundedCornersToTargets();
                 }, 0);
             }
         });
@@ -293,28 +279,24 @@
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async function() {
-            await initRoundedCorners();
-            if (await isRoundedCornersEnabled()) {
+        document.addEventListener('DOMContentLoaded', function() {
+            initRoundedCorners();
+            if (isRoundedCornersEnabled()) {
                 setupMutationObserver();
             }
         });
     } else {
-        (async () => {
-            await initRoundedCorners();
-            if (await isRoundedCornersEnabled()) {
-                setupMutationObserver();
-            }
-        })();
+        initRoundedCorners();
+        if (isRoundedCornersEnabled()) {
+            setupMutationObserver();
+        }
     }
 
     // Periodically check and restore rounded corner classes in case they were removed by site scripts
-    if (await isRoundedCornersEnabled()) {
-        setInterval(async () => {
-            if (await isRoundedCornersEnabled()) {
-                await applyRoundedCornersToTargets();
-            }
-        }, 2000); // Check every 2 seconds
-    }
+    setInterval(() => {
+        if (isRoundedCornersEnabled()) {
+            applyRoundedCornersToTargets();
+        }
+    }, 2000); // Check every 2 seconds
 
 })();
