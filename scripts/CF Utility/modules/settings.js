@@ -1,16 +1,3 @@
-// ==UserScript==
-// @name         CF Utility Settings Module
-// @namespace    http://tampermonkey.net/
-// @version      1.0.0
-// @description  Settings module for CF Utility
-// @author       You
-// @grant        GM_addStyle
-// @grant        GM_getValue
-// @grant        GM_setValue
-// @grant        GM_registerMenuCommand
-// @grant        GM_unregisterMenuCommand
-// ==/UserScript==
-
 /**
  * CF Utility Settings Module
  * Handles settings management for CF Utility

@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         CF Utility
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
-// @description  A utility script for Codeforces with customizable settings
-// @author       You
-// @match        https://codeforces.com/*
-// @match        https://*.codeforces.com/*
+// @version      0.0.1-dev
+// @description  A utility script for Cursforge with customizable settings
+// @author       vanja-san
+// @match        https://cursforge.com/*
+// @match        https://*.cursforge.com/*
 // @require      ./modules/settings.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
