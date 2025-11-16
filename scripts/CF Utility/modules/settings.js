@@ -157,12 +157,6 @@
         document.body.appendChild(overlay);
     }
 
-    // Helper function to apply styles to elements
-    function setStyles(element, styles) {
-        Object.assign(element.style, styles);
-        return element;
-    }
-
     // Function to create CSS styles for settings dialog
     function createSettingsStyles() {
         return `
