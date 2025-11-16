@@ -70,7 +70,7 @@
             '.project-tile > .tile',
             '.author',
             '.sub-nav-inner',
-            '.discovery-carousel-item'
+            '.discovery-carousel-slide'
         ]]
     ];
 
