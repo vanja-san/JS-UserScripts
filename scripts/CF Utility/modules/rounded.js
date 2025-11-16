@@ -41,20 +41,20 @@
 
         // Default CSS for rounded corners
         const css = `
-            .rounded {
-                border-radius: 6px !important;
-            }
-
-            .rounded-md {
-                border-radius: 8px !important;
-            }
-
-            .rounded-lg {
+            .rounded-corner {
                 border-radius: 10px !important;
             }
 
-            .rounded-sm {
-                border-radius: 4px !important;
+            .rounded-corner-medium {
+                border-radius: 15px !important;
+            }
+
+            .rounded-corner-large {
+                border-radius: 20px !important;
+            }
+
+            .rounded-corner-small {
+                border-radius: 5px !important;
             }
 
             .rounded-circle {
@@ -66,11 +66,16 @@
         (document.head || document.documentElement).appendChild(style);
     }
 
-    // Target elements configuration - specify selectors for elements that should have rounded corners
-    // Format: ['selector', 'cornerClass']
+    // Target elements configuration - specify corner type and selectors for elements that should have rounded corners
+    // Format: ['cornerClass', ['selector1', 'selector2', ...]]
     const targetElements = [
-        ['button', 'rounded-sm']
-        // Add more selectors as needed
+        ['rounded-corner-medium', ['.project-card', '.card']], // Project cards and general cards
+        ['rounded-corner-large', ['.download-modal', '.modal']], // Download modals and general modals
+        ['rounded-corner-small', ['.search-box', '.button', '.btn', 'button', 'input']], // Search boxes, buttons, inputs
+        ['rounded-corner-small', ['.header', '.footer']], // Headers and footers
+        ['rounded-corner', ['.sidebar', '.container', '.panel', '.widget']], // Sidebars, containers, panels, widgets
+        ['rounded-circle', ['.avatar', '.image']], // Avatars and images
+        // Add more as needed - format: ['cornerClass', ['selector1', 'selector2', ...]]
     ];
 
     // Apply rounded corners to target elements based on configuration
@@ -79,12 +84,14 @@
             return;
         }
 
-        targetElements.forEach(([selector, cornerClass]) => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (!el.classList.contains(cornerClass)) {
-                    el.classList.add(cornerClass);
-                }
+        targetElements.forEach(([cornerClass, selectors]) => {
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    if (!el.classList.contains(cornerClass)) {
+                        el.classList.add(cornerClass);
+                    }
+                });
             });
         });
     }
@@ -92,7 +99,7 @@
     // Apply rounded corners to existing elements that already have rounded classes
     function applyRoundedCorners() {
         // Apply to elements with rounded-corner class
-        const elementsToRound = document.querySelectorAll('.rounded, .rounded-md, .rounded-lg, .rounded-sm, .rounded-circle');
+        const elementsToRound = document.querySelectorAll('.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle');
         elementsToRound.forEach(el => {
             // Already handled by CSS, but we can add additional processing if needed
         });
@@ -118,36 +125,38 @@
                     mutation.addedNodes.forEach(function(node) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             // Check if the added node or its children have rounded classes
-                            if (node.classList &&
-                                (node.classList.contains('rounded') ||
-                                 node.classList.contains('rounded-md') ||
-                                 node.classList.contains('rounded-lg') ||
-                                 node.classList.contains('rounded-sm') ||
-                                 node.classList.contains('rounded-circle'))) {
-                                shouldUpdate = true;
+                            if (node.classList) {
+                                const roundedClasses = ['rounded-corner', 'rounded-corner-medium', 'rounded-corner-large', 'rounded-corner-small', 'rounded-circle'];
+                                shouldUpdate = roundedClasses.some(roundedClass =>
+                                    node.classList.contains(roundedClass)
+                                );
                             }
 
                             // Check if the added node matches any target selectors
-                            targetElements.forEach(([selector, cornerClass]) => {
-                                if (node.matches && node.matches(selector)) {
-                                    shouldApplyTargets = true;
-                                }
+                            targetElements.forEach(([cornerClass, selectors]) => {
+                                selectors.forEach(selector => {
+                                    if (node.matches && node.matches(selector)) {
+                                        shouldApplyTargets = true;
+                                    }
+                                });
                             });
 
                             // Also check any children of the added node
                             const roundedChildren = node.querySelectorAll && node.querySelectorAll(
-                                '.rounded, .rounded-md, .rounded-lg, .rounded-sm, .rounded-circle'
+                                '.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle'
                             );
                             if (roundedChildren && roundedChildren.length > 0) {
                                 shouldUpdate = true;
                             }
 
                             // Check children for target selectors
-                            targetElements.forEach(([selector, cornerClass]) => {
-                                const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
-                                if (matchingChildren && matchingChildren.length > 0) {
-                                    shouldApplyTargets = true;
-                                }
+                            targetElements.forEach(([cornerClass, selectors]) => {
+                                selectors.forEach(selector => {
+                                    const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
+                                    if (matchingChildren && matchingChildren.length > 0) {
+                                        shouldApplyTargets = true;
+                                    }
+                                });
                             });
                         }
                     });
