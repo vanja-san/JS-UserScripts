@@ -69,7 +69,8 @@
         ['rounded-corner-medium', [
             '.project-tile > .tile',
             '.author',
-            '.sub-nav-inner'
+            '.sub-nav-inner',
+            '.discovery-carousel-item'
         ]]
     ];
 
