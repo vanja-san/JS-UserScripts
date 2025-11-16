@@ -115,19 +115,61 @@
         GM_addStyle(createDownloadStyles());
     }
 
-    // Function to get direct download URL by appending '/file' to the page URL
-    function getDirectDownloadUrl(projectUrl) {
-        // Normalize the URL by removing trailing slashes
-        let normalizedUrl = projectUrl.replace(/\/$/, '');
-        
-        // Check if it already ends with '/file' or contains a file ID
-        if (normalizedUrl.match(/\/download$/) || normalizedUrl.match(/\/files\/\d+.*$/)) {
-            // If it's already a direct download link, return as is
-            return normalizedUrl;
+    // Function to extract mod ID from the page
+    function extractModId() {
+        // Look for mod ID in various places on the page
+        // This could be in a data attribute, hidden field, or URL of the current page
+
+        // Check for mod ID in page URL (current page)
+        const currentPath = window.location.pathname;
+        const currentModIdMatch = currentPath.match(/\/mods\/(\d+)/);
+        if (currentModIdMatch) {
+            return currentModIdMatch[1];
         }
-        
-        // Append '/download' to get the direct download link
-        return normalizedUrl + '/download';
+
+        // Check for mod ID in page data attributes or hidden fields
+        const modPageElement = document.querySelector('[data-project-id]');
+        if (modPageElement) {
+            return modPageElement.getAttribute('data-project-id');
+        }
+
+        const modIdInput = document.querySelector('input[name="projectId"], input[name="project-id"], [data-mod-id]');
+        if (modIdInput) {
+            return modIdInput.value || modIdInput.getAttribute('data-mod-id');
+        }
+
+        // Look for common patterns in CurseForge page structure
+        const pageUrlSegments = currentPath.split('/');
+        for (let i = 0; i < pageUrlSegments.length; i++) {
+            if (pageUrlSegments[i] === 'mods' && !isNaN(pageUrlSegments[i + 1])) {
+                return pageUrlSegments[i + 1];
+            }
+        }
+
+        // If all else fails, return null
+        return null;
+    }
+
+    // Function to get direct download URL by extracting mod and file IDs
+    function getDirectDownloadUrl(projectUrl) {
+        // Parse the URL to extract file ID
+        const url = new URL(projectUrl, window.location.origin);
+
+        // Extract the file ID from the URL
+        const fileIdMatch = url.pathname.match(/\/download\/(\d+)/);
+        if (fileIdMatch) {
+            const fileId = fileIdMatch[1];
+
+            // Get mod ID from the current page
+            const modId = extractModId();
+
+            if (modId) {
+                return `${window.location.origin}/api/v1/mods/${modId}/files/${fileId}/download`;
+            }
+        }
+
+        // If we couldn't extract both IDs, return the original URL
+        return projectUrl;
     }
 
     // Function to intercept download clicks and redirect to direct download
