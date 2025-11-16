@@ -1,287 +1,172 @@
 /**
- * CF Utility Download Module
- * Handles direct download functionality for CurseForge
+ * CF Utility Direct Download Module
+ * Handles direct download functionality for CurseForge based on proven implementation
  */
 
 (function() {
     'use strict';
 
-    // Helper function to apply styles to elements
-    function setStyles(element, styles) {
-        Object.assign(element.style, styles);
-        return element;
-    }
-
-    // Create CSS styles for the download UI
-    function createDownloadStyles() {
-        return `
-            .cfutility-download-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.7);
-                z-index: 10000;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-
-            .cfutility-download-container {
-                background-color: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                width: 400px;
-                max-height: 80vh;
-                overflow-y: auto;
-                font-family: Arial, sans-serif;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-
-            @media (prefers-color-scheme: dark) {
-                .cfutility-download-container {
-                    background-color: #2d2d2d;
-                    color: #e0e0e0;
-                }
-            }
-
-            @media (prefers-color-scheme: light) {
-                .cfutility-download-container {
-                    background-color: #ffffff;
-                    color: #000;
-                }
-            }
-
-            .cfutility-download-header {
-                margin-top: 0;
-                margin-bottom: 15px;
-            }
-
-            .cfutility-download-content {
-                margin-bottom: 15px;
-            }
-
-            .cfutility-download-progress {
-                width: 100%;
-                height: 20px;
-                background-color: #e0e0e0;
-                border-radius: 10px;
-                overflow: hidden;
-                margin: 10px 0;
-            }
-
-            .cfutility-download-progress-bar {
-                height: 100%;
-                background-color: #007cba;
-                width: 0%;
-                transition: width 0.3s ease;
-            }
-
-            .cfutility-download-buttons {
-                display: flex;
-                gap: 10px;
-                justify-content: flex-end;
-            }
-
-            .cfutility-download-btn {
-                padding: 8px 16px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-
-            .cfutility-download-btn-primary {
-                background-color: #007cba;
-                color: white;
-            }
-
-            .cfutility-download-btn-secondary {
-                background-color: #f0f0f0;
-                color: #333;
-            }
-
-            @media (prefers-color-scheme: dark) {
-                .cfutility-download-btn-secondary {
-                    background-color: #404040;
-                    color: #e0e0e0;
-                }
-            }
-        `;
-    }
-
-    // Apply download styles
-    if (typeof GM_addStyle !== 'undefined') {
-        GM_addStyle(createDownloadStyles());
-    }
-
-    // Function to extract mod ID from the page
-    function extractModId() {
-        // Look for mod ID in various places on the page
-        // This could be in a data attribute, hidden field, or URL of the current page
-
-        // Check for mod ID in page URL (current page)
-        const currentPath = window.location.pathname;
-        const currentModIdMatch = currentPath.match(/\/mods\/(\d+)/);
-        if (currentModIdMatch) {
-            return currentModIdMatch[1];
-        }
-
-        // Check for mod ID in page data attributes or hidden fields
-        const modPageElement = document.querySelector('[data-project-id]');
-        if (modPageElement) {
-            return modPageElement.getAttribute('data-project-id');
-        }
-
-        const modIdInput = document.querySelector('input[name="projectId"], input[name="project-id"], [data-mod-id]');
-        if (modIdInput) {
-            return modIdInput.value || modIdInput.getAttribute('data-mod-id');
-        }
-
-        // Look for common patterns in CurseForge page structure
-        const pageUrlSegments = currentPath.split('/');
-        for (let i = 0; i < pageUrlSegments.length; i++) {
-            if (pageUrlSegments[i] === 'mods' && !isNaN(pageUrlSegments[i + 1])) {
-                return pageUrlSegments[i + 1];
+    // Function to observe elements and apply callback to both existing and new elements
+    function observeSelector(selector, callback) {
+        // Apply to existing elements
+        for (const el of document.querySelectorAll(selector)) {
+            if (!el.classList.contains('cfutility-intercepted')) {
+                callback(el);
             }
         }
 
-        // If all else fails, return null
-        return null;
-    }
-
-    // Function to get direct download URL by extracting mod and file IDs
-    function getDirectDownloadUrl(projectUrl) {
-        // Parse the URL to extract file ID
-        const url = new URL(projectUrl, window.location.origin);
-
-        // Extract the file ID from the URL
-        const fileIdMatch = url.pathname.match(/\/download\/(\d+)/);
-        if (fileIdMatch) {
-            const fileId = fileIdMatch[1];
-
-            // Get mod ID from the current page
-            const modId = extractModId();
-
-            if (modId) {
-                return `${window.location.origin}/api/v1/mods/${modId}/files/${fileId}/download`;
-            }
-        }
-
-        // If we couldn't extract both IDs, return the original URL
-        return projectUrl;
-    }
-
-    // Function to intercept download clicks and redirect to direct download
-    function interceptDownloadClicks() {
-        if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
-            const settings = window.cfUtilitySettings.getSettings();
-            if (!settings.downloadEnabled) {
-                // If download feature is disabled, remove any existing modifications
-                return;
-            }
-        }
-
-        // Select all download links that match the pattern
-        const downloadLinks = document.querySelectorAll('a[href*="/download/"]');
-
-        downloadLinks.forEach(link => {
-            if (!link.classList.contains('cfutility-intercepted')) {
-                // Add a class to track that we've already processed this link
-                link.classList.add('cfutility-intercepted');
-
-                // Store the original click listener
-                const originalHref = link.href;
-
-                // Modify the link to point directly to the file download
-                const modifiedHref = getDirectDownloadUrl(originalHref);
-
-                // Update the href attribute to point to the direct download
-                link.href = modifiedHref;
-
-                // Add a click event listener to handle the download
-                link.addEventListener('click', function(e) {
-                    if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
-                        const settings = window.cfUtilitySettings.getSettings();
-                        if (!settings.downloadEnabled) {
-                            e.preventDefault();
-                            alert('Direct downloads are disabled in settings.');
-                            return false;
+        // Apply to new elements added to the DOM
+        new MutationObserver((mutations, observer) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType !== Node.ELEMENT_NODE) {
+                        continue;
+                    }
+                    if (node.matches && node.matches(selector)) {
+                        if (!node.classList.contains('cfutility-intercepted')) {
+                            callback(node);
                         }
                     }
-
-                    // Allow the download to proceed
-                    // The link now points to the direct download URL
-                });
+                    for (const el of node.querySelectorAll(selector)) {
+                        if (!el.classList.contains('cfutility-intercepted')) {
+                            callback(el);
+                        }
+                    }
+                }
             }
-        });
+        }).observe(document, { childList: true, subtree: true });
     }
 
-    // Function to scan and modify download links on the page
-    function processDownloadLinks() {
+    // Function to get direct download URL by extracting project ID from page content
+    async function getDirectDownloadUrlFromContent(href) {
+        try {
+            const response = await fetch(href);
+            const content = await response.text();
+
+            // Extract project ID from page content using regex
+            // Look for patterns like: \"project\":{\"id\":(\d+) or projectId: "12345"
+            const projectIdMatch = content.match(/\\?"project\\?":\{\\?"id\\?":(\d+)/);
+            if (!projectIdMatch) {
+                // Alternative patterns that might be present
+                const altProjectIdMatch = content.match(/projectId["']?\s*:\s*["']?(\d+)/);
+                if (!altProjectIdMatch) {
+                    console.warn('Could not extract project ID from page content');
+                    return href; // Return original URL if can't extract project ID
+                }
+                const projectId = altProjectIdMatch[1];
+                const fileIdMatch = href.match(/\/download\/(\d+)/);
+
+                if (!fileIdMatch) {
+                    console.warn('Could not extract file ID from URL');
+                    return href; // Return original URL if can't extract file ID
+                }
+
+                const fileId = fileIdMatch[1];
+
+                // Build the direct download URL
+                return `${window.location.origin}/api/v1/mods/${projectId}/files/${fileId}/download`;
+            }
+
+            const projectId = projectIdMatch[1];
+            const fileIdMatch = href.match(/\/download\/(\d+)/);
+
+            if (!fileIdMatch) {
+                console.warn('Could not extract file ID from URL');
+                return href; // Return original URL if can't extract file ID
+            }
+
+            const fileId = fileIdMatch[1];
+
+            // Build the direct download URL
+            return `${window.location.origin}/api/v1/mods/${projectId}/files/${fileId}/download`;
+        } catch (e) {
+            console.error('Error fetching page content to extract project ID:', e);
+            return href; // Return original URL on error
+        }
+    }
+
+    // Function to handle direct download
+    async function handleDirectDownload(href) {
         if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
             const settings = window.cfUtilitySettings.getSettings();
             if (!settings.downloadEnabled) {
-                // If download feature is disabled, remove any intercept classes
-                const interceptedLinks = document.querySelectorAll('.cfutility-intercepted');
-                interceptedLinks.forEach(link => {
-                    link.classList.remove('cfutility-intercepted');
-                    // Reset original functionality if needed
-                });
+                // If disabled, allow normal navigation
+                window.location.href = href;
                 return;
             }
         }
 
-        // Intercept download clicks
-        interceptDownloadClicks();
+        const directUrl = await getDirectDownloadUrlFromContent(href);
+        window.location.href = directUrl;
     }
 
     // Function to initialize the download module
     function initDownloadModule() {
-        // Process download links immediately
-        processDownloadLinks();
-        
-        // Set up a MutationObserver to handle dynamic content loading
-        const observer = new MutationObserver(function(mutations) {
-            let shouldProcess = false;
-            
-            for (const mutation of mutations) {
-                if (mutation.type === 'childList') {
-                    for (const node of mutation.addedNodes) {
-                        if (node.nodeType === 1) { // Element node
-                            const hasDownloadRelatedClass = 
-                                node.classList && 
-                                (node.classList.contains('file') || 
-                                 node.classList.contains('download') ||
-                                 node.classList.contains('project-file') ||
-                                 (node.tagName && 
-                                  (node.tagName.toLowerCase() === 'tr' && node.classList.contains('file') ||
-                                   node.querySelector && 
-                                   (node.querySelector('[href*="/files/"]') || 
-                                    node.querySelector('[href*="/download"]')))));
-                            
-                            if (hasDownloadRelatedClass) {
-                                shouldProcess = true;
-                                break;
-                            }
-                        }
-                    }
-                }
+        if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
+            const settings = window.cfUtilitySettings.getSettings();
+            if (!settings.downloadEnabled) {
+                // If download feature is disabled, don't initialize
+                return;
             }
-            
-            if (shouldProcess) {
-                processDownloadLinks();
+        }
+
+        // Observe and handle download buttons with unique class to prevent double handling
+        observeSelector('.download-cta', el => {
+            if (!el.classList.contains('cfutility-intercepted')) {
+                el.classList.add('cfutility-intercepted');
+                el.addEventListener("click", e => {
+                    e.preventDefault();
+                    handleDirectDownload(el.href);
+                });
             }
         });
 
-        // Start observing
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
+        observeSelector('.kebab-menu a', el => {
+            if (el.href.indexOf("/download/") === -1) {
+                return;
+            }
+            if (!el.classList.contains('cfutility-intercepted')) {
+                el.classList.add('cfutility-intercepted');
+                el.addEventListener("click", e => {
+                    e.preventDefault();
+                    handleDirectDownload(el.href);
+                });
+            }
         });
-        
-        // Also periodically check for new download links (as a fallback)
-        setInterval(processDownloadLinks, 2000);
+
+        observeSelector('.project-download-modal .download-btn', el => {
+            if (!el.classList.contains('cfutility-intercepted')) {
+                el.classList.add('cfutility-intercepted');
+                el.addEventListener("click", e => {
+                    e.preventDefault();
+                    handleDirectDownload(el.href);
+                });
+            }
+        });
+
+        observeSelector('.download-button', el => {
+            if (!el.classList.contains('cfutility-intercepted')) {
+                el.classList.add('cfutility-intercepted');
+                el.addEventListener("click", e => {
+                    e.preventDefault();
+                    handleDirectDownload(el.href);
+                });
+            }
+        });
+
+        // Also handle general download links that match the pattern
+        observeSelector("a", el => {
+            if (!el.href.match(/\/download($|\/)/) || el.href.indexOf("?client=y") !== -1) {
+                return;
+            }
+            if (!el.classList.contains('cfutility-intercepted')) {
+                el.classList.add('cfutility-intercepted');
+                el.addEventListener("click", e => {
+                    e.preventDefault();
+                    handleDirectDownload(el.href);
+                });
+            }
+        });
     }
 
     // Initialize the module when DOM is ready
@@ -293,9 +178,7 @@
 
     // Expose functions globally so they can be used by the main script
     window.cfUtilityDirectDL = {
-        processDownloadLinks,
-        createDirectDownloadLink,
-        getDirectDownloadUrl
+        handleDirectDownload,
+        getDirectDownloadUrlFromContent
     };
-
 })();
