@@ -95,47 +95,28 @@
         // Create form
         const form = document.createElement('form');
 
-        // Enabled checkbox
-        const enabledLabel = setStyles(document.createElement('label'), {
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '15px',
-            gap: '8px'
-        });
-        enabledLabel.innerHTML = `
-            <input type="checkbox" id="cfutility_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.enabled ? 'checked' : ''}>
-            <span>${window.cfUtilityLocalization ?
-                window.cfUtilityLocalization.getText('enableUtility') : 'Enable CF Utility'}</span>
-        `;
-        form.appendChild(enabledLabel);
+        // Define settings configuration
+        const settingConfigs = [
+            { id: 'cfutility_enabled', key: 'enabled', textKey: 'enableUtility' },
+            { id: 'cfutility_download_enabled', key: 'downloadEnabled', textKey: 'enableDirectDownloads' },
+            { id: 'cfutility_rounded_corners_enabled', key: 'roundedCornersEnabled', textKey: 'enableRoundedCorners' }
+        ];
 
-        // Download functionality checkbox
-        const downloadLabel = setStyles(document.createElement('label'), {
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '15px',
-            gap: '8px'
+        // Create checkboxes for settings
+        settingConfigs.forEach(config => {
+            const label = setStyles(document.createElement('label'), {
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '15px',
+                gap: '8px'
+            });
+            label.innerHTML = `
+                <input type="checkbox" id="${config.id}" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings[config.key] ? 'checked' : ''}>
+                <span>${window.cfUtilityLocalization ?
+                    window.cfUtilityLocalization.getText(config.textKey) : config.textKey}</span>
+            `;
+            form.appendChild(label);
         });
-        downloadLabel.innerHTML = `
-            <input type="checkbox" id="cfutility_download_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.downloadEnabled ? 'checked' : ''}>
-            <span>${window.cfUtilityLocalization ?
-                window.cfUtilityLocalization.getText('enableDirectDownloads') : 'Enable Direct Downloads'}</span>
-        `;
-        form.appendChild(downloadLabel);
-
-        // Rounded corners functionality checkbox
-        const roundedCornersLabel = setStyles(document.createElement('label'), {
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '15px',
-            gap: '8px'
-        });
-        roundedCornersLabel.innerHTML = `
-            <input type="checkbox" id="cfutility_rounded_corners_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.roundedCornersEnabled ? 'checked' : ''}>
-            <span>${window.cfUtilityLocalization ?
-                window.cfUtilityLocalization.getText('enableRoundedCorners') : 'Enable Rounded Corners'}</span>
-        `;
-        form.appendChild(roundedCornersLabel);
 
         // Language selection
         const langLabel = setStyles(document.createElement('label'), {
@@ -176,12 +157,22 @@
         saveButton.textContent = window.cfUtilityLocalization ?
             window.cfUtilityLocalization.getText('saveSettings') : 'Save Settings';
         saveButton.addEventListener('click', function() {
+            // Create new settings object
             const newSettings = {
-                enabled: document.getElementById('cfutility_enabled').checked,
-                downloadEnabled: document.getElementById('cfutility_download_enabled').checked,
-                roundedCornersEnabled: document.getElementById('cfutility_rounded_corners_enabled').checked,
                 language: document.getElementById('cfutility_language').value
             };
+
+            // Update boolean settings using configuration
+            const settingConfigs = [
+                { id: 'cfutility_enabled', key: 'enabled' },
+                { id: 'cfutility_download_enabled', key: 'downloadEnabled' },
+                { id: 'cfutility_rounded_corners_enabled', key: 'roundedCornersEnabled' }
+            ];
+
+            settingConfigs.forEach(config => {
+                newSettings[config.key] = document.getElementById(config.id).checked;
+            });
+
             updateSettings(newSettings);
 
             // Update language if changed

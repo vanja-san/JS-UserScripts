@@ -1,12 +1,3 @@
-// ==UserScript==
-// @name         CF Utility - Rounded Corners Module
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Module for adding rounded corners to elements
-// @author       You
-// @run-at       document-start
-// ==/UserScript==
-
 (function() {
     'use strict';
 
@@ -45,15 +36,11 @@
             return; // Don't inject styles if rounded corners are disabled
         }
 
-        const modules = await waitForModules();
-        const currentLang = modules.localization.getPreferredLanguage();
-
         const style = document.createElement('style');
-        style.type = 'text/css';
         style.id = 'cf-utility-rounded-styles';
 
         // Default CSS for rounded corners
-        let css = `
+        const css = `
             .rounded-corner {
                 border-radius: 10px !important;
             }
@@ -75,19 +62,48 @@
             }
         `;
 
-        // Add any language-specific styles if needed
-        if (currentLang === 'ru') {
-            // Add Russian-specific styles if needed
-            css += `
-                /* Russian language specific rounded styles if needed */
-            `;
-        }
-
         style.appendChild(document.createTextNode(css));
         (document.head || document.documentElement).appendChild(style);
     }
 
-    // Apply rounded corners to existing elements
+    // Target elements configuration - specify selectors for elements that should have rounded corners
+    // Format: ['selector', 'cornerClass']
+    const targetElements = [
+        ['.project-card', 'rounded-corner-medium'], // CurseForge project cards
+        ['.download-modal', 'rounded-corner-large'], // Download modals
+        ['.search-box', 'rounded-corner'], // Search boxes
+        ['.card', 'rounded-corner'], // General cards
+        ['.modal', 'rounded-corner-large'], // Modals
+        ['.button', 'rounded-corner'], // Buttons
+        ['.btn', 'rounded-corner'], // Alternative button class
+        ['.avatar', 'rounded-corner'], // Avatar images
+        ['.image', 'rounded-corner'], // Image containers
+        ['.header', 'rounded-corner-small'], // Headers
+        ['.footer', 'rounded-corner-small'], // Footers
+        ['.sidebar', 'rounded-corner'], // Sidebars
+        ['.container', 'rounded-corner'], // Containers
+        ['.panel', 'rounded-corner-medium'], // Panels
+        ['.widget', 'rounded-corner-medium'], // Widgets
+        // Add more selectors as needed
+    ];
+
+    // Apply rounded corners to target elements based on configuration
+    async function applyRoundedCornersToTargets() {
+        if (!(await isRoundedCornersEnabled())) {
+            return;
+        }
+
+        targetElements.forEach(([selector, cornerClass]) => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (!el.classList.contains(cornerClass)) {
+                    el.classList.add(cornerClass);
+                }
+            });
+        });
+    }
+
+    // Apply rounded corners to existing elements that already have rounded classes
     function applyRoundedCorners() {
         // Apply to elements with rounded-corner class
         const elementsToRound = document.querySelectorAll('.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle');
@@ -101,13 +117,15 @@
         if (await isRoundedCornersEnabled()) {
             await injectRoundedStyles();
             applyRoundedCorners();
+            await applyRoundedCornersToTargets();
         }
     }
 
     // Handle dynamic content using MutationObserver
     function setupMutationObserver() {
-        const observer = new MutationObserver(function(mutations) {
+        const observer = new MutationObserver(async function(mutations) {
             let shouldUpdate = false;
+            let shouldApplyTargets = false;
 
             mutations.forEach(function(mutation) {
                 if (mutation.type === 'childList') {
@@ -123,6 +141,13 @@
                                 shouldUpdate = true;
                             }
 
+                            // Check if the added node matches any target selectors
+                            targetElements.forEach(([selector, cornerClass]) => {
+                                if (node.matches && node.matches(selector)) {
+                                    shouldApplyTargets = true;
+                                }
+                            });
+
                             // Also check any children of the added node
                             const roundedChildren = node.querySelectorAll && node.querySelectorAll(
                                 '.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle'
@@ -130,14 +155,29 @@
                             if (roundedChildren && roundedChildren.length > 0) {
                                 shouldUpdate = true;
                             }
+
+                            // Check children for target selectors
+                            targetElements.forEach(([selector, cornerClass]) => {
+                                const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
+                                if (matchingChildren && matchingChildren.length > 0) {
+                                    shouldApplyTargets = true;
+                                }
+                            });
                         }
                     });
                 }
             });
 
-            if (shouldUpdate && isRoundedCornersEnabled()) {
+            if (shouldUpdate && await isRoundedCornersEnabled()) {
                 // Apply rounded corners to any new elements that match
                 setTimeout(applyRoundedCorners, 0); // Use setTimeout to ensure DOM is fully updated
+            }
+
+            if (shouldApplyTargets && await isRoundedCornersEnabled()) {
+                // Apply target rounded corners to matching elements
+                setTimeout(async () => {
+                    await applyRoundedCornersToTargets();
+                }, 0);
             }
         });
 
@@ -159,10 +199,12 @@
             }
         });
     } else {
-        initRoundedCorners();
-        if (await isRoundedCornersEnabled()) {
-            setupMutationObserver();
-        }
+        (async () => {
+            await initRoundedCorners();
+            if (await isRoundedCornersEnabled()) {
+                setupMutationObserver();
+            }
+        })();
     }
 
 })();
