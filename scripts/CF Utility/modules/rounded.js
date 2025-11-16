@@ -69,13 +69,7 @@
     // Target elements configuration - specify corner type and selectors for elements that should have rounded corners
     // Format: ['cornerClass', ['selector1', 'selector2', ...]]
     const targetElements = [
-        ['rounded-corner-medium', ['.project-card', '.card']], // Project cards and general cards
-        ['rounded-corner-large', ['.download-modal', '.modal']], // Download modals and general modals
-        ['rounded-corner-small', ['.search-box', '.button', '.btn', 'button', 'input']], // Search boxes, buttons, inputs
-        ['rounded-corner-small', ['.header', '.footer']], // Headers and footers
-        ['rounded-corner', ['.sidebar', '.container', '.panel', '.widget']], // Sidebars, containers, panels, widgets
-        ['rounded-circle', ['.avatar', '.image']], // Avatars and images
-        // Add more as needed - format: ['cornerClass', ['selector1', 'selector2', ...]]
+        ['rounded-corner-small', ['button', 'input']]
     ];
 
     // Apply rounded corners to target elements based on configuration
