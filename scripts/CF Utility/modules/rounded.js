@@ -1,4 +1,4 @@
-(function() {
+(function () {
     'use strict';
 
     // Check if rounded corners are enabled in settings
@@ -55,8 +55,20 @@
     // Target elements configuration - specify corner type and selectors for elements that should have rounded corners
     // Format: ['cornerClass', ['selector1', 'selector2', ...]]
     const targetElements = [
-        ['rounded-corner-small', ['button', '.btn-cta', '.btn-secondary', '.btn-primary', 'input', '.file-card', '.related-project-card']],
-        ['rounded-corner-medium', ['.project-tile > .tile', '.author', '.sub-nav-inner']]
+        ['rounded-corner-small', [
+            'button',
+            '.btn-cta',
+            '.btn-secondary',
+            '.btn-primary',
+            'input',
+            '.file-card',
+            '.related-project-card'
+        ]],
+        ['rounded-corner-medium', [
+            '.project-tile > .tile',
+            '.author',
+            '.sub-nav-inner'
+        ]]
     ];
 
     // Apply rounded corners to target elements based on configuration
@@ -126,13 +138,13 @@
 
     // Handle dynamic content using MutationObserver
     function setupMutationObserver() {
-        const observer = new MutationObserver(function(mutations) {
+        const observer = new MutationObserver(function (mutations) {
             let shouldUpdate = false;
             let shouldApplyTargets = false;
 
-            mutations.forEach(function(mutation) {
+            mutations.forEach(function (mutation) {
                 if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(function(node) {
+                    mutation.addedNodes.forEach(function (node) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             // Check if the added node or its children have rounded classes
                             if (node.classList) {
@@ -279,7 +291,7 @@
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             initRoundedCorners();
             if (isRoundedCornersEnabled()) {
                 setupMutationObserver();
