@@ -7,8 +7,8 @@
 // @match        https://curseforge.com/*
 // @match        https://*.curseforge.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=curseforge.com
-// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/CF Utility/modules/settings.js
-// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/CF Utility/modules/direct-dl.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/CF%20Utility/modules/settings.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/CF%20Utility/modules/direct-dl.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
