@@ -130,72 +130,49 @@
         return normalizedUrl + '/download';
     }
 
-    // Function to create a direct download link
-    function createDirectDownloadLink(fileElement) {
-        // Find the original download link
-        let originalLink = fileElement.querySelector('a[href*="/download"]');
-        
-        if (!originalLink) {
-            // Try to find any link that might be a download
-            originalLink = fileElement.querySelector('a');
+    // Function to intercept download clicks and redirect to direct download
+    function interceptDownloadClicks() {
+        if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
+            const settings = window.cfUtilitySettings.getSettings();
+            if (!settings.downloadEnabled) {
+                // If download feature is disabled, remove any existing modifications
+                return;
+            }
         }
-        
-        if (!originalLink) {
-            console.warn('No download link found for element:', fileElement);
-            return;
-        }
-        
-        // Extract the project URL from the original link
-        let projectUrl = originalLink.href;
-        
-        // Create a direct download URL
-        const directUrl = getDirectDownloadUrl(projectUrl);
-        
-        // Create the direct download link element
-        const directLink = document.createElement('a');
-        directLink.href = directUrl;
-        directLink.textContent = 'Direct Download';
-        directLink.target = '_blank';
-        directLink.rel = 'noopener noreferrer';
-        
-        // Style the link
-        setStyles(directLink, {
-            display: 'inline-block',
-            backgroundColor: '#007cba',
-            color: 'white',
-            padding: '5px 10px',
-            textDecoration: 'none',
-            borderRadius: '4px',
-            fontSize: '14px',
-            marginLeft: '10px',
-            cursor: 'pointer'
-        });
-        
-        // Add click event to prevent default if needed
-        directLink.addEventListener('click', function(e) {
-            if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
-                const settings = window.cfUtilitySettings.getSettings();
-                if (!settings.downloadEnabled) {
-                    e.preventDefault();
-                    alert('Direct downloads are disabled in settings.');
-                    return false;
-                }
+
+        // Select all download links that match the pattern
+        const downloadLinks = document.querySelectorAll('a[href*="/download/"]');
+
+        downloadLinks.forEach(link => {
+            if (!link.classList.contains('cfutility-intercepted')) {
+                // Add a class to track that we've already processed this link
+                link.classList.add('cfutility-intercepted');
+
+                // Store the original click listener
+                const originalHref = link.href;
+
+                // Modify the link to point directly to the file download
+                const modifiedHref = getDirectDownloadUrl(originalHref);
+
+                // Update the href attribute to point to the direct download
+                link.href = modifiedHref;
+
+                // Add a click event listener to handle the download
+                link.addEventListener('click', function(e) {
+                    if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
+                        const settings = window.cfUtilitySettings.getSettings();
+                        if (!settings.downloadEnabled) {
+                            e.preventDefault();
+                            alert('Direct downloads are disabled in settings.');
+                            return false;
+                        }
+                    }
+
+                    // Allow the download to proceed
+                    // The link now points to the direct download URL
+                });
             }
         });
-        
-        // Insert the direct download link next to the original
-        if (fileElement.querySelector('.cfutility-direct-download')) {
-            fileElement.querySelector('.cfutility-direct-download').remove();
-        }
-        
-        directLink.classList.add('cfutility-direct-download');
-        
-        // Try to insert in an appropriate place relative to the original link
-        if (originalLink.parentNode) {
-            originalLink.parentNode.insertBefore(directLink, originalLink.nextSibling);
-        } else {
-            fileElement.appendChild(directLink);
-        }
     }
 
     // Function to scan and modify download links on the page
@@ -203,27 +180,18 @@
         if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
             const settings = window.cfUtilitySettings.getSettings();
             if (!settings.downloadEnabled) {
-                // If download feature is disabled, remove any existing direct download links
-                const directLinks = document.querySelectorAll('.cfutility-direct-download');
-                directLinks.forEach(link => link.remove());
+                // If download feature is disabled, remove any intercept classes
+                const interceptedLinks = document.querySelectorAll('.cfutility-intercepted');
+                interceptedLinks.forEach(link => {
+                    link.classList.remove('cfutility-intercepted');
+                    // Reset original functionality if needed
+                });
                 return;
             }
         }
 
-        // Look for file rows or download containers on CurseForge
-        const fileElements = [
-            ...document.querySelectorAll('tr.file'), // Table rows with files
-            ...document.querySelectorAll('[id*="file"]'), // Elements with file in the ID
-            ...document.querySelectorAll('.project-file-list-item'), // Project file list items
-            ...document.querySelectorAll('.file'), // General file elements
-            ...document.querySelectorAll('.download'), // Download elements
-            ...document.querySelectorAll('a[href*="/files/"]'), // Direct file links
-            ...document.querySelectorAll('a[href*="/download"]') // Download links
-        ];
-
-        fileElements.forEach(fileElement => {
-            createDirectDownloadLink(fileElement);
-        });
+        // Intercept download clicks
+        interceptDownloadClicks();
     }
 
     // Function to initialize the download module
