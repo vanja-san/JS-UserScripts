@@ -65,10 +65,13 @@
             '.file-card',
             '.related-project-card',
             '.class-category-item',
+            '.dropdown-selected-item',
+            '.checkboxes-list > ul > li > a > label > b',
             'img'
         ]],
         ['rounded-corner-medium', [
             '.project-tile > .tile',
+            '.project-card',
             '.author',
             '.sub-nav-inner',
             '.discovery-carousel-slide',
