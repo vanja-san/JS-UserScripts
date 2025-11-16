@@ -69,7 +69,7 @@
     // Target elements configuration - specify corner type and selectors for elements that should have rounded corners
     // Format: ['cornerClass', ['selector1', 'selector2', ...]]
     const targetElements = [
-        ['rounded-corner-small', ['button', 'input']],
+        ['rounded-corner-small', ['button', '.btn-cta', 'input']],
         ['rounded-corner-medium', ['.project-tile', '.author']]
     ];
 
@@ -211,6 +211,38 @@
                             });
                         }
                     });
+                } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    // Check if an existing element's class attribute has changed
+                    const targetElement = mutation.target;
+                    targetElements.forEach(([cornerClass, selectors]) => {
+                        selectors.forEach(selector => {
+                            if (selector.startsWith('.')) {
+                                const targetClassName = selector.substring(1).trim();
+                                const classList = targetElement.getAttribute('class');
+                                if (classList) {
+                                    const classes = classList.split(/\s+/);
+                                    if (classes.includes(targetClassName) && !targetElement.classList.contains(cornerClass)) {
+                                        // If the target class is present but our corner class is not, add it back
+                                        setTimeout(() => {
+                                            if (targetElement && !targetElement.classList.contains(cornerClass)) {
+                                                targetElement.classList.add(cornerClass);
+                                            }
+                                        }, 0);
+                                    }
+                                }
+                            } else {
+                                // For other selectors, check with matches
+                                if (targetElement.matches && targetElement.matches(selector) &&
+                                    !targetElement.classList.contains(cornerClass)) {
+                                    setTimeout(() => {
+                                        if (targetElement && !targetElement.classList.contains(cornerClass)) {
+                                            targetElement.classList.add(cornerClass);
+                                        }
+                                    }, 0);
+                                }
+                            }
+                        });
+                    });
                 }
             });
 
@@ -230,7 +262,9 @@
         // Start observing
         observer.observe(document, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class']
         });
 
         return observer;
@@ -251,6 +285,15 @@
                 setupMutationObserver();
             }
         })();
+    }
+
+    // Periodically check and restore rounded corner classes in case they were removed by site scripts
+    if (await isRoundedCornersEnabled()) {
+        setInterval(async () => {
+            if (await isRoundedCornersEnabled()) {
+                await applyRoundedCornersToTargets();
+            }
+        }, 2000); // Check every 2 seconds
     }
 
 })();
