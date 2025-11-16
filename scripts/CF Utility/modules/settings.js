@@ -40,70 +40,97 @@
         return updatedSettings;
     }
 
+    // Helper function to apply styles to elements
+    function setStyles(element, styles) {
+        Object.assign(element.style, styles);
+        return element;
+    }
+
     // Function to create settings UI
     function showSettings() {
         const settings = loadSettings();
 
         // Create overlay
-        const overlay = document.createElement('div');
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        overlay.style.zIndex = '9999';
-        overlay.style.display = 'flex';
-        overlay.style.justifyContent = 'center';
-        overlay.style.alignItems = 'center';
+        const overlay = setStyles(document.createElement('div'), {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: '9999',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+        });
 
         // Create settings container
-        const container = document.createElement('div');
-        container.style.backgroundColor = '#fff';
-        container.style.padding = '20px';
-        container.style.borderRadius = '8px';
-        container.style.width = '400px';
-        container.style.maxHeight = '80vh';
-        container.style.overflowY = 'auto';
+        const container = setStyles(document.createElement('div'), {
+            backgroundColor: 'var(--bg-color, #fff)',
+            color: 'var(--text-color, #000)',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '400px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            fontFamily: 'Arial, sans-serif'
+        });
 
         // Title
-        const title = document.createElement('h2');
+        const title = setStyles(document.createElement('h2'), {
+            marginTop: '0',
+            marginBottom: '20px',
+            color: 'var(--text-color, #000)'
+        });
         title.textContent = 'CF Utility Settings';
-        title.style.marginTop = '0';
         container.appendChild(title);
 
         // Create form
         const form = document.createElement('form');
 
         // Enabled checkbox
-        const enabledLabel = document.createElement('label');
-        enabledLabel.style.display = 'block';
-        enabledLabel.style.marginBottom = '15px';
+        const enabledLabel = setStyles(document.createElement('label'), {
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '15px',
+            gap: '8px'
+        });
         enabledLabel.innerHTML = `
-            <input type="checkbox" id="cfutility_enabled" ${settings.enabled ? 'checked' : ''}>
+            <input type="checkbox" id="cfutility_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.enabled ? 'checked' : ''}>
             <span>Enable CF Utility</span>
         `;
         form.appendChild(enabledLabel);
 
         // Theme selection
-        const themeLabel = document.createElement('label');
-        themeLabel.style.display = 'block';
-        themeLabel.style.marginBottom = '15px';
+        const themeLabel = setStyles(document.createElement('label'), {
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '15px',
+            gap: '8px'
+        });
         themeLabel.innerHTML = `
             <span>Theme:</span>
-            <select id="cfutility_theme" style="margin-left: 10px;">
-                <option value="default" ${settings.theme === 'default' ? 'selected' : ''}>Default</option>
+            <select id="cfutility_theme" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; background-color: var(--input-bg, #fff); color: var(--text-color, #000);">
+                <option value="default" ${settings.theme === 'default' ? 'selected' : ''}>System</option>
                 <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
                 <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option>
             </select>
         `;
         form.appendChild(themeLabel);
 
-        // Save button
-        const saveButton = document.createElement('button');
-        saveButton.type = 'button';
+        // Save button with event listener
+        const saveButton = setStyles(document.createElement('button'), {
+            type: 'button',
+            marginRight: '10px',
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '4px',
+            backgroundColor: '#007cba',
+            color: 'white',
+            cursor: 'pointer'
+        });
         saveButton.textContent = 'Save Settings';
-        saveButton.style.marginRight = '10px';
         saveButton.addEventListener('click', function() {
             const newSettings = {
                 enabled: document.getElementById('cfutility_enabled').checked,
@@ -121,9 +148,16 @@
         });
         form.appendChild(saveButton);
 
-        // Cancel button
-        const cancelButton = document.createElement('button');
-        cancelButton.type = 'button';
+        // Cancel button with event listener
+        const cancelButton = setStyles(document.createElement('button'), {
+            type: 'button',
+            padding: '8px 16px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            backgroundColor: 'transparent',
+            color: 'var(--text-color, #000)',
+            cursor: 'pointer'
+        });
         cancelButton.textContent = 'Cancel';
         cancelButton.addEventListener('click', function() {
             document.body.removeChild(overlay);
@@ -135,40 +169,86 @@
         document.body.appendChild(overlay);
     }
 
+    // Helper function to apply styles to elements
+    function setStyles(element, styles) {
+        Object.assign(element.style, styles);
+        return element;
+    }
+
+    // Function to create CSS styles
+    function createThemeStyles(themeName) {
+        const styles = {
+            dark: `
+                .cfutility-theme-dark {
+                    color: #e0e0e0 !important;
+                    background-color: #2d2d2d !important;
+                }
+                .cfutility-theme-dark * {
+                    color: #e0e0e0 !important;
+                    background-color: #2d2d2d !important;
+                }
+            `,
+            light: `
+                .cfutility-theme-light {
+                    color: #000 !important;
+                    background-color: #fff !important;
+                }
+                .cfutility-theme-light * {
+                    color: #000 !important;
+                    background-color: #fff !important;
+                }
+            `,
+            system: `
+                .cfutility-theme-system {
+                    color: initial;
+                    background-color: initial;
+                }
+
+                @media (prefers-color-scheme: dark) {
+                    .cfutility-theme-system {
+                        color: #e0e0e0;
+                        background-color: #2d2d2d;
+                    }
+                    .cfutility-theme-system * {
+                        color: #e0e0e0;
+                        background-color: #2d2d2d;
+                    }
+                }
+
+                @media (prefers-color-scheme: light) {
+                    .cfutility-theme-system {
+                        color: #000;
+                        background-color: #fff;
+                    }
+                    .cfutility-theme-system * {
+                        color: #000;
+                        background-color: #fff;
+                    }
+                }
+            `
+        };
+
+        return styles[themeName] || '';
+    }
+
     // Function to apply theme
     function applyTheme(themeName) {
         // Remove existing theme classes
-        document.body.classList.remove('cfutility-theme-default', 'cfutility-theme-dark', 'cfutility-theme-light');
+        document.body.classList.remove('cfutility-theme-default', 'cfutility-theme-dark', 'cfutility-theme-light', 'cfutility-theme-system');
 
         // Apply new theme class
-        document.body.classList.add(`cfutility-theme-${themeName}`);
+        if (themeName === 'default') {
+            // System theme - use prefers-color-scheme media query
+            document.body.classList.add('cfutility-theme-system');
+            GM_addStyle(createThemeStyles('system'));
+        } else {
+            document.body.classList.add(`cfutility-theme-${themeName}`);
 
-        // Add custom styles based on theme if needed
-        switch(themeName) {
-            case 'dark':
-                GM_addStyle(`
-                    .cfutility-theme-dark {
-                        background-color: #2d2d2d !important;
-                        color: #ffffff !important;
-                    }
-                    .cfutility-theme-dark * {
-                        background-color: #2d2d2d !important;
-                        color: #ffffff !important;
-                    }
-                `);
-                break;
-            case 'light':
-                GM_addStyle(`
-                    .cfutility-theme-light {
-                        background-color: #ffffff !important;
-                        color: #000000 !important;
-                    }
-                    .cfutility-theme-light * {
-                        background-color: #ffffff !important;
-                        color: #000000 !important;
-                    }
-                `);
-                break;
+            // Add custom styles based on theme if needed
+            const themeStyles = createThemeStyles(themeName);
+            if (themeStyles) {
+                GM_addStyle(themeStyles);
+            }
         }
     }
 
