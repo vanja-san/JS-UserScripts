@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         CF Utility
 // @namespace    http://tampermonkey.net/
-// @version      0.0.11-dev
+// @version      0.0.15-dev
 // @description  A utility script for Curseforge with customizable settings
 // @author       vanja-san
 // @match        https://curseforge.com/*
 // @match        https://*.curseforge.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=curseforge.com
 // @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/CF Utility/modules/settings.js
+// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/CF Utility/modules/direct-dl.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -25,6 +26,16 @@
         if (window.cfUtilitySettings) {
             // Register the settings menu command
             window.cfUtilitySettings.registerSettingsMenu();
+
+            // If the direct download module is available, process download links based on settings
+            if (window.cfUtilityDirectDL) {
+                // Process download links immediately
+                window.cfUtilityDirectDL.processDownloadLinks();
+
+                // Set up a mechanism to react to settings changes
+                // For now, we'll just re-process the links when settings might have changed
+                // This could be enhanced with a proper event system in the future
+            }
         } else {
             console.error('CF Utility Settings module not loaded');
         }

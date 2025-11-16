@@ -9,6 +9,7 @@
     // Default settings
     const defaultSettings = {
         enabled: true,
+        downloadEnabled: true,
         // Add more settings as needed
     };
 
@@ -104,6 +105,18 @@
         `;
         form.appendChild(enabledLabel);
 
+        // Download functionality checkbox
+        const downloadLabel = setStyles(document.createElement('label'), {
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '15px',
+            gap: '8px'
+        });
+        downloadLabel.innerHTML = `
+            <input type="checkbox" id="cfutility_download_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.downloadEnabled ? 'checked' : ''}>
+            <span>Enable Direct Downloads</span>
+        `;
+        form.appendChild(downloadLabel);
 
         // Save button with event listener
         const saveButton = setStyles(document.createElement('button'), {
@@ -115,7 +128,8 @@
         saveButton.textContent = 'Save Settings';
         saveButton.addEventListener('click', function() {
             const newSettings = {
-                enabled: document.getElementById('cfutility_enabled').checked
+                enabled: document.getElementById('cfutility_enabled').checked,
+                downloadEnabled: document.getElementById('cfutility_download_enabled').checked
             };
             updateSettings(newSettings);
 
