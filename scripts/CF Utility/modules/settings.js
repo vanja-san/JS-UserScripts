@@ -224,8 +224,7 @@
         getSettings,
         updateSettings,
         showSettings,
-        registerSettingsMenu,
-        applyTheme
+        registerSettingsMenu
     };
 
 })();
