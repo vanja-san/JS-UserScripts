@@ -2,10 +2,10 @@
 // @name         CF Utility
 // @namespace    http://tampermonkey.net/
 // @version      0.0.1-dev
-// @description  A utility script for Cursforge with customizable settings
+// @description  A utility script for Curseforge with customizable settings
 // @author       vanja-san
-// @match        https://cursforge.com/*
-// @match        https://*.cursforge.com/*
+// @match        https://curseforge.com/*
+// @match        https://*.curseforge.com/*
 // @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/CF Utility/modules/settings.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
