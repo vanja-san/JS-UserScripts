@@ -70,7 +70,7 @@
     // Format: ['cornerClass', ['selector1', 'selector2', ...]]
     const targetElements = [
         ['rounded-corner-small', ['button', '.btn-cta', 'input']],
-        ['rounded-corner-medium', ['.project-tile', '.author']]
+        ['rounded-corner-medium', ['.project-tile > .tile', '.author']]
     ];
 
     // Apply rounded corners to target elements based on configuration
@@ -81,10 +81,10 @@
 
         targetElements.forEach(([cornerClass, selectors]) => {
             selectors.forEach(selector => {
-                // If selector starts with a '.', it's a class selector, handle potential whitespace issues
-                if (selector.startsWith('.')) {
+                // Check if selector is a simple class selector (e.g., ".project-tile") for whitespace handling
+                if (/^\.[\w-]+$/.test(selector)) { // Matches simple class selectors like .class-name
                     const targetClassName = selector.substring(1).trim();
-                    // Find all elements and manually check for the class
+                    // Find all elements and manually check for the class to handle whitespace issues
                     const allElements = Array.from(document.querySelectorAll('*'));
                     const elements = allElements.filter(el => {
                         const classList = el.getAttribute('class');
@@ -102,14 +102,19 @@
                         }
                     });
                 } else {
-                    // For other selectors (IDs, tags, etc.), use the standard querySelectorAll
-                    const elements = document.querySelectorAll(selector);
-                    elements.forEach(el => {
-                        // Add class only if it's not already present
-                        if (!el.classList.contains(cornerClass)) {
-                            el.classList.add(cornerClass);
-                        }
-                    });
+                    // For complex selectors (like .class > .class-inner, #id, etc.), use standard querySelectorAll
+                    try {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(el => {
+                            // Add class only if it's not already present
+                            if (!el.classList.contains(cornerClass)) {
+                                el.classList.add(cornerClass);
+                            }
+                        });
+                    } catch (e) {
+                        // If selector is invalid, skip it
+                        console.warn(`Invalid CSS selector: ${selector}`, e);
+                    }
                 }
             });
         });
@@ -154,8 +159,8 @@
                             // Check if the added node matches any target selectors
                             targetElements.forEach(([cornerClass, selectors]) => {
                                 selectors.forEach(selector => {
-                                    // For class selectors, check manually to handle whitespace issues
-                                    if (selector.startsWith('.')) {
+                                    // Check if selector is a simple class selector for whitespace handling
+                                    if (/^\.[\w-]+$/.test(selector)) { // Matches simple class selectors like .class-name
                                         const targetClassName = selector.substring(1).trim();
                                         const classList = node.getAttribute('class');
                                         if (classList) {
@@ -165,9 +170,14 @@
                                             }
                                         }
                                     } else {
-                                        // For other selectors, use standard matches
-                                        if (node.matches && node.matches(selector)) {
-                                            shouldApplyTargets = true;
+                                        // For complex selectors, use standard matches
+                                        try {
+                                            if (node.matches && node.matches(selector)) {
+                                                shouldApplyTargets = true;
+                                            }
+                                        } catch (e) {
+                                            // If selector is invalid, skip it
+                                            console.warn(`Invalid CSS selector: ${selector}`, e);
                                         }
                                     }
                                 });
@@ -184,8 +194,8 @@
                             // Check children for target selectors
                             targetElements.forEach(([cornerClass, selectors]) => {
                                 selectors.forEach(selector => {
-                                    if (selector.startsWith('.')) {
-                                        // For class selectors, check manually to handle whitespace issues
+                                    if (/^\.[\w-]+$/.test(selector)) {
+                                        // For simple class selectors, check manually to handle whitespace issues
                                         const targetClassName = selector.substring(1).trim();
                                         const matchingChildren = node.querySelectorAll && node.querySelectorAll('*');
                                         if (matchingChildren) {
@@ -201,10 +211,15 @@
                                             }
                                         }
                                     } else {
-                                        // For other selectors, use standard querySelectorAll
-                                        const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
-                                        if (matchingChildren && matchingChildren.length > 0) {
-                                            shouldApplyTargets = true;
+                                        // For complex selectors, use standard querySelectorAll
+                                        try {
+                                            const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
+                                            if (matchingChildren && matchingChildren.length > 0) {
+                                                shouldApplyTargets = true;
+                                            }
+                                        } catch (e) {
+                                            // If selector is invalid, skip it
+                                            console.warn(`Invalid CSS selector: ${selector}`, e);
                                         }
                                     }
                                 });
@@ -216,7 +231,8 @@
                     const targetElement = mutation.target;
                     targetElements.forEach(([cornerClass, selectors]) => {
                         selectors.forEach(selector => {
-                            if (selector.startsWith('.')) {
+                            if (/^\.[\w-]+$/.test(selector)) {
+                                // For simple class selectors, check manually to handle whitespace issues
                                 const targetClassName = selector.substring(1).trim();
                                 const classList = targetElement.getAttribute('class');
                                 if (classList) {
@@ -231,14 +247,19 @@
                                     }
                                 }
                             } else {
-                                // For other selectors, check with matches
-                                if (targetElement.matches && targetElement.matches(selector) &&
-                                    !targetElement.classList.contains(cornerClass)) {
-                                    setTimeout(() => {
-                                        if (targetElement && !targetElement.classList.contains(cornerClass)) {
-                                            targetElement.classList.add(cornerClass);
-                                        }
-                                    }, 0);
+                                // For complex selectors, check with matches
+                                try {
+                                    if (targetElement.matches && targetElement.matches(selector) &&
+                                        !targetElement.classList.contains(cornerClass)) {
+                                        setTimeout(() => {
+                                            if (targetElement && !targetElement.classList.contains(cornerClass)) {
+                                                targetElement.classList.add(cornerClass);
+                                            }
+                                        }, 0);
+                                    }
+                                } catch (e) {
+                                    // If selector is invalid, skip it
+                                    console.warn(`Invalid CSS selector: ${selector}`, e);
                                 }
                             }
                         });
