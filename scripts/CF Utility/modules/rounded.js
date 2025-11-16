@@ -41,20 +41,20 @@
 
         // Default CSS for rounded corners
         const css = `
-            .rounded-corner {
+            .rounded {
+                border-radius: 6px !important;
+            }
+
+            .rounded-md {
+                border-radius: 8px !important;
+            }
+
+            .rounded-lg {
                 border-radius: 10px !important;
             }
 
-            .rounded-corner-medium {
-                border-radius: 15px !important;
-            }
-
-            .rounded-corner-large {
-                border-radius: 20px !important;
-            }
-
-            .rounded-corner-small {
-                border-radius: 5px !important;
+            .rounded-sm {
+                border-radius: 4px !important;
             }
 
             .rounded-circle {
@@ -69,21 +69,7 @@
     // Target elements configuration - specify selectors for elements that should have rounded corners
     // Format: ['selector', 'cornerClass']
     const targetElements = [
-        ['.project-card', 'rounded-corner-medium'], // CurseForge project cards
-        ['.download-modal', 'rounded-corner-large'], // Download modals
-        ['.search-box', 'rounded-corner'], // Search boxes
-        ['.card', 'rounded-corner'], // General cards
-        ['.modal', 'rounded-corner-large'], // Modals
-        ['.button', 'rounded-corner'], // Buttons
-        ['.btn', 'rounded-corner'], // Alternative button class
-        ['.avatar', 'rounded-corner'], // Avatar images
-        ['.image', 'rounded-corner'], // Image containers
-        ['.header', 'rounded-corner-small'], // Headers
-        ['.footer', 'rounded-corner-small'], // Footers
-        ['.sidebar', 'rounded-corner'], // Sidebars
-        ['.container', 'rounded-corner'], // Containers
-        ['.panel', 'rounded-corner-medium'], // Panels
-        ['.widget', 'rounded-corner-medium'], // Widgets
+        ['button', 'rounded-sm']
         // Add more selectors as needed
     ];
 
@@ -106,7 +92,7 @@
     // Apply rounded corners to existing elements that already have rounded classes
     function applyRoundedCorners() {
         // Apply to elements with rounded-corner class
-        const elementsToRound = document.querySelectorAll('.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle');
+        const elementsToRound = document.querySelectorAll('.rounded, .rounded-md, .rounded-lg, .rounded-sm, .rounded-circle');
         elementsToRound.forEach(el => {
             // Already handled by CSS, but we can add additional processing if needed
         });
@@ -133,10 +119,10 @@
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             // Check if the added node or its children have rounded classes
                             if (node.classList &&
-                                (node.classList.contains('rounded-corner') ||
-                                 node.classList.contains('rounded-corner-medium') ||
-                                 node.classList.contains('rounded-corner-large') ||
-                                 node.classList.contains('rounded-corner-small') ||
+                                (node.classList.contains('rounded') ||
+                                 node.classList.contains('rounded-md') ||
+                                 node.classList.contains('rounded-lg') ||
+                                 node.classList.contains('rounded-sm') ||
                                  node.classList.contains('rounded-circle'))) {
                                 shouldUpdate = true;
                             }
@@ -150,7 +136,7 @@
 
                             // Also check any children of the added node
                             const roundedChildren = node.querySelectorAll && node.querySelectorAll(
-                                '.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle'
+                                '.rounded, .rounded-md, .rounded-lg, .rounded-sm, .rounded-circle'
                             );
                             if (roundedChildren && roundedChildren.length > 0) {
                                 shouldUpdate = true;
