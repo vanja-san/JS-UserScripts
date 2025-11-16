@@ -62,7 +62,9 @@
             '.btn-primary',
             'input',
             '.file-card',
-            '.related-project-card'
+            '.related-project-card',
+            '.class-category-item',
+            'img'
         ]],
         ['rounded-corner-medium', [
             '.project-tile > .tile',
