@@ -9,7 +9,7 @@
     // Dictionary with translations
     const translations = {
         'en': {
-            'settingsTitle': 'CF Utility Settings',
+            'settingsTitle': 'Settings',
             'enableUtility': 'Enable CF Utility',
             'enableDirectDownloads': 'Enable Direct Downloads',
             'language': 'Language',
@@ -19,7 +19,7 @@
             'directDownloadsDisabled': 'Direct downloads are disabled in settings.'
         },
         'ru': {
-            'settingsTitle': 'Настройки CF Utility',
+            'settingsTitle': 'Настройки',
             'enableUtility': 'Включить CF Utility',
             'enableDirectDownloads': 'Включить прямое скачивание',
             'language': 'Язык',
