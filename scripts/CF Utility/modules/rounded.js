@@ -66,7 +66,6 @@
             '.related-project-card',
             '.class-category-item',
             '.dropdown-selected-item',
-            '.checkboxes-list > ul > li > a > label > b',
             'img'
         ]],
         ['rounded-corner-medium', [
