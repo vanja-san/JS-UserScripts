@@ -81,12 +81,36 @@
 
         targetElements.forEach(([cornerClass, selectors]) => {
             selectors.forEach(selector => {
-                const elements = document.querySelectorAll(selector);
-                elements.forEach(el => {
-                    if (!el.classList.contains(cornerClass)) {
-                        el.classList.add(cornerClass);
-                    }
-                });
+                // If selector starts with a '.', it's a class selector, handle potential whitespace issues
+                if (selector.startsWith('.')) {
+                    const targetClassName = selector.substring(1).trim();
+                    // Find all elements and manually check for the class
+                    const allElements = Array.from(document.querySelectorAll('*'));
+                    const elements = allElements.filter(el => {
+                        const classList = el.getAttribute('class');
+                        if (classList) {
+                            // Split by any whitespace and check if our target class is present
+                            const classes = classList.split(/\s+/);
+                            return classes.includes(targetClassName);
+                        }
+                        return false;
+                    });
+                    elements.forEach(el => {
+                        // Add class only if it's not already present
+                        if (!el.classList.contains(cornerClass)) {
+                            el.classList.add(cornerClass);
+                        }
+                    });
+                } else {
+                    // For other selectors (IDs, tags, etc.), use the standard querySelectorAll
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                        // Add class only if it's not already present
+                        if (!el.classList.contains(cornerClass)) {
+                            el.classList.add(cornerClass);
+                        }
+                    });
+                }
             });
         });
     }
@@ -130,8 +154,21 @@
                             // Check if the added node matches any target selectors
                             targetElements.forEach(([cornerClass, selectors]) => {
                                 selectors.forEach(selector => {
-                                    if (node.matches && node.matches(selector)) {
-                                        shouldApplyTargets = true;
+                                    // For class selectors, check manually to handle whitespace issues
+                                    if (selector.startsWith('.')) {
+                                        const targetClassName = selector.substring(1).trim();
+                                        const classList = node.getAttribute('class');
+                                        if (classList) {
+                                            const classes = classList.split(/\s+/);
+                                            if (classes.includes(targetClassName)) {
+                                                shouldApplyTargets = true;
+                                            }
+                                        }
+                                    } else {
+                                        // For other selectors, use standard matches
+                                        if (node.matches && node.matches(selector)) {
+                                            shouldApplyTargets = true;
+                                        }
                                     }
                                 });
                             });
@@ -147,9 +184,28 @@
                             // Check children for target selectors
                             targetElements.forEach(([cornerClass, selectors]) => {
                                 selectors.forEach(selector => {
-                                    const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
-                                    if (matchingChildren && matchingChildren.length > 0) {
-                                        shouldApplyTargets = true;
+                                    if (selector.startsWith('.')) {
+                                        // For class selectors, check manually to handle whitespace issues
+                                        const targetClassName = selector.substring(1).trim();
+                                        const matchingChildren = node.querySelectorAll && node.querySelectorAll('*');
+                                        if (matchingChildren) {
+                                            for (const child of matchingChildren) {
+                                                const classList = child.getAttribute('class');
+                                                if (classList) {
+                                                    const classes = classList.split(/\s+/);
+                                                    if (classes.includes(targetClassName)) {
+                                                        shouldApplyTargets = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        // For other selectors, use standard querySelectorAll
+                                        const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
+                                        if (matchingChildren && matchingChildren.length > 0) {
+                                            shouldApplyTargets = true;
+                                        }
                                     }
                                 });
                             });
