@@ -60,6 +60,7 @@
             '.btn-cta',
             '.btn-secondary',
             '.btn-primary',
+            '.download-button',
             'input',
             '.file-card',
             '.related-project-card',
@@ -70,7 +71,8 @@
             '.project-tile > .tile',
             '.author',
             '.sub-nav-inner',
-            '.discovery-carousel-slide'
+            '.discovery-carousel-slide',
+            '.dropdown-actions-content'
         ]]
     ];
 
