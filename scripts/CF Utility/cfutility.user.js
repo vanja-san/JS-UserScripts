@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CF Utility
 // @namespace    http://tampermonkey.net/
-// @version      0.0.22-dev
+// @version      0.0.23-dev
 // @description  A utility script for Curseforge with customizable settings
 // @author       vanja-san
 // @match        https://curseforge.com/*

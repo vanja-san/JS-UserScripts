@@ -143,7 +143,8 @@
         });
 
         langLabel.innerHTML = `
-            <span>Language:</span>
+            <span>${window.cfUtilityLocalization ?
+                window.cfUtilityLocalization.getText('language') : 'Language'}:</span>
             <select id="cfutility_language" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
                 ${langOptions}
             </select>
