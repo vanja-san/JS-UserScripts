@@ -45,16 +45,16 @@
                 border-radius: 10px !important;
             }
 
+            .rounded-corner-small {
+                border-radius: 4px !important;
+            }
+
             .rounded-corner-medium {
-                border-radius: 15px !important;
+                border-radius: 6px !important;
             }
 
             .rounded-corner-large {
-                border-radius: 20px !important;
-            }
-
-            .rounded-corner-small {
-                border-radius: 5px !important;
+                border-radius: 8px !important;
             }
 
             .rounded-circle {
