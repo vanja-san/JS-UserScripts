@@ -90,7 +90,10 @@
         if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
             const settings = window.cfUtilitySettings.getSettings();
             if (!settings.downloadEnabled) {
-                // If disabled, allow normal navigation
+                // If disabled, allow normal navigation and show localized message if possible
+                if (window.cfUtilityLocalization) {
+                    alert(window.cfUtilityLocalization.getText('directDownloadsDisabled'));
+                }
                 window.location.href = href;
                 return;
             }

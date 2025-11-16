@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CF Utility
 // @namespace    http://tampermonkey.net/
-// @version      0.0.19-dev
+// @version      0.0.22-dev
 // @description  A utility script for Curseforge with customizable settings
 // @author       vanja-san
 // @match        https://curseforge.com/*
@@ -9,6 +9,7 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=curseforge.com
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/CF%20Utility/modules/settings.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/CF%20Utility/modules/direct-dl.js
+// @require      https://vanja-san.github.io/JS-UserScripts/scripts/CF%20Utility/modules/localization.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue

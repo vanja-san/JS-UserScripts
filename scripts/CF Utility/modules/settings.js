@@ -10,6 +10,7 @@
     const defaultSettings = {
         enabled: true,
         downloadEnabled: true,
+        language: null, // Use system default if not set
         // Add more settings as needed
     };
 
@@ -86,7 +87,8 @@
             marginTop: '0',
             marginBottom: '20px'
         });
-        title.textContent = 'CF Utility Settings';
+        title.textContent = window.cfUtilityLocalization ?
+            window.cfUtilityLocalization.getText('settingsTitle') : 'CF Utility Settings';
         container.appendChild(title);
 
         // Create form
@@ -101,7 +103,8 @@
         });
         enabledLabel.innerHTML = `
             <input type="checkbox" id="cfutility_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.enabled ? 'checked' : ''}>
-            <span>Enable CF Utility</span>
+            <span>${window.cfUtilityLocalization ?
+                window.cfUtilityLocalization.getText('enableUtility') : 'Enable CF Utility'}</span>
         `;
         form.appendChild(enabledLabel);
 
@@ -114,9 +117,38 @@
         });
         downloadLabel.innerHTML = `
             <input type="checkbox" id="cfutility_download_enabled" style="width: auto; height: auto; transform: scale(1); margin: 0;" ${settings.downloadEnabled ? 'checked' : ''}>
-            <span>Enable Direct Downloads</span>
+            <span>${window.cfUtilityLocalization ?
+                window.cfUtilityLocalization.getText('enableDirectDownloads') : 'Enable Direct Downloads'}</span>
         `;
         form.appendChild(downloadLabel);
+
+        // Language selection
+        const langLabel = setStyles(document.createElement('label'), {
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '15px',
+            gap: '8px'
+        });
+
+        let availableLangs = ['en', 'ru']; // Default languages
+        if (window.cfUtilityLocalization) {
+            availableLangs = window.cfUtilityLocalization.getAvailableLanguages();
+        }
+
+        let langOptions = '';
+        availableLangs.forEach(lang => {
+            const langName = lang === 'en' ? 'English' : lang === 'ru' ? 'Русский' : lang;
+            const selected = (settings.language || (window.cfUtilityLocalization ? window.cfUtilityLocalization.getPreferredLanguage() : 'en')) === lang ? 'selected' : '';
+            langOptions += `<option value="${lang}" ${selected}>${langName}</option>`;
+        });
+
+        langLabel.innerHTML = `
+            <span>Language:</span>
+            <select id="cfutility_language" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
+                ${langOptions}
+            </select>
+        `;
+        form.appendChild(langLabel);
 
         // Save button with event listener
         const saveButton = setStyles(document.createElement('button'), {
@@ -125,20 +157,27 @@
             padding: '8px 16px',
             cursor: 'pointer'
         });
-        saveButton.textContent = 'Save Settings';
+        saveButton.textContent = window.cfUtilityLocalization ?
+            window.cfUtilityLocalization.getText('saveSettings') : 'Save Settings';
         saveButton.addEventListener('click', function() {
             const newSettings = {
                 enabled: document.getElementById('cfutility_enabled').checked,
-                downloadEnabled: document.getElementById('cfutility_download_enabled').checked
+                downloadEnabled: document.getElementById('cfutility_download_enabled').checked,
+                language: document.getElementById('cfutility_language').value
             };
             updateSettings(newSettings);
+
+            // Update language if changed
+            if (window.cfUtilityLocalization && newSettings.language) {
+                window.cfUtilityLocalization.setLanguage(newSettings.language);
+            }
 
             // Close settings
             document.body.removeChild(overlay);
 
-            alert('Settings saved successfully!');
+            alert(window.cfUtilityLocalization ?
+                window.cfUtilityLocalization.getText('settingsSaved') : 'Settings saved successfully!');
         });
-        form.appendChild(saveButton);
 
         // Cancel button with event listener
         const cancelButton = setStyles(document.createElement('button'), {
@@ -146,7 +185,8 @@
             padding: '8px 16px',
             cursor: 'pointer'
         });
-        cancelButton.textContent = 'Cancel';
+        cancelButton.textContent = window.cfUtilityLocalization ?
+            window.cfUtilityLocalization.getText('cancel') : 'Cancel';
         cancelButton.addEventListener('click', function() {
             document.body.removeChild(overlay);
         });
