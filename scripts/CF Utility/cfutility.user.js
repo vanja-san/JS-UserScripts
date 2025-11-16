@@ -6,7 +6,7 @@
 // @author       vanja-san
 // @match        https://cursforge.com/*
 // @match        https://*.cursforge.com/*
-// @require      ./modules/settings.js
+// @require      https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/CF Utility/modules/settings.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
