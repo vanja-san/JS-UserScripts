@@ -62,7 +62,9 @@
             '.dropdown-selected-item',
             '.dropdown-list-wrapper',
             'img',
-            'ul.menu'
+            'ul.menu',
+            '.project-avatar',
+            '.file-content'
         ]],
         ['rounded-corner-medium', [
             '.project-tile > .tile',
