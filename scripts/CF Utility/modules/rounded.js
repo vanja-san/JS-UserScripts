@@ -59,6 +59,7 @@
             '.related-project-card',
             '.class-category-item',
             '.dropdown-selected-item',
+            '.dropdown-list-wrapper',
             'img',
             'ul.menu'
         ]],
