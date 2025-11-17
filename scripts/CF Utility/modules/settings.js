@@ -36,87 +36,6 @@
         return updatedSettings;
     };
 
-    // Backup settings to localStorage as additional safety
-    const backupSettings = (settings) => {
-        try {
-            const settingsToBackup = { ...settings, backupTimestamp: new Date().toISOString() };
-            localStorage.setItem('cfutility_settings_backup', JSON.stringify(settingsToBackup));
-            return true;
-        } catch (error) {
-            window.cfUtilityErrorHandling?.error('Failed to backup settings', { error: error.message });
-            return false;
-        }
-    };
-
-    // Restore settings from backup
-    const restoreFromBackup = () => {
-        try {
-            const backupData = localStorage.getItem('cfutility_settings_backup');
-            if (backupData) {
-                const backupSettings = JSON.parse(backupData);
-                // Only restore settings keys that exist in default settings
-                const restoredSettings = {};
-                for (const [key, value] of Object.entries(backupSettings)) {
-                    if (key !== 'backupTimestamp') {
-                        restoredSettings[key] = value;
-                    }
-                }
-
-                if (Object.keys(restoredSettings).length > 0) {
-                    saveSettings(restoredSettings);
-                    return restoredSettings;
-                }
-            }
-            return null;
-        } catch (error) {
-            window.cfUtilityErrorHandling?.error('Failed to restore settings from backup', { error: error.message });
-            return null;
-        }
-    };
-
-    // Export settings as JSON string
-    const exportSettings = () => {
-        try {
-            const settings = loadSettings();
-            const exportData = {
-                version: '1.0',
-                timestamp: new Date().toISOString(),
-                settings: settings
-            };
-            return JSON.stringify(exportData, null, 2);
-        } catch (error) {
-            window.cfUtilityErrorHandling?.error('Failed to export settings', { error: error.message });
-            return null;
-        }
-    };
-
-    // Import settings from JSON string
-    const importSettings = (importString) => {
-        try {
-            const importData = JSON.parse(importString);
-            if (importData && importData.settings) {
-                // Validate that we're importing settings and not arbitrary data
-                const importedSettings = importData.settings;
-
-                // Only update with valid settings keys
-                const validatedSettings = {};
-                for (const [key, value] of Object.entries(importedSettings)) {
-                    if (key in defaultSettings || key === 'language') {
-                        validatedSettings[key] = value;
-                    }
-                }
-
-                if (Object.keys(validatedSettings).length > 0) {
-                    saveSettings(validatedSettings);
-                    return validatedSettings;
-                }
-            }
-            return null;
-        } catch (error) {
-            window.cfUtilityErrorHandling?.error('Failed to import settings', { error: error.message });
-            return null;
-        }
-    };
 
     // Helper function to apply styles to elements
     const setStyles = (element, styles) => Object.assign(element.style, styles) && element;
@@ -209,118 +128,6 @@
         `;
         form.appendChild(langLabel);
 
-        // Backup/Import section
-        const backupSection = setStyles(document.createElement('div'), {
-            marginTop: '20px',
-            paddingTop: '15px',
-            borderTop: '1px solid #ccc',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-        });
-
-        const backupLabel = setStyles(document.createElement('label'), {
-            fontWeight: 'bold'
-        });
-        backupLabel.textContent = window.cfUtilityLocalization?.getText('backupSectionTitle') || 'Settings Backup & Import';
-        backupSection.appendChild(backupLabel);
-
-        // Export button
-        const exportButton = setStyles(document.createElement('button'), {
-            type: 'button',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            marginBottom: '10px'
-        });
-        exportButton.textContent = window.cfUtilityLocalization?.getText('exportSettings') || 'Export Settings';
-        exportButton.addEventListener('click', () => {
-            const exportData = exportSettings();
-            if (exportData) {
-                // Create a temporary textarea to copy the settings
-                const textArea = document.createElement('textarea');
-                textArea.value = exportData;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-
-                const message = window.cfUtilityLocalization?.getText('settingsExported') || 'Settings copied to clipboard!';
-                if (window.cfUtilityNotifications) {
-                    window.cfUtilityNotifications.success(message);
-                } else {
-                    alert(message);
-                }
-            } else {
-                const message = window.cfUtilityLocalization?.getText('exportFailed') || 'Failed to export settings.';
-                if (window.cfUtilityNotifications) {
-                    window.cfUtilityNotifications.error(message);
-                } else {
-                    alert(message);
-                }
-            }
-        });
-        backupSection.appendChild(exportButton);
-
-        // Import area
-        const importLabel = setStyles(document.createElement('label'), {
-            display: 'block',
-            marginBottom: '5px'
-        });
-        importLabel.textContent = window.cfUtilityLocalization?.getText('importSettingsLabel') || 'Import Settings:';
-        backupSection.appendChild(importLabel);
-
-        const importTextarea = setStyles(document.createElement('textarea'), {
-            width: '100%',
-            height: '80px',
-            padding: '5px',
-            marginBottom: '10px',
-            resize: 'vertical'
-        });
-        importTextarea.placeholder = window.cfUtilityLocalization?.getText('importPlaceholder') || 'Paste exported settings here...';
-        backupSection.appendChild(importTextarea);
-
-        const importButton = setStyles(document.createElement('button'), {
-            type: 'button',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-        });
-        importButton.textContent = window.cfUtilityLocalization?.getText('importSettings') || 'Import Settings';
-        importButton.addEventListener('click', () => {
-            if (importTextarea.value.trim()) {
-                const imported = importSettings(importTextarea.value);
-                if (imported) {
-                    const message = window.cfUtilityLocalization?.getText('settingsImported') || 'Settings imported successfully! Reload the page to see changes.';
-                    if (window.cfUtilityNotifications) {
-                        window.cfUtilityNotifications.success(message);
-                    } else {
-                        alert(message);
-                    }
-                    // Close the settings dialog after import
-                    document.body.removeChild(overlay);
-                } else {
-                    const message = window.cfUtilityLocalization?.getText('importFailed') || 'Failed to import settings. Please check the format.';
-                    if (window.cfUtilityNotifications) {
-                        window.cfUtilityNotifications.error(message);
-                    } else {
-                        alert(message);
-                    }
-                }
-            } else {
-                const message = window.cfUtilityLocalization?.getText('importEmpty') || 'Please paste settings to import.';
-                if (window.cfUtilityNotifications) {
-                    window.cfUtilityNotifications.warning(message);
-                } else {
-                    alert(message);
-                }
-            }
-        });
-        backupSection.appendChild(importButton);
-
-        form.appendChild(backupSection);
 
         // Save button with event listener
         const saveButton = setStyles(document.createElement('button'), {
@@ -340,9 +147,6 @@
             };
 
             const updatedSettings = updateSettings(newSettings);
-
-            // Create backup of settings
-            backupSettings(updatedSettings);
 
             // Update language if changed
             if (window.cfUtilityLocalization && newSettings.language) {
@@ -439,10 +243,6 @@
         saveSettings,
         getSettings,
         updateSettings,
-        backupSettings,
-        restoreFromBackup,
-        exportSettings,
-        importSettings,
         showSettings,
         registerSettingsMenu
     };
