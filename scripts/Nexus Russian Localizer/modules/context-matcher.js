@@ -1,45 +1,116 @@
-// Класс для компиляции и сопоставления контекстных правил
+/**
+ * Класс для компиляции и сопоставления контекстных правил
+ */
 class ContextMatcher {
   #translations;
   #rulesCache;
 
+  /**
+   * Создает экземпляр контекстного матчера
+   * @param {Object} translations - объект с переводами
+   */
   constructor(translations) {
-    this.#translations = translations;
+    // Проверяем, что translations - объект
+    if (!translations || typeof translations !== 'object') {
+      console.warn('Invalid translations object provided to ContextMatcher');
+      this.#translations = {};
+    } else {
+      this.#translations = translations;
+    }
+
     this.#rulesCache = new Map();
     this.buildRulesCache();
   }
 
+  /**
+   * Создает кэш правил на основе переводов
+   */
   buildRulesCache() {
+    if (!this.#translations.contextual) return;
+
     for (const [text, contexts] of Object.entries(this.#translations.contextual)) {
-      const rules = Object.entries(contexts).map(([context, translation]) => ({
-        context,
-        translation,
-        compiledSelector: this.compileSelector(context)
-      }));
+      // Проверяем безопасность текста
+      if (typeof text !== 'string' || text.length > 1000) {
+        console.warn('Skipping invalid or too long text in contextual rules:', text);
+        continue;
+      }
+
+      const rules = Object.entries(contexts).map(([context, translation]) => {
+        if (typeof context !== 'string' || typeof translation !== 'string') {
+          console.warn('Skipping invalid context or translation:', context, translation);
+          return null;
+        }
+        return {
+          context,
+          translation,
+          compiledSelector: this.compileSelector(context)
+        };
+      }).filter(rule => rule !== null); // фильтруем невалидные правила
+
       this.#rulesCache.set(text, rules);
     }
   }
 
+  /**
+   * Компилирует селектор в структуру для быстрого сопоставления
+   * @param {string} selector - CSS-селектор
+   * @returns {Array} массив скомпилированных селекторов
+   */
   compileSelector(selector) {
+    // Проверяем безопасность селектора
+    if (typeof selector !== 'string' || selector.length > 1000) {
+      console.warn('Invalid selector provided:', selector);
+      return [];
+    }
+
     // Improved selector parsing to handle more complex selectors
     return selector.split('>').map(part => {
+      // Ограничиваем количество частей селектора для безопасности
+      if (selector.split('>').length > 10) {
+        console.warn('Selector is too complex, skipping:', selector);
+        return null;
+      }
+
       const trimmedPart = part.trim();
       const spaceIndex = trimmedPart.indexOf(' ');
       if (spaceIndex !== -1) {
         // Handle descendant selectors (space separated)
-        return { tag: trimmedPart.split(' ')[0].trim(), class: null, isDescendant: true };
+        const tagPart = trimmedPart.split(' ')[0].trim();
+        // Проверяем безопасность тега
+        if (!/^[a-zA-Z0-9-]+$/.test(tagPart)) {
+          console.warn('Invalid tag in selector:', tagPart);
+          return null;
+        }
+        return { tag: tagPart, class: null, isDescendant: true };
       }
 
       const parts = trimmedPart.split('.');
       const tag = parts[0].trim();
+      // Проверяем безопасность тега
+      if (!/^[a-zA-Z0-9-]+$/.test(tag)) {
+        console.warn('Invalid tag in selector:', tag);
+        return null;
+      }
       const cls = parts.slice(1).join('.'); // handle multiple classes properly
 
       return { tag, class: cls || null };
-    });
+    }).filter(part => part !== null); // фильтруем невалидные части
   }
 
+  /**
+   * Проверяет соответствие элемента скомпилированному селектору
+   * @param {Element} element - элемент для проверки
+   * @param {Array} compiledSelector - скомпилированный селектор
+   * @returns {boolean} результат проверки
+   */
   match(element, compiledSelector) {
     if (!element || !compiledSelector || compiledSelector.length === 0) {
+      return false;
+    }
+
+    // Ограничиваем количество проверок для производительности
+    if (compiledSelector.length > 10) {
+      console.warn('Selector is too long, skipping:', compiledSelector);
       return false;
     }
 
@@ -50,9 +121,15 @@ class ContextMatcher {
       return window.contextCheckCache.get(cacheKey);
     }
 
+    // Проверяем количество символов в кэше чтобы избежать переполнения
+    if (window.contextCheckCache && window.contextCheckCache.size > 20000) {
+      // Очищаем кэш если он слишком большой
+      window.contextCheckCache.clear();
+    }
+
     // Check if the last selector part matches the current element
     const lastSelector = compiledSelector[compiledSelector.length - 1];
-    if (element.tagName.toLowerCase() !== lastSelector.tag.toLowerCase()) {
+    if (!lastSelector || element.tagName.toLowerCase() !== lastSelector.tag.toLowerCase()) {
       if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
       return false;
     }
@@ -71,12 +148,24 @@ class ContextMatcher {
         return false;
       }
 
+      // Ограничиваем глубину поиска для производительности
+      if (i < -50) {
+        console.warn('Selector depth is too deep, aborting:', element);
+        if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
+        return false;
+      }
+
       const selector = compiledSelector[i];
+      if (!selector) {
+        if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
+        return false;
+      }
 
       // If this is a descendant selector, walk up until we find a match
       if (selector.isDescendant) {
         let found = false;
-        while (currentElement) {
+        let descendantSearchCount = 0; // ограничиваем количество итераций
+        while (currentElement && descendantSearchCount < 20) {
           if (currentElement.tagName.toLowerCase() === selector.tag.toLowerCase()) {
             if (!selector.class || (currentElement.classList && currentElement.classList.contains(selector.class))) {
               found = true;
@@ -84,6 +173,7 @@ class ContextMatcher {
             }
           }
           currentElement = currentElement.parentElement;
+          descendantSearchCount++;
         }
         if (!found) {
           if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
@@ -107,9 +197,17 @@ class ContextMatcher {
     return true;
   }
 
+  /**
+   * Находит перевод для текста с учетом контекста элемента
+   * @param {string} text - текст для поиска перевода
+   * @param {Element} element - элемент, в котором находится текст
+   * @returns {Object|null} объект с переводом и контекстом, или null
+   */
   findTranslation(text, element) {
-    if (!text || !element) return null;
-    
+    if (!text || !element || typeof text !== 'string' || text.length > 10000) {
+      return null;
+    }
+
     const rules = this.#rulesCache.get(text);
     if (!rules) return null;
 

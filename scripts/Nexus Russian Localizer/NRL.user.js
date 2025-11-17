@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.6.0
+// @version         2.6.1
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -67,25 +67,28 @@
       // Обрабатываем все остальные элементы батчами
       // Быстрая обработка элементов времени и дат для ускорения отображения
       // Используем оптимизированный подход: сначала конкретные элементы, потом все остальное
-      const specificElements = [];
+      let specificElements = [];
 
       // Сначала обрабатываем теги времени для быстрой отрисовки дат
       const timeElements = document.querySelectorAll('time');
-      for (const element of timeElements) {
-        specificElements.push(element);
-      }
+      specificElements = specificElements.concat(Array.from(timeElements));
 
       // Затем обрабатываем важные элементы, содержащие текст
       const importantSelectors = 'h1, h2, h3, h4, h5, h6, p, span, div, a, button, li, td, th, small, label, caption';
       const importantElements = document.querySelectorAll(importantSelectors);
+
+      // Оптимизируем проверку игнорируемых классов
+      const ignoredClassesArray = Array.from(window.IGNORED_CLASSES);
+      const ignoredClassesLen = ignoredClassesArray.length;
+
       for (const element of importantElements) {
         // Проверяем, есть ли у элемента текстовое содержимое для перевода
         if (element.textContent && element.textContent.trim()) {
           // Проверяем игнорируемые классы
           let shouldIgnore = false;
-          if (element.classList) {
-            for (let i = 0; i < element.classList.length; i++) {
-              if (window.IGNORED_CLASSES.has(element.classList[i])) {
+          if (element.classList && element.classList.length > 0) {
+            for (let i = 0; i < ignoredClassesLen; i++) {
+              if (element.classList.contains(ignoredClassesArray[i])) {
                 shouldIgnore = true;
                 break;
               }
@@ -339,21 +342,40 @@
     const result = [];
     const len = selectors.length;
 
-    for (let i = 0; i < len; i++) {
-      try {
-        const elements = document.querySelectorAll(selectors[i]);
-        for (let j = 0; j < elements.length; j++) {
-          const el = elements[j];
-          // Check visibility using multiple methods to catch more cases
-          const isVisible = el.offsetParent !== null ||
-                           getComputedStyle(el).display !== 'none' ||
-                           getComputedStyle(el).visibility !== 'hidden';
-          if (isVisible) { // Only visible or potentially visible elements
-            result.push(el);
-          }
+    // Используем DocumentFragment для оптимизации селекторов
+    const selectorString = selectors.join(', ');
+
+    try {
+      const elements = document.querySelectorAll(selectorString);
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        // Check visibility using multiple methods to catch more cases
+        const isVisible = el.offsetParent !== null ||
+                         getComputedStyle(el).display !== 'none' ||
+                         getComputedStyle(el).visibility !== 'hidden';
+        if (isVisible) { // Only visible or potentially visible elements
+          result.push(el);
         }
-      } catch (e) {
-        console.warn(`Selector error for ${selectors[i]}:`, e);
+      }
+    } catch (e) {
+      console.warn(`Selector error for combined selector:`, e);
+      // Fallback: проверяем селекторы по отдельности
+      for (let i = 0; i < len; i++) {
+        try {
+          const elements = document.querySelectorAll(selectors[i]);
+          for (let j = 0; j < elements.length; j++) {
+            const el = elements[j];
+            // Check visibility using multiple methods to catch more cases
+            const isVisible = el.offsetParent !== null ||
+                             getComputedStyle(el).display !== 'none' ||
+                             getComputedStyle(el).visibility !== 'hidden';
+            if (isVisible) { // Only visible or potentially visible elements
+              result.push(el);
+            }
+          }
+        } catch (e) {
+          console.warn(`Selector error for ${selectors[i]}:`, e);
+        }
       }
     }
 
@@ -363,10 +385,9 @@
   // Предзагрузка ключевых переводов
   async function preloadCriticalTranslations(cache) {
     const criticalTerms = ['Download', 'Mods', 'Games', 'Collections', 'Media', 'Community', 'Support', 'Home', 'Search', 'Login', 'Register'];
-    const len = criticalTerms.length;
-    for (let i = 0; i < len; i++) {
-      await cache.getCachedTranslation(criticalTerms[i]); // Выполняем последовательно, а не параллельно, чтобы не перегружать
-    }
+    // Выполняем параллельно, так как кэш может обрабатывать несколько запросов
+    const promises = criticalTerms.map(term => cache.getCachedTranslation(term));
+    await Promise.allSettled(promises);
   }
 
   // Функция для очистки кэша
@@ -422,8 +443,9 @@
   // Функция для обработки элементов времени
   async function processTimeElements() {
     const timeElements = document.querySelectorAll('time');
+    const elementsArray = Array.from(timeElements);
 
-    for (const element of timeElements) {
+    for (const element of elementsArray) {
       let text = element.textContent.trim();
       if (text) {
         // Применяем форматирование дат
@@ -438,6 +460,12 @@
           } else {
             // Пробуем динамические шаблоны
             for (const template of window.DYNAMIC_TEMPLATES) {
+              // Быстрая проверка на длину текста для безопасности
+              if (text.length > 1000) {
+                console.warn('Skipping very long text for security reasons:', text.substring(0, 50) + '...');
+                continue;
+              }
+
               if (template.pattern.test(text)) {
                 template.pattern.lastIndex = 0; // сбрасываем для повторного использования
                 if (template.replacer) {
@@ -463,54 +491,55 @@
 
   // Функция для обработки элементов с всплывающими подсказками
   async function processTooltipElements() {
-    // Находим элементы с атрибутами подсказок
-    const tooltipSelectors = [
-      '[title]',
-      '[data-tooltip]',
-      '[data-original-title]',
-      '[data-bs-title]',
-      '[data-bs-tooltip]',
-      '[data-toggle="tooltip"]',
-      '[data-toggle="popover"]'
-    ];
-
-    const elements = [];
-    for (const selector of tooltipSelectors) {
-      elements.push(...Array.from(document.querySelectorAll(selector)));
-    }
+    // Находим элементы с атрибутами подсказок - используем один селектор для производительности
+    const selectorString = '[title], [data-tooltip], [data-original-title], [data-bs-title], [data-bs-tooltip], [data-toggle="tooltip"], [data-toggle="popover"]';
+    const elements = Array.from(document.querySelectorAll(selectorString));
 
     for (const element of elements) {
       // Обрабатываем атрибуты подсказок
       const title = element.getAttribute('title');
       if (title && title.trim()) {
-        let translated = window.NRL_TRANSLATIONS?.main[title];
-        if (!translated) {
-          translated = window.dateFormatter.format(title);
-        }
-        if (translated && translated !== title) {
-          element.setAttribute('title', translated);
+        // Добавляем проверку на длину текста для безопасности
+        if (title.length > 1000) {
+          console.warn('Skipping very long title for security reasons:', title.substring(0, 50) + '...');
+        } else {
+          let translated = window.NRL_TRANSLATIONS?.main[title];
+          if (!translated) {
+            translated = window.dateFormatter.format(title);
+          }
+          if (translated && translated !== title) {
+            element.setAttribute('title', translated);
+          }
         }
       }
 
       const dataTooltip = element.getAttribute('data-tooltip');
       if (dataTooltip && dataTooltip.trim()) {
-        let translated = window.NRL_TRANSLATIONS?.main[dataTooltip];
-        if (!translated) {
-          translated = window.dateFormatter.format(dataTooltip);
-        }
-        if (translated && translated !== dataTooltip) {
-          element.setAttribute('data-tooltip', translated);
+        if (dataTooltip.length > 1000) {
+          console.warn('Skipping very long data-tooltip for security reasons:', dataTooltip.substring(0, 50) + '...');
+        } else {
+          let translated = window.NRL_TRANSLATIONS?.main[dataTooltip];
+          if (!translated) {
+            translated = window.dateFormatter.format(dataTooltip);
+          }
+          if (translated && translated !== dataTooltip) {
+            element.setAttribute('data-tooltip', translated);
+          }
         }
       }
 
       const dataOriginalTitle = element.getAttribute('data-original-title');
       if (dataOriginalTitle && dataOriginalTitle.trim()) {
-        let translated = window.NRL_TRANSLATIONS?.main[dataOriginalTitle];
-        if (!translated) {
-          translated = window.dateFormatter.format(dataOriginalTitle);
-        }
-        if (translated && translated !== dataOriginalTitle) {
-          element.setAttribute('data-original-title', translated);
+        if (dataOriginalTitle.length > 1000) {
+          console.warn('Skipping very long data-original-title for security reasons:', dataOriginalTitle.substring(0, 50) + '...');
+        } else {
+          let translated = window.NRL_TRANSLATIONS?.main[dataOriginalTitle];
+          if (!translated) {
+            translated = window.dateFormatter.format(dataOriginalTitle);
+          }
+          if (translated && translated !== dataOriginalTitle) {
+            element.setAttribute('data-original-title', translated);
+          }
         }
       }
     }

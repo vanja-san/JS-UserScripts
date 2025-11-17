@@ -50,12 +50,12 @@ window.templateCache = new LRUCache(1000); // Increased from 500 to 1000
 window.LRUCache = LRUCache;
 
 // Ограничение размера для предотвращения утечек памяти
-const CONTEXT_CHECK_CACHE_LIMIT = 15000; // Increased from 10000
+const CONTEXT_CHECK_CACHE_LIMIT = 20000; // Increased from 15000
 function checkAndTrimContextCache() {
   if (window.contextCheckCache?.size > CONTEXT_CHECK_CACHE_LIMIT) {
     // Удаляем старые записи если кэш превышает лимит
     const keys = Array.from(window.contextCheckCache.keys());
-    const excessCount = keys.length - Math.floor(CONTEXT_CHECK_CACHE_LIMIT * 0.8);
+    const excessCount = keys.length - Math.floor(CONTEXT_CHECK_CACHE_LIMIT * 0.75); // удаляем 25% лишних
     if (excessCount > 0) {
       for (let i = 0; i < excessCount; i++) {
         window.contextCheckCache.delete(keys[i]);
@@ -69,9 +69,15 @@ setInterval(checkAndTrimContextCache, 30000); // каждые 30 секунд
 
 // Добавим функцию для очистки кэшей при необходимости
 window.clearAllCaches = function() {
-  window.contextCheckCache.clear();
-  window.headingElementsCache.clear();
+  if (window.contextCheckCache && typeof window.contextCheckCache.clear === 'function') {
+    window.contextCheckCache.clear();
+  }
+  if (window.headingElementsCache && typeof window.headingElementsCache.clear === 'function') {
+    window.headingElementsCache.clear();
+  }
   if (window.templateCache && typeof window.templateCache.clear === 'function') {
     window.templateCache.clear();
   }
+
+  console.log('All caches cleared successfully');
 };

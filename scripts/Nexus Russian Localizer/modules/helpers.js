@@ -21,6 +21,32 @@ window.createPluralizationTemplates = (units) =>
 
 // Шаблоны для динамического перевода
 window.DYNAMIC_TEMPLATES = [
+  // Шаблоны с плюрализацией (только для отдельных слов, без ago) - размещаем в начале для приоритета
+  ...window.createPluralizationTemplates([
+    {en: 'mods?', ru: ['мод', 'мода', 'модов']},
+    {en: 'image[s]?', ru: ['изображение', 'изображения', 'изображений']},
+    {en: 'collection[s]?', ru: ['коллекция', 'коллекции', 'коллекций']},
+    {en: 'download[s]?', ru: ['скачивание', 'скачивания', 'скачиваний']},
+    {en: 'endorsement[s]?', ru: ['одобрение', 'одобрения', 'одобрений']},
+    {en: 'view[s]?', ru: ['просмотр', 'просмотра', 'просмотров']},
+    {en: 'reply[ies]?', ru: ['ответ', 'ответа', 'ответов']},
+    {en: 'Member[s]?', ru: ['участник', 'участника', 'участников']},
+    {en: 'Anonymous', ru: ['аноним', 'анонима', 'анонимов']},
+    {en: 'Guest[s]?', ru: ['гость', 'гостя', 'гостей']},
+    {en: 'member[s]?', ru: ['участник', 'участника', 'участников']},
+    {en: 'result[s]?', ru: ['результат', 'результата', 'результатов']},
+    {en: 'Comment[s]?', ru: ['комментарий', 'комментария', 'комментариев']},
+    {en: 'file[s]?', ru: ['файл', 'файла', 'файлов']},
+    {en: 'item[s]?', ru: ['элемент', 'элемента', 'элементов']},
+    {en: 'user[s]?', ru: ['пользователь', 'пользователя', 'пользователей']},
+    {en: 'post[s]?', ru: ['пост', 'поста', 'постов']},
+    {en: 'topic[s]?', ru: ['тема', 'темы', 'тем']},
+    {en: 'like[s]?', ru: ['лайк', 'лайка', 'лайков']},
+    {en: 'star[s]?', ru: ['звезда', 'звезды', 'звезд']},
+    {en: 'vote[s]?', ru: ['голос', 'голоса', 'голосов']},
+    {en: 'time[s]?', ru: ['раз', 'раза', 'раз']},
+    {en: 'mods in 1-click with Premium', ru: ['мод в один клик с премиум', 'мода в один клик с премиум', 'модов в один клик с премиум']}
+  ]),
   {
     pattern: /(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s*(\d{4})/gi,
     replacer: (match, day, month, year) =>
@@ -68,32 +94,6 @@ window.DYNAMIC_TEMPLATES = [
       return `${num} ${window.pluralize(num, units[unit])} ${prepMap[prep] || prep}`;
     }
   },
-  // Шаблоны с плюрализацией (только для отдельных слов, без ago)
-  ...window.createPluralizationTemplates([
-    {en: 'mods?', ru: ['мод', 'мода', 'модов']},
-    {en: 'image[s]?', ru: ['изображение', 'изображения', 'изображений']},
-    {en: 'collection[s]?', ru: ['коллекция', 'коллекции', 'коллекций']},
-    {en: 'download[s]?', ru: ['скачивание', 'скачивания', 'скачиваний']},
-    {en: 'endorsement[s]?', ru: ['одобрение', 'одобрения', 'одобрений']},
-    {en: 'view[s]?', ru: ['просмотр', 'просмотра', 'просмотров']},
-    {en: 'reply[ies]?', ru: ['ответ', 'ответа', 'ответов']},
-    {en: 'Member[s]?', ru: ['участник', 'участника', 'участников']},
-    {en: 'Anonymous', ru: ['аноним', 'анонима', 'анонимов']},
-    {en: 'Guest[s]?', ru: ['гость', 'гостя', 'гостей']},
-    {en: 'member[s]?', ru: ['участник', 'участника', 'участников']},
-    {en: 'result[s]?', ru: ['результат', 'результата', 'результатов']},
-    {en: 'Comment[s]?', ru: ['комментарий', 'комментария', 'комментариев']},
-    {en: 'file[s]?', ru: ['файл', 'файла', 'файлов']},
-    {en: 'item[s]?', ru: ['элемент', 'элемента', 'элементов']},
-    {en: 'user[s]?', ru: ['пользователь', 'пользователя', 'пользователей']},
-    {en: 'post[s]?', ru: ['пост', 'поста', 'постов']},
-    {en: 'topic[s]?', ru: ['тема', 'темы', 'тем']},
-    {en: 'like[s]?', ru: ['лайк', 'лайка', 'лайков']},
-    {en: 'star[s]?', ru: ['звезда', 'звезды', 'звезд']},
-    {en: 'vote[s]?', ru: ['голос', 'голоса', 'голосов']},
-    {en: 'time[s]?', ru: ['раз', 'раза', 'раз']},
-    {en: 'mods in 1-click with Premium', ru: ['мод в один клик с премиум', 'мода в один клик с премиум', 'модов в один клик с премиум']}
-  ]),
 
   // Безопасные версии шаблонов с ограничениями на длину строк
   { pattern: /(\d+)\s*GB/gi, replacement: "$1 ГБ", maxLength: 20 },
@@ -106,16 +106,4 @@ window.DYNAMIC_TEMPLATES = [
   { pattern: /(\d+)\s*MB/gi, replacement: "$1 МБ" },
   { pattern: /(\d+)\s*KB/gi, replacement: "$1 КБ" },
   { pattern: /(\d+)\s*TB/gi, replacement: "$1 ТБ" },
-  { pattern: /(\d+)\s*Collections?/gi, replacement: "$1 коллекций" },
-  { pattern: /(\d+)\s*files?/gi, replacement: "$1 файлов" },
-  { pattern: /(\d+)\s*mods?/gi, replacement: "$1 модов" },
-  { pattern: /(\d+)\s*images?/gi, replacement: "$1 изображений" },
-  { pattern: /(\d+)\s*downloads?/gi, replacement: "$1 скачиваний" },
-  { pattern: /(\d+)\s*comments?/gi, replacement: "$1 комментариев" },
-  { pattern: /(\d+)\s*views?/gi, replacement: "$1 просмотров" },
-  { pattern: /(\d+)\s*endorsements?/gi, replacement: "$1 одобрений" },
-  { pattern: /(\d+)\s*posts?/gi, replacement: "$1 сообщений" },
-  { pattern: /(\d+)\s*members?/gi, replacement: "$1 участников" },
-  { pattern: /(\d+)\s*replies?/gi, replacement: "$1 ответов" },
-  { pattern: /(\d+)\s*results?/gi, replacement: "$1 результатов" },
 ];

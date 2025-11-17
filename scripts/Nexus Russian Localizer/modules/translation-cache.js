@@ -1,5 +1,11 @@
-// Класс для управления кэшированием
+/**
+ * Класс для управления кэшированием переводов
+ * Использует как IndexedDB для долгосрочного хранения, так и LRU кэш в памяти для быстрого доступа
+ */
 class TranslationCache {
+  /**
+   * Создает экземпляр кэша переводов
+   */
   constructor() {
     this.memoryCache = new window.LRUCache();
     this.pendingCompressions = new Map();
@@ -9,6 +15,9 @@ class TranslationCache {
     this.initWorker();
   }
 
+  /**
+   * Инициализирует Web Worker для сжатия/распаковки данных
+   */
   initWorker() {
     const workerCode = `
       const COMPRESSION_THRESHOLD = ${window.CONFIG?.COMPRESSION_THRESHOLD || 100};
@@ -56,13 +65,25 @@ class TranslationCache {
       const blob = new Blob([workerCode], { type: 'application/javascript' });
       this.worker = new Worker(URL.createObjectURL(blob));
 
+      // Улучшенная обработка сообщений с проверкой ошибок
       this.worker.onmessage = (e) => {
-        const { type, id, result } = e.data;
-        if (type === 'compressed') {
-          this.handleCompressed(id, result);
-        } else if (type === 'decompressed') {
-          this.handleDecompressed(id, result);
+        try {
+          const { type, id, result } = e.data;
+          if (type === 'compressed') {
+            this.handleCompressed(id, result);
+          } else if (type === 'decompressed') {
+            this.handleDecompressed(id, result);
+          }
+        } catch (error) {
+          console.warn('Ошибка при обработке сообщения от воркера:', error);
         }
+      };
+
+      // Обработка ошибок воркера
+      this.worker.onerror = (error) => {
+        console.error('Ошибка Web Worker:', error);
+        // Отключаем воркер при ошибке и используем резервный вариант
+        this.worker = null;
       };
     } catch (error) {
       console.warn('Ошибка инициализации Web Worker:', error);
@@ -71,6 +92,10 @@ class TranslationCache {
     }
   }
 
+  /**
+   * Инициализирует IndexedDB
+   * @returns {Promise} Promise, который разрешается после инициализации базы данных
+   */
   async initDB() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(window.CONFIG?.DB_NAME || 'translationCache', window.CONFIG?.DB_VERSION || 1);
@@ -94,7 +119,9 @@ class TranslationCache {
     });
   }
 
-  // Метод для очистки старых версий кэша
+  /**
+   * Метод для очистки старых версий кэша
+   */
   async cleanupOldVersions() {
     if (!this.db) return;
 
@@ -121,7 +148,11 @@ class TranslationCache {
     }
   }
 
-  // Вспомогательный метод для получения всех записей из хранилища
+  /**
+   * Вспомогательный метод для получения всех записей из хранилища
+   * @param {IDBObjectStore} store - объект хранилища
+   * @returns {Promise} Promise, который разрешается массивом записей
+   */
   async getAllRecords(store) {
     return new Promise((resolve, reject) => {
       const request = store.getAll();
@@ -130,6 +161,12 @@ class TranslationCache {
     });
   }
 
+  /**
+   * Сохраняет перевод в IndexedDB
+   * @param {string} key - ключ для сохранения
+   * @param {*} value - значение для сохранения
+   * @param {boolean} isCompressed - флаг сжатия
+   */
   async save(key, value, isCompressed = false) {
     if (!this.db) return;
 
@@ -149,6 +186,10 @@ class TranslationCache {
     }
   }
 
+  /**
+   * Массовое сохранение переводов в IndexedDB
+   * @param {Array} translations - массив переводов для сохранения
+   */
   async bulkSaveTranslations(translations) {
     if (!this.db || !translations.length) return;
 
@@ -172,6 +213,11 @@ class TranslationCache {
     }
   }
 
+  /**
+   * Получает перевод из IndexedDB
+   * @param {string} key - ключ для получения
+   * @returns {*} значение из кэша или null
+   */
   async get(key) {
     if (!this.db) return null;
 
@@ -190,7 +236,19 @@ class TranslationCache {
     }
   }
 
+  /**
+   * Кэширует перевод
+   * @param {string} text - текст для кэширования
+   * @param {string} context - контекст текста
+   * @param {string} translation - перевод
+   */
   async cacheTranslation(text, context, translation) {
+    // Проверка безопасности для больших переводов
+    if (translation && translation.length > 100000) {
+      console.warn('Skipping very large translation for security reasons:', translation.substring(0, 50) + '...');
+      return;
+    }
+
     const key = context ? `${text}::${context}` : text;
 
     // Сохраняем в памяти
@@ -199,18 +257,51 @@ class TranslationCache {
     // Для длинных текстов используем сжатие
     if (translation.length >= (window.CONFIG?.COMPRESSION_THRESHOLD || 100)) {
       const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Ограничение количества ожидающих сжатий для предотвращения переполнения
+      if (this.pendingCompressions.size > 500) {
+        console.warn('Too many pending compressions, skipping compression for:', key);
+        await this.save(key, translation, false);
+        return;
+      }
+
       this.pendingCompressions.set(id, { key, translation });
-      this.worker.postMessage({
-        type: 'compress',
-        data: { id, text: translation }
-      });
+      // Проверяем, есть ли воркер, иначе сохраняем без сжатия
+      if (this.worker) {
+        try {
+          this.worker.postMessage({
+            type: 'compress',
+            data: { id, text: translation }
+          });
+        } catch (error) {
+          console.warn('Error posting message to worker, saving without compression:', error);
+          await this.save(key, translation, false);
+          this.pendingCompressions.delete(id);
+        }
+      } else {
+        // Если воркер недоступен, сохраняем без сжатия
+        await this.save(key, translation, false);
+        this.pendingCompressions.delete(id);
+      }
     } else {
       // Короткие тексты сохраняем без сжатия
       await this.save(key, translation, false);
     }
   }
 
+  /**
+   * Получает закэшированный перевод
+   * @param {string} text - текст для поиска
+   * @param {string} context - контекст текста
+   * @returns {Promise} Promise, который разрешается переводом
+   */
   async getCachedTranslation(text, context = '') {
+    // Проверка безопасности для длинных текстов
+    if (text && text.length > 10000) {
+      console.warn('Skipping very long text for security reasons:', text.substring(0, 50) + '...');
+      return null;
+    }
+
     const key = context ? `${text}::${context}` : text;
 
     // Сначала проверяем кэш в памяти
@@ -230,10 +321,15 @@ class TranslationCache {
       return new Promise((resolve) => {
         const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.pendingDecompressions.set(id, resolve);
-        this.worker.postMessage({
-          type: 'decompress',
-          data: { id, compressed: cached.value }
-        });
+        // Проверяем, есть ли воркер, иначе возвращаем пустую строку
+        if (this.worker) {
+          this.worker.postMessage({
+            type: 'decompress',
+            data: { id, compressed: cached.value }
+          });
+        } else {
+          resolve('');
+        }
       });
     }
 
@@ -242,6 +338,11 @@ class TranslationCache {
     return cached.value;
   }
 
+  /**
+   * Обрабатывает результат сжатия
+   * @param {string} id - идентификатор операции
+   * @param {*} result - результат сжатия
+   */
   handleCompressed(id, result) {
     const data = this.pendingCompressions.get(id);
     if (data) {
@@ -250,6 +351,11 @@ class TranslationCache {
     }
   }
 
+  /**
+   * Обрабатывает результат распаковки
+   * @param {string} id - идентификатор операции
+   * @param {*} result - результат распаковки
+   */
   handleDecompressed(id, result) {
     const resolve = this.pendingDecompressions.get(id);
     if (resolve) {
@@ -258,6 +364,9 @@ class TranslationCache {
     }
   }
 
+  /**
+   * Предварительно кэширует переводы из основного словаря
+   */
   async preCacheTranslations() {
     const bulkData = [];
 
