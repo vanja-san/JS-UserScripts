@@ -68,7 +68,8 @@
             '.author',
             '.sub-nav-inner',
             '.discovery-carousel-slide',
-            '.dropdown-actions-content'
+            '.dropdown-actions-content',
+            '.project-download-modal'
         ]]
     ];
 
