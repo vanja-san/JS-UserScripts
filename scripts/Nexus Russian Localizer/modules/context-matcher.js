@@ -91,9 +91,9 @@ class ContextMatcher {
         console.warn('Invalid tag in selector:', tag);
         return null;
       }
-      const cls = parts.slice(1).join('.'); // handle multiple classes properly
+      const classes = parts.slice(1); // handle multiple classes properly
 
-      return { tag, class: cls || null };
+      return { tag, classes: classes.length > 0 ? classes : null };
     }).filter(part => part !== null); // фильтруем невалидные части
   }
 
@@ -134,10 +134,14 @@ class ContextMatcher {
       return false;
     }
 
-    // Check class if specified
-    if (lastSelector.class && element.classList && !element.classList.contains(lastSelector.class)) {
-      if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
-      return false;
+    // Check classes if specified
+    if (lastSelector.classes && element.classList) {
+      for (const cls of lastSelector.classes) {
+        if (!element.classList.contains(cls)) {
+          if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
+          return false;
+        }
+      }
     }
 
     // Walk up the DOM tree to match parent selectors
@@ -167,7 +171,7 @@ class ContextMatcher {
         let descendantSearchCount = 0; // ограничиваем количество итераций
         while (currentElement && descendantSearchCount < 20) {
           if (currentElement.tagName.toLowerCase() === selector.tag.toLowerCase()) {
-            if (!selector.class || (currentElement.classList && currentElement.classList.contains(selector.class))) {
+            if (!selector.classes || (currentElement.classList && selector.classes.every(cls => currentElement.classList.contains(cls)))) {
               found = true;
               break;
             }
@@ -185,7 +189,7 @@ class ContextMatcher {
           if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
           return false;
         }
-        if (selector.class && currentElement.classList && !currentElement.classList.contains(selector.class)) {
+        if (selector.classes && currentElement.classList && !selector.classes.every(cls => currentElement.classList.contains(cls))) {
           if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
           return false;
         }
