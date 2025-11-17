@@ -54,6 +54,7 @@
             '.btn-secondary',
             '.btn-primary',
             '.download-button',
+            '.download-btn',
             'input',
             '.file-card',
             '.related-project-card',
