@@ -17,7 +17,18 @@
             'saveSettings': 'Save Settings',
             'cancel': 'Cancel',
             'settingsSaved': 'Settings saved successfully!',
-            'directDownloadsDisabled': 'Direct downloads are disabled in settings.'
+            'directDownloadsDisabled': 'Direct downloads are disabled in settings.',
+            'backupSectionTitle': 'Settings Backup & Import',
+            'exportSettings': 'Export Settings',
+            'importSettings': 'Import Settings',
+            'importSettingsLabel': 'Import Settings:',
+            'importPlaceholder': 'Paste exported settings here...',
+            'settingsExported': 'Settings copied to clipboard!',
+            'settingsImported': 'Settings imported successfully! Reload the page to see changes.',
+            'exportFailed': 'Failed to export settings.',
+            'importFailed': 'Failed to import settings. Please check the format.',
+            'importEmpty': 'Please paste settings to import.',
+            'close': 'Close'
         },
         'ru': {
             'settingsTitle': 'Настройки',
@@ -28,60 +39,55 @@
             'saveSettings': 'Сохранить настройки',
             'cancel': 'Отмена',
             'settingsSaved': 'Настройки успешно сохранены!',
-            'directDownloadsDisabled': 'Прямое скачивание отключено в настройках.'
+            'directDownloadsDisabled': 'Прямое скачивание отключено в настройках.',
+            'backupSectionTitle': 'Резервное копирование и импорт настроек',
+            'exportSettings': 'Экспорт настроек',
+            'importSettings': 'Импорт настроек',
+            'importSettingsLabel': 'Импорт настроек:',
+            'importPlaceholder': 'Вставьте экспортированные настройки сюда...',
+            'settingsExported': 'Настройки скопированы в буфер обмена!',
+            'settingsImported': 'Настройки успешно импортированы! Перезагрузите страницу, чтобы увидеть изменения.',
+            'exportFailed': 'Не удалось экспортировать настройки.',
+            'importFailed': 'Не удалось импортировать настройки. Пожалуйста, проверьте формат.',
+            'importEmpty': 'Пожалуйста, вставьте настройки для импорта.',
+            'close': 'Закрыть'
         }
     };
 
     // Function to detect system language
-    function getSystemLanguage() {
+    const getSystemLanguage = () => {
         // Check browser language
         const browserLang = navigator.language || navigator.userLanguage || 'en';
         // Support English and Russian
-        if (browserLang.startsWith('ru')) {
-            return 'ru';
-        }
-        return 'en'; // Default to English
-    }
+        return browserLang.startsWith('ru') ? 'ru' : 'en'; // Default to English
+    };
 
     // Get user's preferred language (system default or previously saved)
-    function getPreferredLanguage() {
+    const getPreferredLanguage = () => {
         // Try to get saved language from storage
         const savedLang = GM_getValue('cfutility_language', null);
-        if (savedLang && translations[savedLang]) {
-            return savedLang;
-        }
-        
-        // If not saved, use system language
-        return getSystemLanguage();
-    }
+        return (savedLang && translations[savedLang]) ? savedLang : getSystemLanguage();
+    };
 
     // Function to get text in current language
-    function getText(key) {
+    const getText = (key) => {
         const currentLang = getPreferredLanguage();
-        if (translations[currentLang] && translations[currentLang][key]) {
-            return translations[currentLang][key];
-        } else if (translations['en'][key]) {
-            // Fallback to English if key not found in current language
-            return translations['en'][key];
-        } else {
-            // Return the key itself if no translation found
-            return key;
-        }
-    }
+        return (translations[currentLang] && translations[currentLang][key])
+            ? translations[currentLang][key]
+            : translations['en'][key] || key; // Fallback to English or key itself
+    };
 
     // Function to set language
-    function setLanguage(lang) {
-        if (translations[lang]) {
+    const setLanguage = (lang) => {
+        const isValidLang = translations[lang] !== undefined;
+        if (isValidLang) {
             GM_setValue('cfutility_language', lang);
-            return true;
         }
-        return false;
-    }
+        return isValidLang;
+    };
 
     // Function to get available languages
-    function getAvailableLanguages() {
-        return Object.keys(translations);
-    }
+    const getAvailableLanguages = () => Object.keys(translations);
 
     // Expose functions globally so they can be used by the main script
     window.cfUtilityLocalization = {

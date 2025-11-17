@@ -2,25 +2,18 @@
     'use strict';
 
     // Check if rounded corners are enabled in settings
-    function isRoundedCornersEnabled() {
+    const isRoundedCornersEnabled = () => {
         try {
-            if (window.cfUtilitySettings && window.cfUtilitySettings.getSettings) {
-                const settings = window.cfUtilitySettings.getSettings();
-                return settings.roundedCornersEnabled !== false; // Default to true if not set
-            }
-            // If settings module is not available yet, default to enabled
-            return true;
+            return window.cfUtilitySettings?.getSettings?.()?.roundedCornersEnabled !== false; // Default to true if not set
         } catch (error) {
             // If there's an error accessing settings, default to enabled
             return true;
         }
-    }
+    };
 
     // Create and inject the CSS for rounded corners
-    function injectRoundedStyles() {
-        if (!isRoundedCornersEnabled()) {
-            return; // Don't inject styles if rounded corners are disabled
-        }
+    const injectRoundedStyles = () => {
+        if (!isRoundedCornersEnabled()) return; // Don't inject styles if rounded corners are disabled
 
         const style = document.createElement('style');
         style.id = 'cf-utility-rounded-styles';
@@ -48,9 +41,9 @@
             }
         `;
 
-        style.appendChild(document.createTextNode(css));
+        style.textContent = css;
         (document.head || document.documentElement).appendChild(style);
-    }
+    };
 
     // Target elements configuration - specify corner type and selectors for elements that should have rounded corners
     // Format: ['cornerClass', ['selector1', 'selector2', ...]]
@@ -66,7 +59,8 @@
             '.related-project-card',
             '.class-category-item',
             '.dropdown-selected-item',
-            'img'
+            'img',
+            'ul.menu'
         ]],
         ['rounded-corner-medium', [
             '.project-tile > .tile',
@@ -79,10 +73,8 @@
     ];
 
     // Apply rounded corners to target elements based on configuration
-    function applyRoundedCornersToTargets() {
-        if (!isRoundedCornersEnabled()) {
-            return;
-        }
+    const applyRoundedCornersToTargets = () => {
+        if (!isRoundedCornersEnabled()) return;
 
         targetElements.forEach(([cornerClass, selectors]) => {
             selectors.forEach(selector => {
@@ -123,42 +115,40 @@
                 }
             });
         });
-    }
+    };
 
     // Apply rounded corners to existing elements that already have rounded classes
-    function applyRoundedCorners() {
+    const applyRoundedCorners = () => {
         // Apply to elements with rounded-corner class
         const elementsToRound = document.querySelectorAll('.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle');
         elementsToRound.forEach(el => {
             // Already handled by CSS, but we can add additional processing if needed
         });
-    }
+    };
 
     // Initialize the rounded corners functionality
-    function initRoundedCorners() {
+    const initRoundedCorners = () => {
         if (isRoundedCornersEnabled()) {
             injectRoundedStyles();
             applyRoundedCorners();
             applyRoundedCornersToTargets();
         }
-    }
+    };
 
     // Handle dynamic content using MutationObserver
-    function setupMutationObserver() {
-        const observer = new MutationObserver(function (mutations) {
+    const setupMutationObserver = () => {
+        const observer = new MutationObserver(mutations => {
             let shouldUpdate = false;
             let shouldApplyTargets = false;
 
-            mutations.forEach(function (mutation) {
+            mutations.forEach(mutation => {
                 if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(function (node) {
+                    mutation.addedNodes.forEach(node => {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             // Check if the added node or its children have rounded classes
                             if (node.classList) {
                                 const roundedClasses = ['rounded-corner', 'rounded-corner-medium', 'rounded-corner-large', 'rounded-corner-small', 'rounded-circle'];
-                                shouldUpdate = roundedClasses.some(roundedClass =>
-                                    node.classList.contains(roundedClass)
-                                );
+                                shouldUpdate = roundedClasses.some(roundedClass => node.classList.contains(roundedClass));
                             }
 
                             // Check if the added node matches any target selectors
@@ -177,7 +167,7 @@
                                     } else {
                                         // For complex selectors, use standard matches
                                         try {
-                                            if (node.matches && node.matches(selector)) {
+                                            if (node.matches?.(selector)) {
                                                 shouldApplyTargets = true;
                                             }
                                         } catch (e) {
@@ -189,10 +179,8 @@
                             });
 
                             // Also check any children of the added node
-                            const roundedChildren = node.querySelectorAll && node.querySelectorAll(
-                                '.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle'
-                            );
-                            if (roundedChildren && roundedChildren.length > 0) {
+                            const roundedChildren = node.querySelectorAll?.('.rounded-corner, .rounded-corner-medium, .rounded-corner-large, .rounded-corner-small, .rounded-circle');
+                            if (roundedChildren?.length > 0) {
                                 shouldUpdate = true;
                             }
 
@@ -202,7 +190,7 @@
                                     if (/^\.[\w-]+$/.test(selector)) {
                                         // For simple class selectors, check manually to handle whitespace issues
                                         const targetClassName = selector.substring(1).trim();
-                                        const matchingChildren = node.querySelectorAll && node.querySelectorAll('*');
+                                        const matchingChildren = node.querySelectorAll?.('*');
                                         if (matchingChildren) {
                                             for (const child of matchingChildren) {
                                                 const classList = child.getAttribute('class');
@@ -218,8 +206,8 @@
                                     } else {
                                         // For complex selectors, use standard querySelectorAll
                                         try {
-                                            const matchingChildren = node.querySelectorAll && node.querySelectorAll(selector);
-                                            if (matchingChildren && matchingChildren.length > 0) {
+                                            const matchingChildren = node.querySelectorAll?.(selector);
+                                            if (matchingChildren?.length > 0) {
                                                 shouldApplyTargets = true;
                                             }
                                         } catch (e) {
@@ -254,8 +242,7 @@
                             } else {
                                 // For complex selectors, check with matches
                                 try {
-                                    if (targetElement.matches && targetElement.matches(selector) &&
-                                        !targetElement.classList.contains(cornerClass)) {
+                                    if (targetElement.matches?.(selector) && !targetElement.classList.contains(cornerClass)) {
                                         setTimeout(() => {
                                             if (targetElement && !targetElement.classList.contains(cornerClass)) {
                                                 targetElement.classList.add(cornerClass);
@@ -279,9 +266,7 @@
 
             if (shouldApplyTargets && isRoundedCornersEnabled()) {
                 // Apply target rounded corners to matching elements
-                setTimeout(() => {
-                    applyRoundedCornersToTargets();
-                }, 0);
+                setTimeout(applyRoundedCornersToTargets, 0);
             }
         });
 
@@ -294,11 +279,11 @@
         });
 
         return observer;
-    }
+    };
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', () => {
             initRoundedCorners();
             if (isRoundedCornersEnabled()) {
                 setupMutationObserver();
