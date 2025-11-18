@@ -384,7 +384,33 @@ class KodikPlayer {
                 logMessage(Localization.get('playerAdvertEnded'), 'info');
                 break;
               case 'kodik_player_current_episode':
-                logMessage(Localization.get('playerCurrentEpisode'), 'info');
+                if (typeof data.value === 'number' || typeof data.value === 'string') {
+                  const newEpisode = parseInt(data.value);
+                  if (!isNaN(newEpisode) && newEpisode !== episode) {
+                    logMessage(Localization.get('playerCurrentEpisodeChange', { newEpisode: newEpisode }), 'info');
+
+                    // Update the episode variable to the new episode
+                    const oldEpisode = episode;
+                    episode = newEpisode;
+
+                    // Update progress for the previous episode if it wasn't marked as watched
+                    if (!hasMarkedAsWatched && oldEpisode !== newEpisode) {
+                      // Temporarily revert episode to old value to mark it as watched
+                      const currentEpisodeValue = episode;
+                      episode = oldEpisode;
+                      await markAsWatched();
+                      // Restore the new episode value
+                      episode = currentEpisodeValue;
+                    }
+
+                    // Reset watched status for the new episode
+                    hasMarkedAsWatched = false;
+                    watchedPositions.clear();
+                    lastProgressUpdate = Date.now();
+                  }
+                } else {
+                  logMessage(Localization.get('playerCurrentEpisode'), 'info');
+                }
                 break;
             }
           }
