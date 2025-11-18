@@ -380,6 +380,18 @@ class KodikPlayer {
                 case 'flow_switch':
                   logMessage('DEBUG: flow_switch - episode switched', 'debug');
                   break;
+                case 'flow_episode_change':
+                  logMessage('DEBUG: flow_episode_change - episode change event', 'debug');
+                  break;
+                case 'flow_video_change':
+                  logMessage('DEBUG: flow_video_change - video change event', 'debug');
+                  break;
+                case 'flow_next_video':
+                  logMessage('DEBUG: flow_next_video - next video event', 'debug');
+                  break;
+                case 'flow_prev_video':
+                  logMessage('DEBUG: flow_prev_video - previous video event', 'debug');
+                  break;
                 default:
                   logMessage(Localization.get('playerUnknownStringMessage', { message: event.data }), 'debug');
               }
@@ -404,6 +416,11 @@ class KodikPlayer {
             switch(data.key) {
               case 'kodik_player_duration_update':
                 if (typeof data.value === 'number') {
+                  // Проверяем, возможно, это указывает на смену эпизода
+                  if (videoDuration > 0 && Math.abs(videoDuration - data.value) > 10) { // Если продолжительность изменилась значительно
+                    logMessage(`DEBUG: Possible episode change detected - duration changed from ${videoDuration} to ${data.value}`, 'debug');
+                  }
+
                   videoDuration = data.value;
                   const { minutes, seconds } = formatTime(data.value);
                   logMessage(Localization.get('playerDurationUpdated', { minutes: minutes, seconds: seconds }), 'info');
@@ -422,6 +439,16 @@ class KodikPlayer {
                     }), 'debug');
                     this.lastTimeUpdateMessage = now;
                   }
+
+                  // Проверяем, возможно произошла смена видео/эпизода
+                  // Если текущее время намного меньше предыдущего, возможно, видео сменилось
+                  if (typeof this.lastTimeValue !== 'undefined' && this.lastTimeValue > 300 && data.value < 30) {
+                    logMessage(`DEBUG: Possible episode change detected - time changed from ${this.lastTimeValue} to ${data.value}`, 'debug');
+                  }
+
+                  // Обновляем последнее значение времени
+                  this.lastTimeValue = data.value;
+
                   if (videoDuration > 0) {
                     checkProgress(data.value, videoDuration);
                     lastProgressUpdate = Date.now();
@@ -433,6 +460,18 @@ class KodikPlayer {
                 break;
               case 'kodik_player_play':
                 logMessage(Localization.get('playerVideoPlay'), 'info');
+                break;
+              case 'kodik_player_seek':
+                logMessage(`DEBUG: kodik_player_seek received with value: ${JSON.stringify(data.value)}`, 'debug');
+                // Может содержать информацию о новом эпизоде при переключении
+                if (data.value && typeof data.value === 'object') {
+                  if (data.value.time !== undefined) {
+                    logMessage(`DEBUG: Seek to time: ${data.value.time}`, 'debug');
+                  }
+                  if (data.value.episode !== undefined) {
+                    logMessage(`DEBUG: Seek includes episode info: ${data.value.episode}`, 'debug');
+                  }
+                }
                 break;
               case 'kodik_player_advert_ended':
                 logMessage(Localization.get('playerAdvertEnded'), 'info');
@@ -484,11 +523,65 @@ class KodikPlayer {
                 if (typeof data.value === 'object' && data.value) {
                   logMessage(`DEBUG: Episode switch details: ${JSON.stringify(data.value)}`, 'debug');
                   // Возможно, здесь есть информация о новой серии
-                  if (data.value.episode || data.value.new_episode) {
-                    const newEpisode = parseInt(data.value.episode || data.value.new_episode);
+                  if (data.value.episode || data.value.new_episode || data.value.target_episode) {
+                    const newEpisode = parseInt(data.value.episode || data.value.new_episode || data.value.target_episode);
                     if (!isNaN(newEpisode) && newEpisode !== episode) {
                       logMessage(`DEBUG: Detected episode switch to ${newEpisode}`, 'debug');
-                      // Здесь возможно нужно обновить данные, как при kodik_player_current_episode
+
+                      // Обновляем эпизод и сбрасываем состояние, как при kodik_player_current_episode
+                      const oldEpisode = episode;
+                      episode = newEpisode;
+
+                      // Update progress for the previous episode if it wasn't marked as watched
+                      if (!hasMarkedAsWatched && oldEpisode !== newEpisode) {
+                        logMessage(`DEBUG: Marking old episode ${oldEpisode} as watched`, 'debug');
+                        // Temporarily revert episode to old value to mark it as watched
+                        const currentEpisodeValue = episode;
+                        episode = oldEpisode;
+                        await markAsWatched();
+                        // Restore the new episode value
+                        episode = currentEpisodeValue;
+                      }
+
+                      // Reset watched status for the new episode
+                      hasMarkedAsWatched = false;
+                      watchedPositions.clear();
+                      lastProgressUpdate = Date.now();
+                      logMessage(`DEBUG: Reset states for new episode ${episode}. hasMarkedAsWatched: ${hasMarkedAsWatched}`, 'debug');
+                    }
+                  }
+                }
+                break;
+              case 'kodik_player_video_change':
+                logMessage('DEBUG: kodik_player_video_change - video changed', 'debug');
+                // Может содержать информацию о новом видео/эпизоде
+                if (typeof data.value === 'object' && data.value) {
+                  logMessage(`DEBUG: Video change details: ${JSON.stringify(data.value)}`, 'debug');
+                  if (data.value.episode || data.value.video_episode) {
+                    const newEpisode = parseInt(data.value.episode || data.value.video_episode);
+                    if (!isNaN(newEpisode) && newEpisode !== episode) {
+                      logMessage(`DEBUG: Detected video change to episode ${newEpisode}`, 'debug');
+
+                      // Обновляем эпизод и сбрасываем состояние
+                      const oldEpisode = episode;
+                      episode = newEpisode;
+
+                      // Update progress for the previous episode if it wasn't marked as watched
+                      if (!hasMarkedAsWatched && oldEpisode !== newEpisode) {
+                        logMessage(`DEBUG: Marking old episode ${oldEpisode} as watched`, 'debug');
+                        // Temporarily revert episode to old value to mark it as watched
+                        const currentEpisodeValue = episode;
+                        episode = oldEpisode;
+                        await markAsWatched();
+                        // Restore the new episode value
+                        episode = currentEpisodeValue;
+                      }
+
+                      // Reset watched status for the new episode
+                      hasMarkedAsWatched = false;
+                      watchedPositions.clear();
+                      lastProgressUpdate = Date.now();
+                      logMessage(`DEBUG: Reset states for new episode ${episode}. hasMarkedAsWatched: ${hasMarkedAsWatched}`, 'debug');
                     }
                   }
                 }
