@@ -178,19 +178,27 @@ class KodikPlayer {
 
       // Функция для пометки эпизода как просмотренного
       const markAsWatched = async () => {
+        logMessage(`DEBUG: markAsWatched called for episode ${episode}, hasMarkedAsWatched: ${hasMarkedAsWatched}`, 'debug');
+
         // Проверяем, не превышает ли текущая серия максимум для этого аниме
         if (maxEpisodes > 0 && episode > maxEpisodes) {
-          logMessage(Localization.get('playerEpisodeExceedsMax', { 
-            episode: episode, 
-            maxEpisodes: maxEpisodes 
+          logMessage(Localization.get('playerEpisodeExceedsMax', {
+            episode: episode,
+            maxEpisodes: maxEpisodes
           }), 'warn');
           return false; // Не отмечаем серию как просмотренную
         }
-        
-        if (hasMarkedAsWatched) return;
+
+        if (hasMarkedAsWatched) {
+          logMessage(`DEBUG: markAsWatched - episode ${episode} already marked as watched, returning`, 'debug');
+          return false;
+        }
+
         const isAuthenticated = await OAuthHandler.isAuthenticated();
         if (isAuthenticated) {
           const animeTitle = await getAnimeTitle(animeId);
+          logMessage(`DEBUG: Attempting to update progress for episode ${episode} of anime ${animeId}`, 'debug');
+
           const success = await ShikimoriAPI.updateEpisodeProgress(animeId, episode);
           if (success) {
             // Reset auth cache since authentication state may have changed
@@ -198,28 +206,39 @@ class KodikPlayer {
             OAuthHandler.lastAuthResult = null;
             logMessage(Localization.get('playerMarkSuccess', { episode: episode, title: animeTitle }), 'success');
             hasMarkedAsWatched = true;
+            logMessage(`DEBUG: Successfully marked episode ${episode} as watched`, 'debug');
             setTimeout(cleanup, 1000);
             return true;
           } else {
             logMessage(Localization.get('failedToUpdateProgress', { animeId: animeId, episode: episode }), 'warn');
+            logMessage(`DEBUG: Failed to update progress for episode ${episode}`, 'debug');
           }
         } else {
           logMessage(Localization.get('playerCannotMark'), 'error');
+          logMessage(`DEBUG: Cannot mark episode ${episode} as watched - not authenticated`, 'debug');
         }
         return false;
       };
 
       // Более точная проверка прогресса
       const checkProgress = async (currentTime, duration) => {
-        if (hasMarkedAsWatched || !duration) return;
+        logMessage(`DEBUG: checkProgress called for episode ${episode}, currentTime: ${currentTime}, duration: ${duration}, hasMarkedAsWatched: ${hasMarkedAsWatched}`, 'debug');
+
+        if (hasMarkedAsWatched || !duration) {
+          logMessage(`DEBUG: checkProgress - returning early. hasMarkedAsWatched: ${hasMarkedAsWatched}, duration: ${duration}`, 'debug');
+          return;
+        }
 
         // Check if auto-marking is enabled
         if (!Settings.getSetting('autoMarkEnabled')) {
+          logMessage(`DEBUG: checkProgress - auto-marking disabled`, 'debug');
           return;
         }
 
         const progress = currentTime / duration;
         const progressPercentage = Math.round(progress * 100);
+        logMessage(`DEBUG: Progress for episode ${episode}: ${progressPercentage}% (${currentTime}/${duration})`, 'debug');
+
         KodikPlayer.logProgress(animeId, episode, currentTime, duration, progress);
 
         // Initialize progress milestone tracking if not exists
@@ -229,20 +248,24 @@ class KodikPlayer {
 
         // Create a unique key for this episode
         const episodeKey = `${animeId}-${episode}`;
+        logMessage(`DEBUG: Episode key: ${episodeKey}`, 'debug');
 
         // Initialize milestone tracking for this episode if needed
         if (!KodikPlayer.progressMilestones[episodeKey]) {
           KodikPlayer.progressMilestones[episodeKey] = [];
+          logMessage(`DEBUG: Initialized milestones for ${episodeKey}`, 'debug');
         }
 
         // Show progress percentage message every 10% threshold
         const currentMilestone = Math.floor(progressPercentage / 10) * 10;
         const hasReachedMilestone = KodikPlayer.progressMilestones[episodeKey].includes(currentMilestone);
+        logMessage(`DEBUG: Current milestone: ${currentMilestone}, reached: ${hasReachedMilestone}`, 'debug');
 
         if (progressPercentage > 0 && currentMilestone > 0 && !hasReachedMilestone && currentMilestone % 10 === 0) {
           // Mark this milestone as reached
           KodikPlayer.progressMilestones[episodeKey].push(currentMilestone);
           KodikPlayer.progressMilestones[episodeKey].sort((a, b) => a - b);
+          logMessage(`DEBUG: Marked milestone ${currentMilestone} for episode ${episode}`, 'debug');
 
           logMessage(Localization.get('playerProgressMilestone', { episode: episode, milestone: currentMilestone }), 'info');
         }
@@ -252,6 +275,7 @@ class KodikPlayer {
         if (progress >= progressThreshold && !hasMarkedAsWatched) {
           const thresholdPercent = Math.round(progressThreshold * 100);
           if (progressPercentage >= thresholdPercent && progressPercentage < thresholdPercent + 5) { // Only log once
+            logMessage(`DEBUG: Progress threshold (${thresholdPercent}%) reached for episode ${episode}`, 'debug');
             logMessage(Localization.get('playerThresholdReached', {
               episode: episode,
               threshold: thresholdPercent
@@ -260,11 +284,17 @@ class KodikPlayer {
         }
 
         if (progress >= progressThreshold) {
+          logMessage(`DEBUG: Progress (${progressPercentage}%) >= threshold (${Math.round(progressThreshold * 100)}%) for episode ${episode}`, 'debug');
           const roundedPosition = Math.round(currentTime / 10) * 10;
           if (!watchedPositions.has(roundedPosition)) {
             watchedPositions.add(roundedPosition);
+            logMessage(`DEBUG: New watched position ${roundedPosition} for episode ${episode}, calling markAsWatched`, 'debug');
             await markAsWatched();
+          } else {
+            logMessage(`DEBUG: Position ${roundedPosition} already tracked for episode ${episode}`, 'debug');
           }
+        } else {
+          logMessage(`DEBUG: Progress (${progressPercentage}%) < threshold (${Math.round(progressThreshold * 100)}%) for episode ${episode}`, 'debug');
         }
       };
 
@@ -293,6 +323,9 @@ class KodikPlayer {
       const processSingleMessage = async (event) => {
         if (event.origin !== 'https://kodik.info') return;
 
+        // Отладка - логируем все сообщения от Kodik
+        logMessage(`DEBUG: Raw message received from Kodik: ${typeof event.data === 'string' ? event.data : JSON.stringify(event.data)}`, 'debug');
+
         let data;
         try {
           // Пытаемся определить тип данных и безопасно распарсить
@@ -305,6 +338,7 @@ class KodikPlayer {
               // Обрабатываем специфические строковые сообщения от Kodik
               switch(event.data) {
                 case 'flow_progress':
+                  logMessage('DEBUG: flow_progress received', 'debug');
                   // Прогресс может означать обновление времени, проверим прогресс если знаем продолжительность
                   if (videoDuration > 0) {
                     // Мы не знаем точное текущее время, но можем периодически проверять
@@ -321,13 +355,30 @@ class KodikPlayer {
                   logMessage(Localization.get('playerFlowResume'), 'debug');
                   break;
                 case 'flow_beforeseek':
+                  logMessage('DEBUG: flow_beforeseek - seek operation starting', 'debug');
                   logMessage(Localization.get('playerFlowSeekStarted'), 'debug');
                   break;
                 case 'flow_seek':
+                  logMessage('DEBUG: flow_seek - seek operation completed', 'debug');
                   logMessage(Localization.get('playerFlowSeekCompleted'), 'debug');
                   break;
                 case 'flow_pause':
                   logMessage(Localization.get('playerFlowPause'), 'debug');
+                  break;
+                case 'flow_start':
+                  logMessage('DEBUG: flow_start - playback started', 'debug');
+                  break;
+                case 'flow_stop':
+                  logMessage('DEBUG: flow_stop - playback stopped', 'debug');
+                  break;
+                case 'flow_next':
+                  logMessage('DEBUG: flow_next - next episode requested', 'debug');
+                  break;
+                case 'flow_prev':
+                  logMessage('DEBUG: flow_prev - previous episode requested', 'debug');
+                  break;
+                case 'flow_switch':
+                  logMessage('DEBUG: flow_switch - episode switched', 'debug');
                   break;
                 default:
                   logMessage(Localization.get('playerUnknownStringMessage', { message: event.data }), 'debug');
@@ -338,15 +389,18 @@ class KodikPlayer {
             data = event.data;
           } else {
             // Неизвестный формат данных
+            logMessage(`DEBUG: Unknown data format: ${typeof event.data}`, 'debug');
             return;
           }
           // Проверяем, что data является объектом и имеет тип
           if (!data || typeof data !== 'object') {
+            logMessage(`DEBUG: Data is null or not an object: ${data}`, 'debug');
             return;
           }
 
           // Обработка сообщений в формате Kodik плеера с ключами типа "kodik_player_..."
           if (data.key && typeof data.key === 'string') {
+            logMessage(`DEBUG: Kodik-specific message: ${data.key}, value: ${JSON.stringify(data.value)}`, 'debug');
             switch(data.key) {
               case 'kodik_player_duration_update':
                 if (typeof data.value === 'number') {
@@ -384,32 +438,59 @@ class KodikPlayer {
                 logMessage(Localization.get('playerAdvertEnded'), 'info');
                 break;
               case 'kodik_player_current_episode':
+                logMessage(`DEBUG: kodik_player_current_episode received. Raw data: ${JSON.stringify(data)}`, 'debug');
+
                 if (typeof data.value === 'number' || typeof data.value === 'string') {
                   const newEpisode = parseInt(data.value);
+                  logMessage(`DEBUG: Parsed newEpisode: ${newEpisode}, current episode: ${episode}`, 'debug');
+
                   if (!isNaN(newEpisode) && newEpisode !== episode) {
                     logMessage(Localization.get('playerCurrentEpisodeChange', { newEpisode: newEpisode }), 'info');
 
                     // Update the episode variable to the new episode
                     const oldEpisode = episode;
+                    logMessage(`DEBUG: Switching from episode ${oldEpisode} to episode ${newEpisode}`, 'debug');
+
                     episode = newEpisode;
 
                     // Update progress for the previous episode if it wasn't marked as watched
                     if (!hasMarkedAsWatched && oldEpisode !== newEpisode) {
+                      logMessage(`DEBUG: Marking old episode ${oldEpisode} as watched`, 'debug');
                       // Temporarily revert episode to old value to mark it as watched
                       const currentEpisodeValue = episode;
                       episode = oldEpisode;
                       await markAsWatched();
                       // Restore the new episode value
                       episode = currentEpisodeValue;
+                    } else {
+                      logMessage(`DEBUG: Old episode ${oldEpisode} was already marked as watched or episodes are the same`, 'debug');
                     }
 
                     // Reset watched status for the new episode
                     hasMarkedAsWatched = false;
                     watchedPositions.clear();
                     lastProgressUpdate = Date.now();
+                    logMessage(`DEBUG: Reset states for new episode ${episode}. hasMarkedAsWatched: ${hasMarkedAsWatched}`, 'debug');
+                  } else {
+                    logMessage(`DEBUG: No change needed - newEpisode (${newEpisode}) is same as current episode (${episode}) or is NaN`, 'debug');
                   }
                 } else {
                   logMessage(Localization.get('playerCurrentEpisode'), 'info');
+                }
+                break;
+              case 'kodik_player_episode_switch':
+                logMessage('DEBUG: kodik_player_episode_switch - episode switched via player UI', 'debug');
+                // Этот случай может быть важен для отслеживания переключения серий
+                if (typeof data.value === 'object' && data.value) {
+                  logMessage(`DEBUG: Episode switch details: ${JSON.stringify(data.value)}`, 'debug');
+                  // Возможно, здесь есть информация о новой серии
+                  if (data.value.episode || data.value.new_episode) {
+                    const newEpisode = parseInt(data.value.episode || data.value.new_episode);
+                    if (!isNaN(newEpisode) && newEpisode !== episode) {
+                      logMessage(`DEBUG: Detected episode switch to ${newEpisode}`, 'debug');
+                      // Здесь возможно нужно обновить данные, как при kodik_player_current_episode
+                    }
+                  }
                 }
                 break;
             }
@@ -417,6 +498,7 @@ class KodikPlayer {
           // Обработка сообщений в старом формате на случай обратной совместимости
           else if (data.type === 'player_state' || (data.event && data.event === 'player_state')) {
             logMessage(Localization.get('playerLegacyState'), 'debug');
+            logMessage(`DEBUG: Legacy player_state data: ${JSON.stringify(data)}`, 'debug');
             const duration = data.duration || (data.metadata && data.metadata.duration) || data.videoDuration;
             const currentTime = data.currentTime || data.videoCurrentTime || data.position;
 
@@ -432,6 +514,7 @@ class KodikPlayer {
           }
           else if (data.type === 'video_progress' || data.event === 'video_progress' || data.event === 'progress') {
             logMessage(Localization.get('playerVideoProgress'), 'debug');
+            logMessage(`DEBUG: Video progress data: ${JSON.stringify(data)}`, 'debug');
             const progress = data.progress || (data.percent && data.percent / 100) || data.value;
             if (typeof progress === 'number') {
               const normalizedProgress = Math.max(0, Math.min(1, progress));
@@ -450,6 +533,7 @@ class KodikPlayer {
           }
           else if (data.event === 'timeupdate' || data.type === 'timeupdate') {
             logMessage(Localization.get('playerTimeUpdate'), 'debug');
+            logMessage(`DEBUG: Time update data: ${JSON.stringify(data)}`, 'debug');
             const currentTime = data.currentTime || data.position;
             const duration = data.duration || videoDuration;
             if (typeof currentTime === 'number' && typeof duration === 'number') {
@@ -472,6 +556,7 @@ class KodikPlayer {
           // Additional message type support for different Kodik player versions
           else if (data.event && typeof data.event === 'string') {
             logMessage(Localization.get('playerUnknownEvent', { event: data.event }), 'debug');
+            logMessage(`DEBUG: Unknown event data: ${JSON.stringify(data)}`, 'debug');
             // Some players might send different event names
             if (['video_ended', 'ended', 'complete', 'finished'].includes(data.event)) {
               logMessage(Localization.get('playerVideoEnded'), 'info');
@@ -485,6 +570,7 @@ class KodikPlayer {
           }
         } catch (e) {
           logMessage(Localization.get('playerErrorMessage', { message: e.message }), 'error');
+          logMessage(`DEBUG: Error processing message: ${e.message}`, 'debug');
         }
       };
 
