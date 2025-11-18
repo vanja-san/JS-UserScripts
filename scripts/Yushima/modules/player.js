@@ -224,8 +224,32 @@ class KodikPlayer {
       const checkProgress = async (currentTime, duration) => {
         logMessage(`DEBUG: checkProgress called for episode ${episode}, currentTime: ${currentTime}, duration: ${duration}, hasMarkedAsWatched: ${hasMarkedAsWatched}`, 'debug');
 
-        if (hasMarkedAsWatched || !duration) {
-          logMessage(`DEBUG: checkProgress - returning early. hasMarkedAsWatched: ${hasMarkedAsWatched}, duration: ${duration}`, 'debug');
+        if (!duration) {
+          logMessage(`DEBUG: checkProgress - returning early, no duration`, 'debug');
+          return;
+        }
+
+        // Проверяем, возможно, произошло переключение эпизода
+        // Если текущее время низкое, но до этого мы уже были в продвинутой позиции
+        if (currentTime < 30 && this.lastTimeValue > 300) {  // Если время сбросилось с поздней позиции на раннюю
+          logMessage(`DEBUG: Potential episode change detected in checkProgress - time reset from ${this.lastTimeValue} to ${currentTime}`, 'debug');
+
+          // Отмечаем предыдущий эпизод как просмотренный
+          if (!hasMarkedAsWatched) {
+            logMessage(`DEBUG: Marking previous episode ${episode} as watched due to potential episode change`, 'debug');
+            await markAsWatched();
+          }
+
+          // Возможность обновления эпизода - но мы не знаем, какой именно эпизод сейчас
+          // Это может быть следующий эпизод или любой другой
+          // Пока просто сбросим состояние для текущего эпизода, чтобы избежать неправильного отслеживания
+          hasMarkedAsWatched = false;
+          watchedPositions.clear();
+          lastProgressUpdate = Date.now();
+        }
+
+        if (hasMarkedAsWatched) {
+          logMessage(`DEBUG: checkProgress - episode already marked as watched`, 'debug');
           return;
         }
 
@@ -693,11 +717,54 @@ class KodikPlayer {
 
       // Add message handler
       window.addEventListener('message', messageHandler);
-      
+
+      // Добавляем отслеживание кнопок переключения серий на странице
+      const setupSeriesSwitchTracking = () => {
+        // Ищем кнопки переключения серий на странице
+        const nextButton = document.querySelector('.serial-next-button');
+        const prevButton = document.querySelector('.serial-prev-button');
+
+        if (nextButton) {
+          nextButton.addEventListener('click', () => {
+            logMessage(`DEBUG: Next episode button clicked`, 'debug');
+            // При нажатии на кнопку "следующая серия" отмечаем текущую как просмотренную
+            if (!hasMarkedAsWatched) {
+              logMessage(`DEBUG: Marking current episode ${episode} as watched due to next button click`, 'debug');
+              markAsWatched();
+            }
+
+            // После нажатия кнопки происходит изменение, но мы не знаем какое
+            // Сбрасываем текущее состояние
+            hasMarkedAsWatched = false;
+            watchedPositions.clear();
+            lastProgressUpdate = Date.now();
+          });
+        }
+
+        if (prevButton) {
+          prevButton.addEventListener('click', () => {
+            logMessage(`DEBUG: Previous episode button clicked`, 'debug');
+            // При нажатии на кнопку "предыдущая серия" также сбрасываем состояние
+            if (!hasMarkedAsWatched) {
+              logMessage(`DEBUG: Marking current episode ${episode} as watched due to prev button click`, 'debug');
+              markAsWatched();
+            }
+
+            // Сбрасываем текущее состояние
+            hasMarkedAsWatched = false;
+            watchedPositions.clear();
+            lastProgressUpdate = Date.now();
+          });
+        }
+      };
+
+      // Вызываем функцию отслеживания с небольшой задержкой, чтобы кнопки успели загрузиться
+      setTimeout(setupSeriesSwitchTracking, 2000);
+
       let activityCheckInterval;
       let backupCheckInterval;
       let observer;
-      
+
       // Timer to check viewing activity
       activityCheckInterval = setInterval(() => {
         if (hasMarkedAsWatched) {
@@ -710,7 +777,7 @@ class KodikPlayer {
           watchedPositions.clear();
         }
       }, 60000);
-      
+
       // Backup check as fallback method for completion
       backupCheckInterval = setInterval(async () => {
         if (hasMarkedAsWatched) {
@@ -728,7 +795,7 @@ class KodikPlayer {
           }
         }
       }, 120000);
-      
+
       // Cleanup resources when player is removed
       observer = new MutationObserver((mutations) => {
         mutations.forEach(mutation => {
