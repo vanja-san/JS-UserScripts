@@ -10,11 +10,19 @@ window.pluralize = (number, forms) => {
   return forms[2];
 };
 
-window.createPluralizationTemplates = (units) => 
+window.createPluralizationTemplates = (units) =>
   units.map(({en, ru}) => ({
     pattern: new RegExp(`(\\d+)\\s*${en}`, 'gi'),
     replacer: (match, count) => {
-      const num = parseInt(count);
+      // Validate inputs to prevent injection
+      const numStr = count.toString();
+      if (numStr.length > 10 || !/^\d+$/.test(numStr)) {
+        return match; // Return original if invalid
+      }
+      const num = parseInt(numStr);
+      if (isNaN(num) || num < 0 || num > 1000000) {
+        return match; // Return original if number is out of range
+      }
       return `${num} ${window.pluralize(num, ru)}`;
     }
   }));
@@ -49,14 +57,34 @@ window.DYNAMIC_TEMPLATES = [
   ]),
   {
     pattern: /(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s*(\d{4})/gi,
-    replacer: (match, day, month, year) =>
-    `${day} ${window.NRL_TRANSLATIONS?.months[month] || month} ${year}`
+    replacer: (match, day, month, year) => {
+      // Validate inputs to prevent injection
+      const dayStr = day.toString();
+      const yearStr = year.toString();
+      if (dayStr.length > 2 || yearStr.length > 4 || !/^\d+$/.test(dayStr) || !/^\d+$/.test(yearStr)) {
+        return match; // Return original if invalid
+      }
+      const dayNum = parseInt(dayStr);
+      const yearNum = parseInt(yearStr);
+      if (isNaN(dayNum) || dayNum < 1 || dayNum > 31 || isNaN(yearNum) || yearNum < 1000 || yearNum > 9999) {
+        return match; // Return original if number is out of range
+      }
+      return `${dayNum} ${window.NRL_TRANSLATIONS?.months[month] || month} ${yearNum}`;
+    }
   },
   // Универсальный шаблон для всех временных интервалов с ago
   {
     pattern: /(\d+)[\s\u00A0]+(second|minute|hour|day|week|month|year)s?[\s\u00A0]+ago/gi,
     replacer: (match, count, unit) => {
-      const num = parseInt(count);
+      // Validate inputs to prevent injection
+      const countStr = count.toString();
+      if (countStr.length > 10 || !/^\d+$/.test(countStr)) {
+        return match; // Return original if invalid
+      }
+      const num = parseInt(countStr);
+      if (isNaN(num) || num < 0 || num > 1000000) {
+        return match; // Return original if number is out of range
+      }
       const units = {
         second: ['секунду', 'секунды', 'секунд'],
         minute: ['минуту', 'минуты', 'минут'],
@@ -74,7 +102,15 @@ window.DYNAMIC_TEMPLATES = [
   {
     pattern: /(\d+)[\s\u00A0]+(second|minute|hour|day|week|month|year)s?[\s\u00A0]+(to|through|before)/gi,
     replacer: (match, count, unit, prep) => {
-      const num = parseInt(count);
+      // Validate inputs to prevent injection
+      const countStr = count.toString();
+      if (countStr.length > 10 || !/^\d+$/.test(countStr)) {
+        return match; // Return original if invalid
+      }
+      const num = parseInt(countStr);
+      if (isNaN(num) || num < 0 || num > 1000000) {
+        return match; // Return original if number is out of range
+      }
       const units = {
         second: ['секунду', 'секунды', 'секунд'],
         minute: ['минуту', 'минуты', 'минут'],

@@ -227,7 +227,7 @@ class TranslationEngine {
       // Don't use WeakSet for text nodes as they get recreated frequently
       // Instead, compare the text content to see if it's been processed
       const originalText = node.textContent;
-      let text = originalText.trim();
+      let text = originalText?.toString().trim();
       if (!text) return false;
 
       // Быстрая проверка: проверяем длину текста для безопасности
@@ -255,6 +255,10 @@ class TranslationEngine {
         }
       }
 
+      // Санитизируем текст перед использованием
+      text = this.sanitizeText(text);
+      if (!text) return false;
+
       // 1. Сначала проверяем кэш (наиболее быстрая операция)
       let cachedTranslation = await this.#cache.getCachedTranslation(text);
       if (cachedTranslation && cachedTranslation !== text) {
@@ -272,11 +276,13 @@ class TranslationEngine {
 
       // 3. Затем проверяем контекстные правила
       const element = node.parentNode;
-      const contextualResult = this.#contextMatcher?.findTranslation(text, element);
-      if (contextualResult) {
-        node.textContent = contextualResult.translation;
-        await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
-        return true;
+      if (element) {
+        const contextualResult = this.#contextMatcher?.findTranslation(text, element);
+        if (contextualResult) {
+          node.textContent = contextualResult.translation;
+          await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
+          return true;
+        }
       }
 
       // 4. Пробуем применить динамические шаблоны
@@ -292,6 +298,23 @@ class TranslationEngine {
       console.warn('Error translating text node:', error, node);
       return false;
     }
+  }
+
+  /**
+   * Санитизирует текст для безопасности
+   * @param {string} text - текст для санитизации
+   * @returns {string} - безопасный текст
+   */
+  sanitizeText(text) {
+    if (typeof text !== 'string') return '';
+
+    // Удаляем потенциально опасные символы
+    return text
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '') // Control characters
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Script tags
+      .replace(/javascript:/gi, '') // JavaScript URLs
+      .replace(/vbscript:/gi, '') // VBScript URLs
+      .replace(/on\w+\s*=/gi, ''); // Event handlers
   }
 
   /**
@@ -508,26 +531,37 @@ class TranslationEngine {
   async translateElementBatch(elements) {
     try {
       // Ограничение общего количества элементов для обработки
-      const maxElementsToProcess = 5000;
+      const maxElementsToProcess = window.CONFIG?.MAX_ELEMENTS_PER_BATCH || 5000;
       const elementsToProcess = elements.length > maxElementsToProcess
         ? elements.slice(0, maxElementsToProcess)
         : [...elements]; // создаем копию чтобы избежать изменений исходного массива
 
       const batchSize = window.CONFIG?.BATCH_SIZE || 30; // Updated default
-      const batchDelay = window.CONFIG?.BATCH_DELAY || 10; // Updated default
+      const batchDelay = window.CONFIG?.BATCH_DELAY || 5; // Reduced default for better performance
+      const startTime = performance.now();
 
       // Обрабатываем элементы батчами для уменьшения нагрузки на DOM
       for (let i = 0; i < elementsToProcess.length; i += batchSize) {
         const batch = elementsToProcess.slice(i, i + batchSize);
 
-        // Выполняем перевод элементов последовательно, а не параллельно, чтобы уменьшить нагрузку
+        // Perform translation with performance tracking
+        const batchStartTime = performance.now();
         for (const element of batch) {
           await this.translateNode(element);
         }
 
-        // Даем браузеру возможность обработать другие события
-        if (batchDelay > 0) {
-          await new Promise(resolve => setTimeout(resolve, batchDelay));
+        // If this batch took too long, reduce the delay to yield control to the browser
+        const batchTime = performance.now() - batchStartTime;
+        if (batchTime > 16) { // If batch took more than 1 frame (60fps), yield immediately
+          await new Promise(resolve => setTimeout(resolve, 1)); // Minimal delay for browser to handle events
+        } else if (batchDelay > 0) {
+          // Сравниваем время выполнения и адаптивно уменьшаем задержку при быстрых вычислениях
+          const currentTime = performance.now();
+          if (currentTime - startTime > 16) { // Если уже прошло более 16ms (1 фрейм), уменьшаем задержку
+            await new Promise(resolve => setTimeout(resolve, Math.max(1, batchDelay / 2)));
+          } else {
+            await new Promise(resolve => setTimeout(resolve, batchDelay));
+          }
         }
       }
     } catch (error) {

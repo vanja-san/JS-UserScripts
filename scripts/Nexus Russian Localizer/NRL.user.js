@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.6.1
+// @version         2.6.2
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -37,7 +37,7 @@
 
       // Инициализируем контекстный матчинг
       const contextMatcher = new ContextMatcher(window.NRL_TRANSLATIONS);
-      
+
       const translator = new TranslationEngine(cache);
       translator.contextMatcher = contextMatcher; // Устанавливаем после инициализации
 
@@ -123,22 +123,25 @@
 
               if (node.nodeType === Node.ELEMENT_NODE &&
                   node.classList &&
+                  node.classList.length > 0 &&
                   window.IGNORED_CLASSES) {
-                // Проверяем, есть ли классы, которые нужно всегда переводить
+                // Проверяем, есть ли классы, которые нужно всегда переводить (оптимизированная проверка)
+                const classesArray = Array.from(node.classList);
+                const alwaysTranslateClasses = window.ALWAYS_TRANSLATE_CLASSES || new Set();
+
                 let alwaysTranslate = false;
-                if (window.ALWAYS_TRANSLATE_CLASSES) {
-                  for (let i = 0; i < node.classList.length; i++) {
-                    if (window.ALWAYS_TRANSLATE_CLASSES.has(node.classList[i])) {
-                      alwaysTranslate = true;
-                      break;
-                    }
+                for (const cls of classesArray) {
+                  if (alwaysTranslateClasses.has(cls)) {
+                    alwaysTranslate = true;
+                    break;
                   }
                 }
 
-                // Если не всегда переводить, проверяем игнорируемые классы
+                // Если не всегда переводить, проверяем игнорируемые классы (оптимизированная проверка)
                 if (!alwaysTranslate && window.IGNORED_CLASSES) {
-                  for (let i = 0; i < node.classList.length; i++) {
-                    if (window.IGNORED_CLASSES.has(node.classList[i])) {
+                  const ignoredClasses = window.IGNORED_CLASSES;
+                  for (const cls of classesArray) {
+                    if (ignoredClasses.has(cls)) {
                       return NodeFilter.FILTER_REJECT;
                     }
                   }
@@ -160,8 +163,11 @@
         );
 
         let node;
-        while (node = walker.nextNode()) {
+        let count = 0; // Ограничение количества узлов для производительности
+        const maxNodes = window.CONFIG?.MAX_NODES_PER_WALK || 10000;
+        while (node = walker.nextNode() && count < maxNodes) {
           allElements.push(node);
+          count++;
         }
 
         await translator.translateElementBatch(allElements);
@@ -174,6 +180,9 @@
         }
         translator.cleanup();
       });
+
+      // Debug: log initialization success
+      console.log('NRL: Инициализация успешно завершена');
 
     } catch (error) {
       console.error('Ошибка инициализации:', error);
@@ -335,6 +344,44 @@
       simpleTranslate(document.body);
     }
   }
+
+  // Debug utility functions
+  window.NRL_DEBUG = {
+    enabled: false,
+    log: function(...args) {
+      if (this.enabled) {
+        console.log('[NRL Debug]', ...args);
+      }
+    },
+    time: function(label) {
+      if (this.enabled) {
+        console.time('[NRL Debug] ' + label);
+      }
+    },
+    timeEnd: function(label) {
+      if (this.enabled) {
+        console.timeEnd('[NRL Debug] ' + label);
+      }
+    },
+    enable: function() {
+      this.enabled = true;
+      console.log('[NRL Debug] Debug mode enabled');
+    },
+    disable: function() {
+      this.enabled = false;
+      console.log('[NRL Debug] Debug mode disabled');
+    },
+    performanceReport: function() {
+      const performanceData = {
+        'IndexedDB Available': 'indexedDB' in window,
+        'Web Workers Available': 'Worker' in window,
+        'Memory Cache Size': window.templateCache?.size || 0,
+        'Context Cache Size': window.contextCheckCache?.size || 0,
+        'Heading Elements Cache Size': window.headingElementsCache?.size || 0
+      };
+      console.table(performanceData);
+    }
+  };
 
   // Функция для получения приоритетных элементов
   function getPriorityElements() {

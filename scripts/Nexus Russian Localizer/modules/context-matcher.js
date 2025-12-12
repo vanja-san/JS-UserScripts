@@ -63,6 +63,9 @@ class ContextMatcher {
       return [];
     }
 
+    // Sanitize the selector to prevent injection
+    selector = this.sanitizeSelector(selector);
+
     // Improved selector parsing to handle more complex selectors
     return selector.split('>').map(part => {
       // Ограничиваем количество частей селектора для безопасности
@@ -91,10 +94,39 @@ class ContextMatcher {
         console.warn('Invalid tag in selector:', tag);
         return null;
       }
-      const classes = parts.slice(1); // handle multiple classes properly
+      // Sanitize class names
+      const classes = parts.slice(1).map(className => this.sanitizeClassName(className.trim())).filter(Boolean);
 
       return { tag, classes: classes.length > 0 ? classes : null };
     }).filter(part => part !== null); // фильтруем невалидные части
+  }
+
+  /**
+   * Sanitizes a CSS selector to prevent injection
+   * @param {string} selector - selector to sanitize
+   * @returns {string} - sanitized selector
+   */
+  sanitizeSelector(selector) {
+    if (typeof selector !== 'string') return '';
+
+    // Remove potential dangerous characters but preserve valid CSS selectors
+    return selector
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Control characters
+      .replace(/<|>/g, '') // Angle brackets
+      .replace(/\bjavascript:/gi, '') // JavaScript URLs
+      .replace(/\bon\w+\s*=/gi, ''); // Event handlers
+  }
+
+  /**
+   * Sanitizes a class name to prevent injection
+   * @param {string} className - class name to sanitize
+   * @returns {string} - sanitized class name
+   */
+  sanitizeClassName(className) {
+    if (typeof className !== 'string') return '';
+
+    // Only allow alphanumeric characters, hyphens, and underscores
+    return className.replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
   /**

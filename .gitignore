@@ -1,1 +1,3 @@
-.qwen
+.qwen/
+*.log
+test_*.*
