@@ -1,18 +1,21 @@
 async function fetchSecretsFromGist() {
   // Получаем OAuth конфигурацию из GM-хранилища
-  const storedConfig = GM_getValue('yushima_config_auth');
+  const storedConfig = GM_getValue("yushima_config_auth");
   if (storedConfig) {
     try {
       // Декодируем Base64-закодированную конфигурацию
       const decodedConfig = atob(storedConfig);
       if (/^[a-zA-Z0-9_-]+$/.test(decodedConfig)) {
         return {
-          client_id: 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo', // фиксированный client_id
-          client_secret: decodedConfig
+          client_id: "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo", // фиксированный client_id
+          client_secret: decodedConfig,
         };
       }
     } catch (decodeError) {
-      logMessage('Error decoding stored config. Using fallback values.', 'error');
+      logMessage(
+        "Error decoding stored config. Using fallback values.",
+        "error",
+      );
     }
   }
 
@@ -26,17 +29,18 @@ async function fetchSecretsFromGist() {
  */
 function fetchEncodedSecretsBackup() {
   // Используем фиксированный client_id и Base64-закодированный client_secret
-  const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
-  const encodedSecret = 'dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==';
+  const clientId = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo";
+  const encodedSecret =
+    "dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==";
 
   try {
     const decodedSecret = atob(encodedSecret);
     return {
       client_id: clientId,
-      client_secret: decodedSecret
+      client_secret: decodedSecret,
     };
   } catch (error) {
-    logMessage('Error decoding fallback secrets: ' + error.message, 'error');
+    logMessage("Error decoding fallback secrets: " + error.message, "error");
     return null;
   }
 }
@@ -51,15 +55,18 @@ function setOAuthConfig(value) {
     if (/^[a-zA-Z0-9_-]+$/.test(value)) {
       // Кодируем значение в Base64 для хранения
       const encodedValue = btoa(value);
-      GM_setValue('yushima_config_auth', encodedValue);
-      logMessage('OAuth config value successfully stored in GM storage', 'success');
+      GM_setValue("yushima_config_auth", encodedValue);
+      logMessage(
+        "OAuth config value successfully stored in GM storage",
+        "success",
+      );
       return true;
     } else {
-      logMessage('Invalid config value format', 'error');
+      logMessage("Invalid config value format", "error");
       return false;
     }
   } catch (error) {
-    logMessage('Error storing config value: ' + error.message, 'error');
+    logMessage("Error storing config value: " + error.message, "error");
     return false;
   }
 }
@@ -69,12 +76,15 @@ function setOAuthConfig(value) {
  * @returns {string|null} The decoded config value or null if not found
  */
 function getOAuthConfig() {
-  const storedValue = GM_getValue('yushima_config_auth');
+  const storedValue = GM_getValue("yushima_config_auth");
   if (storedValue) {
     try {
       return atob(storedValue);
     } catch (error) {
-      logMessage('Error decoding stored config value: ' + error.message, 'error');
+      logMessage(
+        "Error decoding stored config value: " + error.message,
+        "error",
+      );
       return null;
     }
   }
@@ -114,7 +124,7 @@ async function getAnimeTitle(animeId) {
       }
     }
   } catch (error) {
-    console.error('Error fetching anime title:', error);
+    console.error("Error fetching anime title:", error);
   }
   // If we couldn't fetch title, return the ID as fallback
   return animeId;
@@ -126,7 +136,7 @@ async function getAnimeTitle(animeId) {
  */
 function createAuthUrl() {
   // Используем фиксированный client_id
-  const clientId = 'QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo';
+  const clientId = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo";
 
   return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
 }
@@ -141,7 +151,7 @@ function makeHttpRequest(options) {
     GM_xmlhttpRequest({
       ...options,
       onload: resolve,
-      onerror: reject
+      onerror: reject,
     });
   });
 }
@@ -151,26 +161,42 @@ function makeHttpRequest(options) {
  * @returns {boolean} Whether the page is in English
  */
 function isEnglishPage() {
-  const currentHeadline = document.querySelector('.subheadline');
-  return currentHeadline && currentHeadline.textContent.includes('Information');
+  const currentHeadline = document.querySelector(".subheadline");
+  return currentHeadline && currentHeadline.textContent.includes("Information");
 }
 
-/** 
+/**
  * Clean up ALL existing players and their resources to prevent memory leaks
  */
 function cleanupExistingPlayer() {
-  const existingPlayers = document.querySelectorAll(`.${CONSTANTS.PLAYER_CLASS}`);
-  existingPlayers.forEach(player => {
+  const existingPlayers = document.querySelectorAll(
+    `.${CONSTANTS.PLAYER_CLASS}`,
+  );
+  existingPlayers.forEach((player) => {
+    // Вызываем cleanup для удаления обработчиков событий
+    if (player.cleanup) {
+      player.cleanup();
+    }
     if (player.resizeObserver) {
       player.resizeObserver.disconnect();
       player.resizeObserver = null;
     }
     player.remove();
   });
-  const remainingPlayers = document.querySelectorAll(`.${CONSTANTS.PLAYER_CLASS}`);
+  const remainingPlayers = document.querySelectorAll(
+    `.${CONSTANTS.PLAYER_CLASS}`,
+  );
   if (remainingPlayers.length > 0) {
-    logMessage(Localization.get('playerElementsExistAfterCleanup', { count: remainingPlayers.length }), 'warn');
-    remainingPlayers.forEach(player => {
+    logMessage(
+      Localization.get("playerElementsExistAfterCleanup", {
+        count: remainingPlayers.length,
+      }),
+      "warn",
+    );
+    remainingPlayers.forEach((player) => {
+      if (player.cleanup) {
+        player.cleanup();
+      }
       if (player.resizeObserver) {
         player.resizeObserver.disconnect();
         player.resizeObserver = null;
@@ -186,13 +212,13 @@ function cleanupExistingPlayer() {
 async function checkForAuthorizationCode() {
   // Проверяем параметр code в URL
   const urlParams = new URLSearchParams(window.location.search);
-  let code = urlParams.get('code');
+  let code = urlParams.get("code");
 
   // Проверяем также, может быть, это URL, который был скопирован с кодом авторизации
   if (!code) {
     // Ищем код авторизации в хеше URL (на случай, если он есть в #fragment)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    code = hashParams.get('code');
+    code = hashParams.get("code");
   }
 
   // А также проверяем хеш в формате #code=... как альтернативу
@@ -206,40 +232,41 @@ async function checkForAuthorizationCode() {
   if (code) {
     // Удаляем параметр code из URL, чтобы избежать повторной обработки
     const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.delete('code');
-    currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, '');
+    currentUrl.searchParams.delete("code");
+    currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, "");
     if (currentUrl.href !== window.location.href) {
       window.history.replaceState({}, document.title, currentUrl.href);
     }
 
     const success = await OAuthHandler.processAuthorizationCode(code);
     if (success) {
-      logMessage(Localization.get('authSuccess'), 'success');
+      logMessage(Localization.get("authSuccess"), "success");
       // Добавляем небольшую задержку перед перезагрузкой для отображения сообщения
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } else {
-      logMessage(Localization.get('authFailed'), 'error');
-      alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+      logMessage(Localization.get("authFailed"), "error");
+      alert(Localization.get("authFailed") + " " + "Please try again.");
     }
   } else {
     // Дополнительно проверяем, может быть, пользователь скопировал URL с кодом вручную
     const currentUrl = window.location.href;
-    if (currentUrl.includes('code=')) {
+    if (currentUrl.includes("code=")) {
       const manualCodeMatch = currentUrl.match(/[?&]code=([^&]*)/);
       if (manualCodeMatch) {
         const manualCode = decodeURIComponent(manualCodeMatch[1]);
         if (manualCode) {
-          const success = await OAuthHandler.processAuthorizationCode(manualCode);
+          const success =
+            await OAuthHandler.processAuthorizationCode(manualCode);
           if (success) {
-            logMessage(Localization.get('authSuccess'), 'success');
+            logMessage(Localization.get("authSuccess"), "success");
             setTimeout(() => {
               window.location.reload();
             }, 1000);
           } else {
-            logMessage(Localization.get('authFailed'), 'error');
-            alert(Localization.get('authFailed') + ' ' + 'Please try again.');
+            logMessage(Localization.get("authFailed"), "error");
+            alert(Localization.get("authFailed") + " " + "Please try again.");
           }
         }
       }

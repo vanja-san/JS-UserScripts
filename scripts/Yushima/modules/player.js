@@ -199,6 +199,7 @@ class KodikPlayer {
       // Отслеживание времени просмотра для каждого эпизода (как в Mirual)
       const episodeWatchTime = {}; // { episode: { watched: 0, total: 0, synced: false } }
       let currentEpisode = episode;
+      let isFirstEpisodeMessage = true; // Игнорируем первое сообщение о текущем эпизоде
 
       // Инициализируем отслеживание для текущего эпизода
       episodeWatchTime[currentEpisode] = {
@@ -551,6 +552,16 @@ class KodikPlayer {
                   newEpisode !== currentEpisode &&
                   newEpisode > 0
                 ) {
+                  // Игнорируем первое сообщение — это эпизод по умолчанию от Kodik
+                  if (isFirstEpisodeMessage) {
+                    isFirstEpisodeMessage = false;
+                    logMessage(
+                      `Игнорируем первое сообщение о эпизоде ${newEpisode} (эпизод по умолчанию от Kodik)`,
+                      "debug",
+                    );
+                    return;
+                  }
+
                   logMessage(
                     Localization.get("playerCurrentEpisodeChange", {
                       newEpisode: newEpisode,
@@ -962,6 +973,9 @@ class KodikPlayer {
         window.removeEventListener("beforeunload", beforeUnloadHandler);
         originalCleanup();
       };
+
+      // Сохраняем ссылку на cleanup для использования в cleanupExistingPlayer
+      playerElement.cleanup = cleanup;
     } catch (e) {
       logMessage(
         Localization.get("playerHandlerError", { message: e.message }),
