@@ -2,18 +2,18 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.1.2
-// @description  Optimized integration of player on Shikimori website with automatic browsing tracking
-// @description:ru  Оптимизированная интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
+// @version      2.2.0
+// @description  Integration of player on Shikimori website with automatic browsing tracking
+// @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
-// @match        https://shiki.one/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=shiki.one
+// @match        https://shikimori.io/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=shikimori.io
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_deleteValue
 // @grant        GM_registerMenuCommand
-// @connect      shiki.one
+// @connect      shikimori.io
 // @connect      kodik.info
 // @connect      kodik.biz
 // @run-at       document-idle

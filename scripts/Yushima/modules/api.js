@@ -340,7 +340,7 @@ class ShikimoriAPI {
       }
       const response = await makeHttpRequest({
         method: method,
-        url: `https://shiki.one/api${endpoint}`,
+        url: `https://shikimori.io/api${endpoint}`,
         headers: {
           "Content-Type": "application/json",
           "User-Agent": "Yushima",
@@ -401,7 +401,7 @@ class ShikimoriAPI {
       }
       const response = await makeHttpRequest({
         method: "POST",
-        url: "https://shiki.one/api/v2/user_rates",
+        url: "https://shikimori.io/api/v2/user_rates",
         headers: {
           "Content-Type": "application/json",
           "User-Agent": "Yushima",
@@ -439,7 +439,7 @@ class ShikimoriAPI {
       }
       const response = await makeHttpRequest({
         method: "GET",
-        url: "https://shiki.one/api/users/whoami",
+        url: "https://shikimori.io/api/users/whoami",
         headers: {
           "User-Agent": "Yushima",
           Authorization: `Bearer ${token}`,
@@ -485,7 +485,7 @@ class ShikimoriAPI {
       });
       const response = await makeHttpRequest({
         method: "GET",
-        url: `https://shiki.one/api/v2/user_rates?${params}`,
+        url: `https://shikimori.io/api/v2/user_rates?${params}`,
         headers: {
           "User-Agent": "Yushima",
           Authorization: `Bearer ${token}`,
