@@ -364,15 +364,17 @@ class KodikPlayer {
       let messageHandlerTimeout = null;
 
       // Обработка очереди сообщений
-      const processMessageQueue = () => {
+      const processMessageQueue = async () => {
         if (messageQueue.length === 0) return;
 
         // Process multiple messages at once to reduce function call overhead
         const messagesToProcess = [...messageQueue];
         messageQueue = []; // Clear the queue
 
-        // Process each message
-        messagesToProcess.forEach(processSingleMessage);
+        // Process each message sequentially with await
+        for (const event of messagesToProcess) {
+          await processSingleMessage(event);
+        }
 
         // Clear timeout reference
         messageHandlerTimeout = null;
@@ -500,6 +502,16 @@ class KodikPlayer {
                   episodeWatchTime[currentEpisode].total = videoDuration;
 
                   if (videoDuration > 0) {
+                    const progress = Math.round(
+                      (videoCurrentTime / videoDuration) * 100,
+                    );
+                    // Логируем прогресс каждые 10% для отладки
+                    if (progress % 10 === 0 && progress > 0) {
+                      logMessage(
+                        `Эпизод ${currentEpisode}: прогресс ${progress}%`,
+                        "debug",
+                      );
+                    }
                     checkProgress(data.value, videoDuration);
                     lastProgressUpdate = Date.now();
                   }
@@ -541,18 +553,39 @@ class KodikPlayer {
                         const { watched, total, synced } =
                           episodeWatchTime[oldEpisode];
                         const progress = total > 0 ? watched / total : 0;
+                        const progressPercent = Math.round(progress * 100);
+
+                        logMessage(
+                          `Эпизод ${oldEpisode}: прогресс ${progressPercent}% (порог: ${Math.round(progressThreshold * 100)}%)`,
+                          "info",
+                        );
+
                         if (progress >= progressThreshold && !synced) {
                           logMessage(
                             Localization.get("playerProgressReached", {
                               episode: oldEpisode,
-                              progress: Math.round(progress * 100),
+                              progress: progressPercent,
                             }),
                             "info",
                           );
                           await markAsWatched(oldEpisode);
+                        } else if (synced) {
+                          logMessage(
+                            `Эпизод ${oldEpisode} уже синхронизирован`,
+                            "info",
+                          );
+                        } else {
+                          logMessage(
+                            `Эпизод ${oldEpisode} не достиг порога для синхронизации`,
+                            "warn",
+                          );
                         }
                       } else if (!hasMarkedAsWatched) {
                         // Если нет данных о времени просмотра, но эпизод не отмечен, пробуем отметить
+                        logMessage(
+                          `Синхронизация эпизода ${oldEpisode} без данных о времени`,
+                          "info",
+                        );
                         await markAsWatched(oldEpisode);
                       }
                     }
@@ -570,6 +603,11 @@ class KodikPlayer {
                     videoDuration = 0;
                     watchedPositions.clear();
                     lastProgressUpdate = Date.now();
+
+                    logMessage(
+                      `Начало просмотра эпизода ${newEpisode}`,
+                      "info",
+                    );
                   }
                 } else {
                   logMessage(Localization.get("playerCurrentEpisode"), "info");
