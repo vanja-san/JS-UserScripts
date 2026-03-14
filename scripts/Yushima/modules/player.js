@@ -482,10 +482,6 @@ class KodikPlayer {
                   // После первого обновления времени сбрасываем флаг инициализации
                   if (initialEpisodeFromKodik) {
                     initialEpisodeFromKodik = false;
-                    logMessage(
-                      "Сброс флага initialEpisodeFromKodik после получения времени",
-                      "info",
-                    );
                   }
                   // Throttle time update messages to once every 10 minutes (600,000 ms)
                   const now = Date.now();
@@ -513,16 +509,6 @@ class KodikPlayer {
                   episodeWatchTime[currentEpisode].total = videoDuration;
 
                   if (videoDuration > 0) {
-                    const progress = Math.round(
-                      (videoCurrentTime / videoDuration) * 100,
-                    );
-                    // Логируем прогресс каждые 10% для отладки
-                    if (progress % 10 === 0 && progress > 0) {
-                      logMessage(
-                        `Эпизод ${currentEpisode}: прогресс ${progress}%`,
-                        "debug",
-                      );
-                    }
                     checkProgress(data.value, videoDuration);
                     lastProgressUpdate = Date.now();
                   }
@@ -538,11 +524,6 @@ class KodikPlayer {
                 logMessage(Localization.get("playerAdvertEnded"), "info");
                 break;
               case "kodik_player_current_episode":
-                logMessage(
-                  `kodik_player_current_episode: value=${JSON.stringify(data.value)}, currentEpisode=${currentEpisode}, episode=${episode}, initialEpisodeFromKodik=${initialEpisodeFromKodik}`,
-                  "debug",
-                );
-
                 // data.value может быть числом, строкой или объектом {episode: N, number: N}
                 let newEpisode = null;
 
@@ -570,18 +551,10 @@ class KodikPlayer {
                   if (initialEpisodeFromKodik) {
                     initialEpisodeFromKodik = false;
                     if (newEpisode === episode) {
-                      logMessage(
-                        `Эпизод ${newEpisode} совпадает с открытым (сообщение от Kodik)`,
-                        "debug",
-                      );
                       // Это нормальная ситуация — просто обновляем currentEpisode
                       currentEpisode = newEpisode;
                       return; // Не продолжаем обработку
                     } else {
-                      logMessage(
-                        `Игнорируем первое сообщение о эпизоде ${newEpisode} (эпизод по умолчанию от Kodik, открытый: ${episode})`,
-                        "debug",
-                      );
                       return;
                     }
                   }
@@ -599,11 +572,6 @@ class KodikPlayer {
 
                   // Синхронизируем предыдущий эпизод перед переключением
                   if (oldEpisode !== newEpisode) {
-                    logMessage(
-                      `Переключение с эпизода ${oldEpisode} на ${newEpisode}`,
-                      "info",
-                    );
-
                     // Проверяем, был ли предыдущий эпизод просмотрен достаточно для синхронизации
                     const progressThreshold =
                       Settings.getSetting("progressThreshold");
@@ -612,11 +580,6 @@ class KodikPlayer {
                         episodeWatchTime[oldEpisode];
                       const progress = total > 0 ? watched / total : 0;
                       const progressPercent = Math.round(progress * 100);
-
-                      logMessage(
-                        `Эпизод ${oldEpisode}: прогресс ${progressPercent}% (порог: ${Math.round(progressThreshold * 100)}%), synced: ${synced}`,
-                        "info",
-                      );
 
                       if (progress >= progressThreshold && !synced) {
                         logMessage(
@@ -627,23 +590,8 @@ class KodikPlayer {
                           "info",
                         );
                         await markAsWatched(oldEpisode);
-                      } else if (synced) {
-                        logMessage(
-                          `Эпизод ${oldEpisode} уже синхронизирован`,
-                          "info",
-                        );
-                      } else {
-                        logMessage(
-                          `Эпизод ${oldEpisode} не достиг порога для синхронизации`,
-                          "warn",
-                        );
                       }
                     } else if (!hasMarkedAsWatched) {
-                      // Если нет данных о времени просмотра, но эпизод не отмечен, пробуем отметить
-                      logMessage(
-                        `Синхронизация эпизода ${oldEpisode} без данных о времени`,
-                        "info",
-                      );
                       await markAsWatched(oldEpisode);
                     }
                   }
