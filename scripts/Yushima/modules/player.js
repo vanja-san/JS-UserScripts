@@ -257,7 +257,8 @@ class KodikPlayer {
               };
             }
             episodeWatchTime[episodeToMark].synced = true;
-            setTimeout(cleanup, 1000);
+            // Не вызываем cleanup - это удаляет обработчики событий!
+            // Очистка происходит только при удалении плеера со страницы
             return true;
           } else {
             logMessage(
@@ -895,7 +896,7 @@ class KodikPlayer {
             }
           }
         }
-      }, CONFIG.SYNC_CHECK_INTERVAL || 10000); // Проверка каждые 10 секунд
+      }, CONSTANTS.SYNC_CHECK_INTERVAL || 10000); // Проверка каждые 10 секунд
 
       // Cleanup resources when player is removed
       observer = new MutationObserver((mutations) => {
