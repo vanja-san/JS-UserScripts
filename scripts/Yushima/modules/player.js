@@ -575,6 +575,11 @@ class KodikPlayer {
 
                   // Синхронизируем предыдущий эпизод перед переключением
                   if (oldEpisode !== newEpisode) {
+                    logMessage(
+                      `Переключение с эпизода ${oldEpisode} на ${newEpisode}`,
+                      "info",
+                    );
+
                     // Проверяем, был ли предыдущий эпизод просмотрен достаточно для синхронизации
                     const progressThreshold =
                       Settings.getSetting("progressThreshold");
@@ -585,7 +590,7 @@ class KodikPlayer {
                       const progressPercent = Math.round(progress * 100);
 
                       logMessage(
-                        `Эпизод ${oldEpisode}: прогресс ${progressPercent}% (порог: ${Math.round(progressThreshold * 100)}%)`,
+                        `Эпизод ${oldEpisode}: прогресс ${progressPercent}% (порог: ${Math.round(progressThreshold * 100)}%), synced: ${synced}`,
                         "info",
                       );
 
