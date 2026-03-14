@@ -822,7 +822,7 @@ class KodikPlayer {
       let observer;
 
       // Функция очистки ресурсов
-      const cleanup = () => {
+      let cleanup = () => {
         window.removeEventListener("message", messageHandler);
         if (activityCheckInterval) clearInterval(activityCheckInterval);
         if (backupCheckInterval) clearInterval(backupCheckInterval);
