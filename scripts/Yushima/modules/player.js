@@ -814,6 +814,12 @@ class KodikPlayer {
         messageHandlerTimeout = setTimeout(processMessageQueue, 10); // 10ms delay to batch process messages
       };
 
+      // Объявляем переменные для таймеров и observer
+      let activityCheckInterval;
+      let backupCheckInterval;
+      let syncCheckInterval;
+      let observer;
+
       // Функция очистки ресурсов
       const cleanup = () => {
         window.removeEventListener("message", messageHandler);
@@ -827,10 +833,6 @@ class KodikPlayer {
 
       // Add message handler
       window.addEventListener("message", messageHandler);
-
-      let activityCheckInterval;
-      let backupCheckInterval;
-      let observer;
 
       // Timer to check viewing activity
       activityCheckInterval = setInterval(() => {
@@ -868,7 +870,7 @@ class KodikPlayer {
       }, 120000);
 
       // Периодическая проверка прогресса для автосинхронизации (как в Mirual)
-      const syncCheckInterval = setInterval(async () => {
+      syncCheckInterval = setInterval(async () => {
         const progressThreshold = Settings.getSetting("progressThreshold");
 
         // Проверяем текущий эпизод
