@@ -193,6 +193,7 @@ class KodikPlayer {
       let lastProgressUpdate = 0;
       let videoDuration = 0;
       let videoCurrentTime = 0;
+      let lastTimeUpdateMessage = 0;
       let watchedPositions = new Set();
 
       // Отслеживание времени просмотра для каждого эпизода (как в Mirual)
@@ -382,7 +383,19 @@ class KodikPlayer {
 
       // Обработка одного сообщения
       const processSingleMessage = async (event) => {
-        if (event.origin !== "https://kodik.info") return;
+        // Логируем все входящие сообщения для отладки
+        logMessage(
+          `Получено сообщение: ${JSON.stringify(event.data)}`,
+          "debug",
+        );
+
+        if (event.origin !== "https://kodik.info") {
+          logMessage(
+            `Игнорируем сообщение с другого origin: ${event.origin}`,
+            "debug",
+          );
+          return;
+        }
 
         let data;
         try {
@@ -478,7 +491,7 @@ class KodikPlayer {
                   videoCurrentTime = data.value;
                   // Throttle time update messages to once every 10 minutes (600,000 ms)
                   const now = Date.now();
-                  if (now - this.lastTimeUpdateMessage >= 600000) {
+                  if (now - lastTimeUpdateMessage >= 600000) {
                     // 10 minutes = 600,000 ms
                     const { minutes, seconds } = formatTime(data.value);
                     logMessage(
@@ -488,7 +501,7 @@ class KodikPlayer {
                       }),
                       "debug",
                     );
-                    this.lastTimeUpdateMessage = now;
+                    lastTimeUpdateMessage = now;
                   }
                   // Обновляем время просмотра для текущего эпизода
                   if (!episodeWatchTime[currentEpisode]) {
@@ -861,6 +874,11 @@ class KodikPlayer {
         // Проверяем текущий эпизод
         if (episodeWatchTime[currentEpisode]) {
           const { watched, total, synced } = episodeWatchTime[currentEpisode];
+          logMessage(
+            `Sync check: Эпизод ${currentEpisode}, watched: ${watched}s, total: ${total}s, synced: ${synced}`,
+            "debug",
+          );
+
           if (total > 0 && !synced) {
             const progress = watched / total;
             if (progress >= progressThreshold) {

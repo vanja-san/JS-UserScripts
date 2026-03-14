@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.2.3
+// @version      2.3.0
 // @description  Integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -328,84 +328,37 @@
     });
   }, CONSTANTS.PLAYER_INIT_DELAY);
 
-  // Register Tampermonkey menu commands
+  // Register Tampermonkey menu command for output window
   if (typeof GM_registerMenuCommand !== "undefined") {
-    GM_registerMenuCommand(Localization.get("menuSettings"), () => {
-      Settings.showSettingsDialog();
-    });
-
-    // Register the output window command regardless of setting initially
-    // but check the setting when the command is executed
     GM_registerMenuCommand(Localization.get("menuShowOutput"), () => {
-      // Check if output window is enabled and we're on an anime page before showing it
-      if (
-        Settings.getSetting("outputWindowEnabled") &&
-        ShikimoriAPI.isAnimePage()
-      ) {
-        OutputWindow.show();
-        Settings.setSetting("showOutputWindow", true);
-        logMessage(Localization.get("menuOutputShown"), "info");
-      } else if (
-        Settings.getSetting("outputWindowEnabled") &&
-        !ShikimoriAPI.isAnimePage()
-      ) {
-        alert("Output window is only available on anime pages.");
-      } else {
-        alert(
-          Localization.get("settingsOutputWindowEnabledLabel") +
-            " " +
-            Localization.get("settingsSavedRefresh"),
-        );
-      }
+      OutputWindow.show();
+      logMessage(Localization.get("menuOutputShown"), "info");
     });
   }
 
-  // Initialize the output window with the correct visibility state
+  // Initialize the output window
   setTimeout(() => {
-    // Only initialize output window if it's enabled and we're on an anime page
-    if (
-      Settings.getSetting("outputWindowEnabled") &&
-      ShikimoriAPI.isAnimePage()
-    ) {
-      if (Settings.getSetting("showOutputWindow")) {
-        OutputWindow.show();
-      }
+    if (ShikimoriAPI.isAnimePage()) {
+      OutputWindow.show();
     }
   }, 1000);
 
   // Reinitialize the output window after page navigation
-  // The output window element might be removed during AJAX navigation
   function reinitializeOutputWindow() {
-    if (
-      Settings.getSetting("outputWindowEnabled") &&
-      Settings.getSetting("showOutputWindow") &&
-      ShikimoriAPI.isAnimePage()
-    ) {
-      // If the output window element no longer exists in the DOM,
-      // we need to recreate it
+    if (ShikimoriAPI.isAnimePage()) {
       if (!document.getElementById("yushima-output-window")) {
-        OutputWindow.windowElement = null; // Reset reference
-        OutputWindow.show(); // Recreate and show the window
+        OutputWindow.windowElement = null;
+        OutputWindow.show();
       } else {
-        // If element exists, just ensure it's displayed properly
         const windowElement = document.getElementById("yushima-output-window");
         if (windowElement) {
           windowElement.style.display = "block";
         }
       }
-    } else if (
-      Settings.getSetting("outputWindowEnabled") &&
-      Settings.getSetting("showOutputWindow") &&
-      !ShikimoriAPI.isAnimePage()
-    ) {
-      // Hide the output window if not on an anime page but it was previously shown
-      if (document.getElementById("yushima-output-window")) {
-        document.getElementById("yushima-output-window").style.display = "none";
-      }
     }
   }
 
-  // Check and restore output window after navigation, but only on anime pages
+  // Check and restore output window after navigation
   setTimeout(() => {
     if (ShikimoriAPI.isAnimePage()) {
       reinitializeOutputWindow();
