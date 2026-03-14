@@ -14,7 +14,7 @@ const CONSTANTS = {
     /\/animes\/[a-z]?(\d+)-/ /** Regex to extract anime ID from URL */,
   IFRAME_ASPECT_RATIO: 0.5625 /** Aspect ratio multiplier for 16:9 (9/16 = 0.5625) */,
   PLAYER_INIT_DELAY: 100 /** Delay before initializing player to ensure DOM is ready */,
-  SYNC_CHECK_INTERVAL: 10000 /** Interval for checking sync progress (10 seconds) */,
+  SYNC_CHECK_INTERVAL: 60000 /** Interval for checking sync progress (60 seconds) */,
   /** OAuth application details */
   OAUTH: {
     REDIRECT_URI: "urn:ietf:wg:oauth:2.0:oob",

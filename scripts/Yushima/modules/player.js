@@ -384,19 +384,7 @@ class KodikPlayer {
 
       // Обработка одного сообщения
       const processSingleMessage = async (event) => {
-        // Логируем все входящие сообщения для отладки
-        logMessage(
-          `Получено сообщение: ${JSON.stringify(event.data)}`,
-          "debug",
-        );
-
-        if (event.origin !== "https://kodik.info") {
-          logMessage(
-            `Игнорируем сообщение с другого origin: ${event.origin}`,
-            "debug",
-          );
-          return;
-        }
+        if (event.origin !== "https://kodik.info") return;
 
         let data;
         try {
@@ -877,10 +865,6 @@ class KodikPlayer {
         // Проверяем текущий эпизод
         if (episodeWatchTime[currentEpisode]) {
           const { watched, total, synced } = episodeWatchTime[currentEpisode];
-          logMessage(
-            `Sync check: Эпизод ${currentEpisode}, watched: ${watched}s, total: ${total}s, synced: ${synced}`,
-            "debug",
-          );
 
           if (total > 0 && !synced) {
             const progress = watched / total;
@@ -896,7 +880,7 @@ class KodikPlayer {
             }
           }
         }
-      }, CONSTANTS.SYNC_CHECK_INTERVAL || 10000); // Проверка каждые 10 секунд
+      }, CONSTANTS.SYNC_CHECK_INTERVAL || 60000); // Проверка каждые 60 секунд
 
       // Cleanup resources when player is removed
       observer = new MutationObserver((mutations) => {
