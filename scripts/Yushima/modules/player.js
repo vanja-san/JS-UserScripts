@@ -199,7 +199,7 @@ class KodikPlayer {
       // Отслеживание времени просмотра для каждого эпизода (как в Mirual)
       const episodeWatchTime = {}; // { episode: { watched: 0, total: 0, synced: false } }
       let currentEpisode = episode;
-      let isFirstEpisodeMessage = true; // Игнорируем первое сообщение о текущем эпизоде
+      let initialEpisodeFromKodik = true; // Флаг для первого сообщения от Kodik
 
       // Инициализируем отслеживание для текущего эпизода
       episodeWatchTime[currentEpisode] = {
@@ -479,6 +479,14 @@ class KodikPlayer {
               case "kodik_player_time_update":
                 if (typeof data.value === "number") {
                   videoCurrentTime = data.value;
+                  // После первого обновления времени сбрасываем флаг инициализации
+                  if (initialEpisodeFromKodik) {
+                    initialEpisodeFromKodik = false;
+                    logMessage(
+                      "Сброс флага initialEpisodeFromKodik после получения времени",
+                      "info",
+                    );
+                  }
                   // Throttle time update messages to once every 10 minutes (600,000 ms)
                   const now = Date.now();
                   if (now - lastTimeUpdateMessage >= 600000) {
@@ -530,6 +538,11 @@ class KodikPlayer {
                 logMessage(Localization.get("playerAdvertEnded"), "info");
                 break;
               case "kodik_player_current_episode":
+                logMessage(
+                  `kodik_player_current_episode: value=${JSON.stringify(data.value)}, currentEpisode=${currentEpisode}, episode=${episode}, initialEpisodeFromKodik=${initialEpisodeFromKodik}`,
+                  "debug",
+                );
+
                 // data.value может быть числом, строкой или объектом {episode: N, number: N}
                 let newEpisode = null;
 
@@ -552,14 +565,25 @@ class KodikPlayer {
                   newEpisode !== currentEpisode &&
                   newEpisode > 0
                 ) {
-                  // Игнорируем первое сообщение — это эпизод по умолчанию от Kodik
-                  if (isFirstEpisodeMessage) {
-                    isFirstEpisodeMessage = false;
-                    logMessage(
-                      `Игнорируем первое сообщение о эпизоде ${newEpisode} (эпизод по умолчанию от Kodik)`,
-                      "debug",
-                    );
-                    return;
+                  // Игнорируем первое сообщение от Kodik — это эпизод по умолчанию при загрузке плеера
+                  // Но только если он совпадает с тем, который мы открыли
+                  if (initialEpisodeFromKodik) {
+                    initialEpisodeFromKodik = false;
+                    if (newEpisode === episode) {
+                      logMessage(
+                        `Эпизод ${newEpisode} совпадает с открытым (сообщение от Kodik)`,
+                        "debug",
+                      );
+                      // Это нормальная ситуация — просто обновляем currentEpisode
+                      currentEpisode = newEpisode;
+                      return; // Не продолжаем обработку
+                    } else {
+                      logMessage(
+                        `Игнорируем первое сообщение о эпизоде ${newEpisode} (эпизод по умолчанию от Kodik, открытый: ${episode})`,
+                        "debug",
+                      );
+                      return;
+                    }
                   }
 
                   logMessage(
