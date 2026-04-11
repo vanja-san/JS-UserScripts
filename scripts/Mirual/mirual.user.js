@@ -16,7 +16,7 @@
 // @grant        GM_addStyle
 // @connect      graphql.anilist.co
 // @connect      shikimori.io
-// @connect      kodik.info
+// @connect      kodikplayer.com
 // @run-at       document-start
 // ==/UserScript==
 
@@ -25,7 +25,7 @@
 
   // ==================== КОНФИГУРАЦИЯ ====================
   const CONFIG = {
-    KODIK_DOMAIN: "kodik.info",
+    KODIK_DOMAIN: "kodikplayer.com",
     ANILIST_API: "https://graphql.anilist.co",
     SHIKIMORI_API: "https://shikimori.io/api/animes",
     STORAGE_KEY: "anilist_token",

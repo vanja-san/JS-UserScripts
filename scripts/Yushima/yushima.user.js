@@ -14,8 +14,7 @@
 // @grant        GM_deleteValue
 // @grant        GM_registerMenuCommand
 // @connect      shikimori.io
-// @connect      kodik.info
-// @connect      kodik.biz
+// @connect      kodikplayer.com
 // @run-at       document-idle
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/constants.js
 // @require      https://vanja-san.github.io/JS-UserScripts/scripts/Yushima/modules/localization.js

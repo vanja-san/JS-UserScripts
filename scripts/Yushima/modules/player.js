@@ -69,7 +69,7 @@ class KodikPlayer {
     const validatedEpisode = Math.max(1, parseInt(episode) || 1);
     const iframe = this.createElement("iframe", {
       className: "iframe-player",
-      src: `//kodik.info/find-player?shikimoriID=${validatedAnimeId}&episode=${validatedEpisode}`,
+      src: `//kodikplayer.com/find-player?shikimoriID=${validatedAnimeId}&episode=${validatedEpisode}`,
       allowFullscreen: true,
       loading: "lazy",
       style: "border: none;",
@@ -83,7 +83,7 @@ class KodikPlayer {
             {
               type: "request_capabilities",
             },
-            "https://kodik.info",
+            "https://kodikplayer.com",
           );
         }
       } catch (e) {
@@ -99,7 +99,7 @@ class KodikPlayer {
             {
               type: "request_progress_updates",
             },
-            "https://kodik.info",
+            "https://kodikplayer.com",
           );
         }
       } catch (e) {
@@ -385,7 +385,7 @@ class KodikPlayer {
 
       // Обработка одного сообщения
       const processSingleMessage = async (event) => {
-        if (event.origin !== "https://kodik.info") return;
+        if (event.origin !== "https://kodikplayer.com") return;
 
         let data;
         try {
@@ -617,7 +617,7 @@ class KodikPlayer {
                         {
                           type: "request_progress_updates",
                         },
-                        "https://kodik.info",
+                        "https://kodikplayer.com",
                       );
                     }
                   } catch (e) {
@@ -733,7 +733,7 @@ class KodikPlayer {
                     type: "capabilities_response",
                     capabilities: ["progress_tracking", "playback_events"],
                   },
-                  "https://kodik.info",
+                  "https://kodikplayer.com",
                 );
               }
             } catch (e) {
@@ -892,7 +892,7 @@ class KodikPlayer {
               {
                 type: "request_progress_updates",
               },
-              "https://kodik.info",
+              "https://kodikplayer.com",
             );
           }
         } catch (e) {
