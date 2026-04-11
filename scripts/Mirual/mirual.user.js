@@ -2,7 +2,7 @@
 // @name         MiruAL
 // @name:ru      MiruAL
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Mirual
-// @version      8.9
+// @version      8.9.1
 // @description  Mirual — seamlessly embeds a video player into AniList pages. Watch anime directly from your lists without leaving the site. Simple, fast, and clean.
 // @description:ru Mirual — встраивает видеоплеер прямо на страницы AniList. Смотри аниме из своих списков, не переключаясь между вкладками. Просто, быстро, удобно.
 // @author       vanja-san
