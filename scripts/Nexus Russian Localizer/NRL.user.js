@@ -32,6 +32,9 @@
       // Скрываем контент до завершения перевода
       document.documentElement.style.visibility = 'hidden';
 
+      // Failsafe: show page after 3 seconds even if init fails
+      setTimeout(() => { document.documentElement.style.visibility = ''; }, 3000);
+
       const cache = new TranslationCache();
       await cache.initDB();
 
@@ -56,10 +59,7 @@
 
       // Обрабатываем приоритетные элементы в первую очередь
       const priorityElements = getPriorityElements();
-      const priorityLen = priorityElements.length;
-      for (let i = 0; i < priorityLen; i++) {
-        await translator.translateNode(priorityElements[i]);
-      }
+      await translator.translateElementBatch(priorityElements);
 
       // Обрабатываем элементы с всплывающими подсказками немедленно
       await processTooltipElements();
@@ -165,7 +165,7 @@
         let node;
         let count = 0; // Ограничение количества узлов для производительности
         const maxNodes = window.CONFIG?.MAX_NODES_PER_WALK || 10000;
-        while (node = walker.nextNode() && count < maxNodes) {
+        while ((node = walker.nextNode()) && count < maxNodes) {
           allElements.push(node);
           count++;
         }

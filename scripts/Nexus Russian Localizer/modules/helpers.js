@@ -137,9 +137,5 @@ window.DYNAMIC_TEMPLATES = [
   { pattern: /(\d+)\s*KB/gi, replacement: "$1 КБ", maxLength: 20 },
   { pattern: /(\d+)\s*TB/gi, replacement: "$1 ТБ", maxLength: 20 },
 
-  // Статические шаблоны
-  { pattern: /(\d+)\s*GB/gi, replacement: "$1 ГБ" },
-  { pattern: /(\d+)\s*MB/gi, replacement: "$1 МБ" },
-  { pattern: /(\d+)\s*KB/gi, replacement: "$1 КБ" },
-  { pattern: /(\d+)\s*TB/gi, replacement: "$1 ТБ" },
+
 ];

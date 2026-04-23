@@ -312,7 +312,7 @@ class TranslationCache {
     try {
       const transaction = this.db.transaction([window.CONFIG?.STORE_NAME || 'translations'], 'readonly');
       const store = transaction.objectStore(window.CONFIG?.STORE_NAME || 'translations');
-      const request = store.get(`${window.CONFIG?.CACHE_VERSION || 'v1.0.2'}:${key}`);
+      const request = store.get(`${window.CONFIG?.CACHE_VERSION || 'v1.0.3'}:${key}`);
 
       return new Promise((resolve) => {
         request.onerror = () => resolve(null);
