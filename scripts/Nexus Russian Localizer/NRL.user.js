@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.6.5
+// @version         2.6.6
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -437,55 +437,65 @@
     await Promise.allSettled(promises);
   }
 
-  // Функция для очистки кэша
-  async function clearCache() {
-    try {
-      // Очистка IndexedDB
-      if ('indexedDB' in window) {
-        const deleteReq = indexedDB.deleteDatabase(window.CONFIG?.DB_NAME || 'translationCache');
-        await new Promise((resolve) => {
-          deleteReq.onsuccess = () => resolve();
-          deleteReq.onerror = () => resolve(); // Просто продолжаем, даже если ошибка
-        });
-      }
-      
-      // Очистка всех кэшей в памяти
-      if (window.templateCache && typeof window.templateCache.clear === 'function') {
-        window.templateCache.clear();
-      }
-      
-      // Очистка контекстного кэша
-      if (window.contextCheckCache && typeof window.contextCheckCache.clear === 'function') {
-        window.contextCheckCache.clear();
-      } else if (window.contextCheckCache) {
-        window.contextCheckCache.clear(); // для Map
-      }
-      
-      // Очистка кэша заголовков
-      if (window.headingElementsCache && typeof window.headingElementsCache.clear === 'function') {
-        window.headingElementsCache.clear();
-      } else if (window.headingElementsCache) {
-        window.headingElementsCache.clear(); // для Set
-      }
-      
-      // Если есть доступ к экземплярам кэша перевода, очищаем их тоже
-      if (window.TranslationCache) {
-        // Перебираем все возможные экземпляры, если они существуют
-        // На случай, если кэш уже был инициализирован где-то
-      }
-      
-      console.log('Кэш NRL полностью очищен. Перезагрузите страницу для полного эффекта.');
-      alert('Кэш NRL полностью очищен. Перезагрузите страницу для полного обновления перевода.');
-    } catch (e) {
-      console.warn('Ошибка при очистке кэша:', e);
-      alert('Ошибка при очистке кэша: ' + e.message);
-    }
-  }
+   // Функция для очистки кэша
+   async function clearCache() {
+     try {
+       // Очистка IndexedDB
+       if ('indexedDB' in window) {
+         const deleteReq = indexedDB.deleteDatabase(window.CONFIG?.DB_NAME || 'translationCache');
+         await new Promise((resolve) => {
+           deleteReq.onsuccess = () => resolve();
+           deleteReq.onerror = () => resolve(); // Просто продолжаем, даже если ошибка
+         });
+       }
 
-  // Регистрация команды меню для Tampermonkey
-  if (typeof GM_registerMenuCommand !== 'undefined') {
-    GM_registerMenuCommand('NRL: Очистить кэш', clearCache, 'c'); // добавляем горячую клавишу 'c'
-  }
+       // Вызываем глобальную очистку всех кэшей (из lru-cache.js)
+       if (typeof window.clearAllCaches === 'function') {
+         window.clearAllCaches();
+       } else {
+         // Fallback очистка, если функция недоступна
+         if (window.templateCache && typeof window.templateCache.clear === 'function') {
+           window.templateCache.clear();
+         }
+         if (window.contextCheckCache instanceof Map) {
+           window.contextCheckCache.clear();
+         }
+         if (window.headingElementsCache instanceof Set) {
+           window.headingElementsCache.clear();
+         }
+       }
+
+       // Очистка PLURAL_MAP если есть
+       if (window.PLURAL_MAP) {
+         window.PLURAL_MAP = {};
+       }
+       
+       console.log('Кэш NRL полностью очищен. Перезагрузите страницу для полного эффекта.');
+       alert('Кэш NRL полностью очищен. Перезагрузите страницу для полного обновления перевода.');
+     } catch (e) {
+       console.warn('Ошибка при очистке кэша:', e);
+       alert('Ошибка при очистке кэша: ' + e.message);
+     }
+   }
+
+   // Регистрация команд меню для Tampermonkey
+   if (typeof GM_registerMenuCommand !== 'undefined') {
+     GM_registerMenuCommand('NRL: Очистить кэш', clearCache, 'c'); // горячая клавиша 'c'
+     GM_registerMenuCommand('NRL: Включить отладку', () => {
+       if (window.NRL_DEBUG && typeof window.NRL_DEBUG.enable === 'function') {
+         window.NRL_DEBUG.enable();
+       } else {
+         alert('Отладка недоступна');
+       }
+     }, 'd'); // горячая клавиша 'd'
+     GM_registerMenuCommand('NRL: Отключить отладку', () => {
+       if (window.NRL_DEBUG && typeof window.NRL_DEBUG.disable === 'function') {
+         window.NRL_DEBUG.disable();
+       } else {
+         alert('Отладка недоступна');
+       }
+     }, 'e'); // горячая клавиша 'e'
+   }
 
   // Функция для обработки элементов времени
   async function processTimeElements() {
