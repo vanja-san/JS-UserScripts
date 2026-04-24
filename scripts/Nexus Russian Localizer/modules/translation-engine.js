@@ -283,6 +283,77 @@ class TranslationEngine {
         return true;
       }
 
+      // 2.5. Если слово — исчисляемое существительное, ищем число в родительском контейнере
+      if (window.PLURAL_MAP && element) {
+        const trimmedText = text.trim().toLowerCase();
+        // Проверяем английские и русские формы исчисляемых слов
+        let pluralKey = null;
+        let isRussianForm = false;
+        // Сначала ищем английский ключ
+        for (const key of Object.keys(window.PLURAL_MAP)) {
+          if (trimmedText === key || trimmedText.endsWith(key)) {
+            pluralKey = key;
+            break;
+          }
+        }
+        // Если английский не нашли, проверяем русские формы (мод, мода, модов и т.д.)
+        if (!pluralKey) {
+          for (const [enKey, ruForms] of Object.entries(window.PLURAL_MAP)) {
+            const ruBase = ruForms[2]; // родительный падеж мн.ч. (модов, одобрений и т.д.)
+            if (trimmedText === ruBase || trimmedText.endsWith(ruBase)) {
+              pluralKey = enKey;
+              isRussianForm = true;
+              break;
+            }
+          }
+        }
+        if (pluralKey) {
+          if (window.NRL_DEBUG?.enabled) {
+            console.log('NRL: Found countable noun:', trimmedText, 'key:', pluralKey, 'isRussian:', isRussianForm, 'element:', element);
+          }
+          // Ищем число в родительском контейнере (до 3 уровней вверх)
+          let parentElement = element.parentElement;
+          let parentText = '';
+          let levelsUp = 0;
+          while (parentElement && levelsUp < 3) {
+            parentText += parentElement.textContent || '';
+            const numberMatch = parentText.match(/(\d+\.?\d*)([kmbt]?)/i);
+            if (numberMatch) {
+              const numStr = numberMatch[1];
+              const num = parseFloat(numStr);
+              if (!isNaN(num) && num >= 0) {
+                const ruForms = window.PLURAL_MAP[pluralKey];
+                const pluralized = window.pluralize(num, ruForms);
+                if (window.NRL_DEBUG?.enabled) {
+                  console.log('NRL: Applying pluralization:', trimmedText, '->', pluralized, 'num:', num);
+                }
+                // Заменяем слово на правильную форму
+                const textNodeText = node.textContent;
+                // Если это русская форма, заменяем её, иначе английскую
+                let regex;
+                if (isRussianForm) {
+                  // Заменяем русскую форму (например, "моды" на "модов")
+                  const ruBase = ruForms[2]; // родительный падеж мн.ч.
+                  regex = new RegExp(ruBase, 'gi');
+                } else {
+                  regex = new RegExp(pluralKey, 'gi');
+                }
+                if (regex.test(textNodeText)) {
+                  node.textContent = textNodeText.replace(regex, pluralized);
+                  return true;
+                }
+              }
+              break;
+            }
+            parentElement = parentElement.parentElement;
+            levelsUp++;
+          }
+          if (window.NRL_DEBUG?.enabled && !parentText.match(/(\d+\.?\d*)([kmbt]?)/i)) {
+            console.log('NRL: No number found for countable noun:', trimmedText);
+          }
+        }
+      }
+
       // 3. Затем проверяем общий словарь
       const directTranslation = window.NRL_TRANSLATIONS?.main[text];
       if (directTranslation) {

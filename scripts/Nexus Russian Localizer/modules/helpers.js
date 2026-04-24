@@ -14,10 +14,24 @@ window.pluralize = (number, forms) => {
   return forms[2];
 };
 
-window.createPluralizationTemplates = (units) =>
-  units.map(({en, ru}) => ({
-    pattern: new RegExp(`(\\d+\\.?\\d*)([kmbt]?)\\s*${en}`, 'gi'),
-    replacer: (match, count, suffix) => {
+window.createPluralizationTemplates = (units) => {
+  // Build a map of English plural nouns to their Russian forms for parent-based pluralization
+  if (!window.PLURAL_MAP) window.PLURAL_MAP = {};
+  units.forEach(({en, ru}) => {
+    // Normalize the English key: remove optional [s]? or [ies]? and convert to lowercase
+    // Handle cases like 'mods?', 'image[s]?', 'reply[ies]?'
+    let normalizedEn = en.toLowerCase();
+    // Remove optional parts like [s]? or [ies]?
+    normalizedEn = normalizedEn.replace(/\[.*?\]\?/g, '');
+    // Remove any remaining ? or s at the end (for cases like 'mods?')
+    normalizedEn = normalizedEn.replace(/s\?$/g, 's').replace(/\?/g, '');
+    window.PLURAL_MAP[normalizedEn] = ru;
+  });
+
+  return units.map(({en, ru}) => ({
+    // .*? captures any leading characters (currency symbols, etc.)
+    pattern: new RegExp(`(.*?)(\\d+\\.?\\d*)([kmbt]?)\\s*${en}`, 'gi'),
+    replacer: (match, leading, count, suffix) => {
       // Validate inputs to prevent injection
       const numStr = count.toString();
       if (numStr.length > 15 || !/^\d+\.?\d*$/.test(numStr)) {
@@ -28,33 +42,35 @@ window.createPluralizationTemplates = (units) =>
         return match; // Return original if number is out of range
       }
       const suffixStr = suffix ? suffix.toLowerCase() : '';
-      return `${numStr}${suffixStr} ${window.pluralize(num, ru)}`;
+      // Preserve leading characters (like $) and suffix
+      return `${leading}${numStr}${suffixStr} ${window.pluralize(num, ru)}`;
     }
   }));
+};
 
 // Шаблоны для динамического перевода
 window.DYNAMIC_TEMPLATES = [
   // Шаблоны с плюрализацией (только для отдельных слов, без ago) - размещаем в начале для приоритета
   ...window.createPluralizationTemplates([
-    {en: 'mods?', ru: ['мод', 'мода', 'модов']},
+    {en: 'mods?', ru: ['мод', 'моды', 'модов']},
     {en: 'image[s]?', ru: ['изображение', 'изображения', 'изображений']},
     {en: 'collection[s]?', ru: ['коллекция', 'коллекции', 'коллекций']},
     {en: 'download[s]?', ru: ['скачивание', 'скачивания', 'скачиваний']},
     {en: 'endorsement[s]?', ru: ['одобрение', 'одобрения', 'одобрений']},
-    {en: 'view[s]?', ru: ['просмотр', 'просмотра', 'просмотров']},
-    {en: 'reply[ies]?', ru: ['ответ', 'ответа', 'ответов']},
-    {en: 'Member[s]?', ru: ['участник', 'участника', 'участников']},
-    {en: 'Anonymous', ru: ['аноним', 'анонима', 'анонимов']},
-    {en: 'Guest[s]?', ru: ['гость', 'гостя', 'гостей']},
-    {en: 'member[s]?', ru: ['участник', 'участника', 'участников']},
-    {en: 'result[s]?', ru: ['результат', 'результата', 'результатов']},
-    {en: 'Comment[s]?', ru: ['комментарий', 'комментария', 'комментариев']},
-    {en: 'file[s]?', ru: ['файл', 'файла', 'файлов']},
-    {en: 'item[s]?', ru: ['элемент', 'элемента', 'элементов']},
-    {en: 'user[s]?', ru: ['пользователь', 'пользователя', 'пользователей']},
-    {en: 'post[s]?', ru: ['пост', 'поста', 'постов']},
+    {en: 'view[s]?', ru: ['просмотр', 'просмотры', 'просмотров']},
+    {en: 'reply[ies]?', ru: ['ответ', 'ответы', 'ответов']},
+    {en: 'Member[s]?', ru: ['участник', 'участники', 'участников']},
+    {en: 'Anonymous', ru: ['аноним', 'анонимы', 'анонимов']},
+    {en: 'Guest[s]?', ru: ['гость', 'гости', 'гостей']},
+    {en: 'member[s]?', ru: ['участник', 'участники', 'участников']},
+    {en: 'result[s]?', ru: ['результат', 'результаты', 'результатов']},
+    {en: 'Comment[s]?', ru: ['комментарий', 'комментарии', 'комментариев']},
+    {en: 'file[s]?', ru: ['файл', 'файлы', 'файлов']},
+    {en: 'item[s]?', ru: ['элемент', 'элементы', 'элементов']},
+    {en: 'user[s]?', ru: ['пользователь', 'пользователи', 'пользователей']},
+    {en: 'post[s]?', ru: ['пост', 'посты', 'постов']},
     {en: 'topic[s]?', ru: ['тема', 'темы', 'тем']},
-    {en: 'like[s]?', ru: ['лайк', 'лайка', 'лайков']},
+    {en: 'like[s]?', ru: ['лайк', 'лайки', 'лайков']},
     {en: 'star[s]?', ru: ['звезда', 'звезды', 'звезд']},
     {en: 'vote[s]?', ru: ['голос', 'голоса', 'голосов']},
     {en: 'time[s]?', ru: ['раз', 'раза', 'раз']},
