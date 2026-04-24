@@ -345,8 +345,11 @@
   }
 
   // Debug utility functions
+  // Check sessionStorage for persisted debug state
+  const debugEnabled = sessionStorage.getItem('NRL_DEBUG') === 'true';
+  
   window.NRL_DEBUG = {
-    enabled: false,
+    enabled: debugEnabled,
     log: function(...args) {
       if (this.enabled) {
         console.log('[NRL Debug]', ...args);
@@ -364,11 +367,13 @@
     },
     enable: function() {
       this.enabled = true;
-      console.log('[NRL Debug] Debug mode enabled');
+      sessionStorage.setItem('NRL_DEBUG', 'true');
+      console.log('[NRL Debug] Debug mode enabled. Please refresh the page (F5) to see logs.');
     },
     disable: function() {
       this.enabled = false;
-      console.log('[NRL Debug] Debug mode disabled');
+      sessionStorage.removeItem('NRL_DEBUG');
+      console.log('[NRL Debug] Debug mode disabled.');
     },
     performanceReport: function() {
       const performanceData = {
@@ -381,6 +386,11 @@
       console.table(performanceData);
     }
   };
+  
+  // Log initial state if debug is enabled
+  if (debugEnabled) {
+    console.log('[NRL Debug] Debug mode was enabled from previous session.');
+  }
 
   // Функция для получения приоритетных элементов
   function getPriorityElements() {
@@ -469,10 +479,13 @@
          window.PLURAL_MAP = {};
        }
        
-       console.log('Кэш NRL полностью очищен. Перезагрузите страницу для полного эффекта.');
-       alert('Кэш NRL полностью очищен. Перезагрузите страницу для полного обновления перевода.');
+       console.log('[NRL] Кэш полностью очищен. Страница будет перезагружена...');
+       // Автоматическая перезагрузка через 1 секунду
+       setTimeout(() => {
+         window.location.reload();
+       }, 1000);
      } catch (e) {
-       console.warn('Ошибка при очистке кэша:', e);
+       console.warn('[NRL] Ошибка при очистке кэша:', e);
        alert('Ошибка при очистке кэша: ' + e.message);
      }
    }

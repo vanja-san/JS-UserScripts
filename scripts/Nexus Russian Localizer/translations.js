@@ -5,7 +5,7 @@ const DICTIONARIES = {
   main: {
     "Home": "Главная",
     "Games": "Игры",
-    "Mods": "Моды",
+
     "All mods": "Все моды",
     "Trending mods": "Набирающие популярность",
     "New": "Новые",
