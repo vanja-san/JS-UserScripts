@@ -149,10 +149,9 @@ class TranslationEngine {
    */
   async applyDynamicTemplates(text, element) {
     try {
-      // Быстрая проверка: проверяем длину текста для безопасности
-      if (text.length > 1000) {
-        console.warn('Skipping very long text for security reasons:', text.substring(0, 50) + '...');
-        return { text, replaced: false };
+      // Быстрая проверка: пропускаем Next.js/React чанки и длинные тексты
+      if (text.length > 1000 || text.includes('self.__next_') || text.includes('__next_f.push')) {
+        return { text, replaced: false }; // Просто пропускаем без логов
       }
 
       // Быстрая проверка: пропускаем чисто числовые значения
@@ -248,6 +247,11 @@ class TranslationEngine {
       const firstChar = text.charCodeAt(0);
       if (firstChar >= 48 && firstChar <= 57 && /^\d+$/.test(text)) {
         return false;
+      }
+
+      // Быстрая проверка: пропускаем Next.js/React чанки и скрипты
+      if (text.includes('self.__next_') || text.includes('__next_f.push') || text.length > 5000) {
+        return false; // Пропускаем без логов
       }
 
       // Быстрая проверка: пропускаем комбинации чисел и специальных символов
