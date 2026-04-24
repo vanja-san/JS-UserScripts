@@ -96,22 +96,30 @@ class TranslationEngine {
           continue;
         }
 
-        // Check for direct translation first
-        let translated = window.NRL_TRANSLATIONS?.main[currentValue];
+        // First apply dynamic templates (pluralization) before dictionary
+        // to ensure number+unit patterns are correctly inflected
+        const dynamicResult = await this.applyDynamicTemplates(currentValue, element);
+        let translated = dynamicResult.replaced ? dynamicResult.text : null;
+
+        // If no dynamic template matched, check for direct translation
         if (!translated) {
-          // Check context matching
+          translated = window.NRL_TRANSLATIONS?.main[currentValue];
+        }
+
+        // Check context matching if no direct translation
+        if (!translated) {
           const contextualResult = this.#contextMatcher?.findTranslation(currentValue, element);
           if (contextualResult) {
             translated = contextualResult.translation;
           }
         }
 
-        // Apply date formatting if no direct translation found
+        // Apply date formatting if no translation found
         if (!translated) {
           translated = window.dateFormatter.format(currentValue);
         }
 
-        // If no direct translation found, check cache
+        // If no translation found, check cache
         if (!translated) {
           translated = await this.#cache.getCachedTranslation(currentValue);
         }
@@ -266,7 +274,16 @@ class TranslationEngine {
         return true;
       }
 
-      // 2. Затем проверяем общий словарь
+      // 2. Пробуем применить динамические шаблоны (плюрализацию) ДО словаря,
+      // чтобы числа с единицами измерения корректно склонялись
+      const element = node.parentNode;
+      const dynamicResult = await this.applyDynamicTemplates(originalText, element);
+      if (dynamicResult.replaced) {
+        node.textContent = dynamicResult.text;
+        return true;
+      }
+
+      // 3. Затем проверяем общий словарь
       const directTranslation = window.NRL_TRANSLATIONS?.main[text];
       if (directTranslation) {
         node.textContent = directTranslation;
@@ -274,8 +291,7 @@ class TranslationEngine {
         return true;
       }
 
-      // 3. Затем проверяем контекстные правила
-      const element = node.parentNode;
+      // 4. Затем проверяем контекстные правила
       if (element) {
         const contextualResult = this.#contextMatcher?.findTranslation(text, element);
         if (contextualResult) {
@@ -283,13 +299,6 @@ class TranslationEngine {
           await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
           return true;
         }
-      }
-
-      // 4. Пробуем применить динамические шаблоны
-      const dynamicResult = await this.applyDynamicTemplates(originalText, element);
-      if (dynamicResult.replaced) {
-        node.textContent = dynamicResult.text;
-        return true;
       }
 
       // 5. If we reach here, we couldn't translate, but still need to remember we processed this
@@ -419,16 +428,24 @@ class TranslationEngine {
     while (textNode = walker.nextNode()) {
       const originalText = textNode.textContent.trim();
       if (originalText) {
-        let translated = window.NRL_TRANSLATIONS?.main[originalText];
+        // First apply dynamic templates (pluralization) before dictionary
+        const dynamicResult = await this.applyDynamicTemplates(originalText, element);
+        let translated = dynamicResult.replaced ? dynamicResult.text : null;
+
+        // If no dynamic template matched, check dictionary
         if (!translated) {
-          // Проверяем контекстные правила
+          translated = window.NRL_TRANSLATIONS?.main[originalText];
+        }
+
+        // Check context matching if no direct translation
+        if (!translated) {
           const contextualResult = this.#contextMatcher?.findTranslation(originalText, element);
           if (contextualResult) {
             translated = contextualResult.translation;
           }
         }
 
-        // Применяем форматирование дат
+        // Apply date formatting if no translation found
         if (!translated) {
           translated = window.dateFormatter.format(originalText);
         }
@@ -455,31 +472,11 @@ class TranslationEngine {
         return;
       }
 
-      // Проверяем формат времени, например "1 hour ago", "2 days ago"
-      const timeAgoPattern = /(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i;
-      if (timeAgoPattern.test(originalText)) {
-        // Это формат времени "ago", применяем динамические шаблоны
-        // Ограничиваем количество шаблонов для обработки
-        const templatesToProcess = window.DYNAMIC_TEMPLATES.slice(0, 30); // ограничение для производительности
-
-        for (const template of templatesToProcess) {
-          if (template.pattern.test(originalText)) {
-            template.pattern.lastIndex = 0; // сбрасываем для повторного использования
-            if (template.replacer) {
-              const newText = originalText.replace(template.pattern, (...args) => template.replacer(...args));
-              if (newText !== originalText) {
-                element.textContent = newText;
-                return;
-              }
-            } else if (template.replacement) {
-              const newText = originalText.replace(template.pattern, template.replacement);
-              if (newText !== originalText) {
-                element.textContent = newText;
-                return;
-              }
-            }
-          }
-        }
+      // First apply dynamic templates (pluralization) for number+unit patterns
+      const dynamicResult = await this.applyDynamicTemplates(originalText, element);
+      if (dynamicResult.replaced) {
+        element.textContent = dynamicResult.text;
+        return;
       }
 
       // Если это дата в формате "DD MMM YYYY", применяем форматирование дат

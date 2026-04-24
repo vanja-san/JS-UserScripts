@@ -1,10 +1,14 @@
 // Вспомогательные функции
 window.pluralize = (number, forms) => {
   if (!number || !forms || forms.length < 3) return forms[2] || '';
-  const lastTwo = number % 100;
+
+  // Handle decimal numbers - use the integer part before decimal point
+  const num = typeof number === 'number' ? number : parseFloat(number);
+  const integerPart = Math.floor(Math.abs(num));
+  const lastTwo = integerPart % 100;
   if (lastTwo >= 11 && lastTwo <= 19) return forms[2];
 
-  const lastDigit = number % 10;
+  const lastDigit = integerPart % 10;
   if (lastDigit === 1) return forms[0];
   if (lastDigit >= 2 && lastDigit <= 4) return forms[1];
   return forms[2];
@@ -12,18 +16,19 @@ window.pluralize = (number, forms) => {
 
 window.createPluralizationTemplates = (units) =>
   units.map(({en, ru}) => ({
-    pattern: new RegExp(`(\\d+)\\s*${en}`, 'gi'),
-    replacer: (match, count) => {
+    pattern: new RegExp(`(\\d+\\.?\\d*)([kmbt]?)\\s*${en}`, 'gi'),
+    replacer: (match, count, suffix) => {
       // Validate inputs to prevent injection
       const numStr = count.toString();
-      if (numStr.length > 10 || !/^\d+$/.test(numStr)) {
+      if (numStr.length > 15 || !/^\d+\.?\d*$/.test(numStr)) {
         return match; // Return original if invalid
       }
-      const num = parseInt(numStr);
-      if (isNaN(num) || num < 0 || num > 1000000) {
+      const num = parseFloat(numStr);
+      if (isNaN(num) || num < 0 || num > 1000000000) {
         return match; // Return original if number is out of range
       }
-      return `${num} ${window.pluralize(num, ru)}`;
+      const suffixStr = suffix ? suffix.toLowerCase() : '';
+      return `${numStr}${suffixStr} ${window.pluralize(num, ru)}`;
     }
   }));
 
