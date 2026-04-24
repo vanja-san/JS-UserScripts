@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.6.6
+// @version         2.6.7
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -480,21 +480,34 @@
 
    // Регистрация команд меню для Tampermonkey
    if (typeof GM_registerMenuCommand !== 'undefined') {
-     GM_registerMenuCommand('NRL: Очистить кэш', clearCache, 'c'); // горячая клавиша 'c'
-     GM_registerMenuCommand('NRL: Включить отладку', () => {
-       if (window.NRL_DEBUG && typeof window.NRL_DEBUG.enable === 'function') {
-         window.NRL_DEBUG.enable();
-       } else {
-         alert('Отладка недоступна');
-       }
-     }, 'd'); // горячая клавиша 'd'
-     GM_registerMenuCommand('NRL: Отключить отладку', () => {
-       if (window.NRL_DEBUG && typeof window.NRL_DEBUG.disable === 'function') {
-         window.NRL_DEBUG.disable();
-       } else {
-         alert('Отладка недоступна');
-       }
-     }, 'e'); // горячая клавиша 'e'
+     // Новый синтаксис Tampermonkey v5+
+     GM_registerMenuCommand({
+       name: 'NRL: Очистить кэш',
+       callback: clearCache,
+       accessKey: 'c'
+     });
+     GM_registerMenuCommand({
+       name: 'NRL: Включить отладку',
+       callback: () => {
+         if (window.NRL_DEBUG && typeof window.NRL_DEBUG.enable === 'function') {
+           window.NRL_DEBUG.enable();
+         } else {
+           alert('Отладка недоступна');
+         }
+       },
+       accessKey: 'd'
+     });
+     GM_registerMenuCommand({
+       name: 'NRL: Отключить отладку',
+       callback: () => {
+         if (window.NRL_DEBUG && typeof window.NRL_DEBUG.disable === 'function') {
+           window.NRL_DEBUG.disable();
+         } else {
+           alert('Отладка недоступна');
+         }
+       },
+       accessKey: 'e'
+     });
    }
 
   // Функция для обработки элементов времени
