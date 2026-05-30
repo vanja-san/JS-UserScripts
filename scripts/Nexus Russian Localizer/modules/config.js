@@ -1,22 +1,30 @@
-// Конфигурация для NRL.user.js
+// ============================================
+// Nexus Russian Localizer - Configuration
+// Optimized version with improved defaults
+// ============================================
 window.CONFIG = {
-  CACHE_VERSION: 'v1.0.4', // Updated version to invalidate cache after pluralization fixes
-  DB_NAME: 'translationCache',
-  DB_VERSION: 1,
-  STORE_NAME: 'translations',
-  COMPRESSION_THRESHOLD: 100,
-  MEMORY_CACHE_LIMIT: 1500, // Increased from 1000 to 1500
-  BATCH_SIZE: 50, // Increased for faster processing
-  BATCH_DELAY: 5, // Reduced delay for faster processing
-  MAX_NODES_PER_WALK: 10000, // Added for performance control
-  MAX_ELEMENTS_PER_BATCH: 5000, // Added for performance control
-  PRIORITY_SELECTORS: ['h1', 'h2', 'h3', 'nav', 'button', 'a', '[data-translate-priority="high"]', '.title', '.header', '.nav-link'],
-  MUTATION_OBSERVER_OPTIONS: {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['title', 'placeholder', 'alt', 'data-tooltip', 'aria-label', 'value', 'data-text', 'label'],
-    characterData: true,
-    characterDataOldValue: true
-  }
+CACHE_VERSION: 'v2.0.0',          // New version for cache reset
+DB_NAME: 'translationCache',
+DB_VERSION: 2,                    // Incremented for schema change (removed compression)
+STORE_NAME: 'translations',
+MEMORY_CACHE_LIMIT: 800,          // Reduced from 1500
+BATCH_SIZE: 30,                   // Optimal for performance
+BATCH_DELAY: 8,                   // ms between batches
+MAX_NODES_PER_WALK: 5000,         // Limit for tree walker
+MAX_ELEMENTS_PER_BATCH: 2000,     // Limit for element processing
+PRIORITY_SELECTORS: ['h1', 'h2', 'h3', 'nav', 'button', 'a', '[data-translate-priority="high"]', '.title', '.header', '.nav-link'],
+MUTATION_OBSERVER_OPTIONS: {
+childList: true,
+subtree: true,
+attributes: true,
+attributeFilter: ['title', 'placeholder', 'alt', 'data-tooltip', 'aria-label', 'value', 'data-text', 'label'],
+characterData: true,
+characterDataOldValue: false    // Set to false to reduce overhead
+},
+// New: throttle for mutation observer (ms)
+MUTATION_DEBOUNCE: 50,
+// New: enable incremental rendering (no page hide)
+INCREMENTAL_RENDERING: true,
+// New: log performance only in debug mode
+DEBUG: false
 };
