@@ -4,7 +4,7 @@
 // @namespace       https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         3.0.0
+// @version         3.0.1
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
