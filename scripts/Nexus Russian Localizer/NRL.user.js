@@ -8,16 +8,16 @@
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
-// @downloadURL     https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/NRL.user.js
-// @updateURL       https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/NRL.user.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/translations.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/config.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/lru-cache.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/helpers.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/date-formatter.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/context-matcher.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/translation-cache.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%2520Russian%2520Localizer/modules/translation-engine.js
+// @downloadURL     https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/NRL.user.js
+// @updateURL       https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/NRL.user.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/translations.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/config.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/lru-cache.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/helpers.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/date-formatter.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/context-matcher.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/translation-cache.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/translation-engine.js
 // @grant           GM_registerMenuCommand
 // @license         MIT
 // ==/UserScript==
