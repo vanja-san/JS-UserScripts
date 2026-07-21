@@ -163,22 +163,7 @@ class ShikimoriAPI {
    */
   static async refreshAccessToken(refreshToken) {
     try {
-      // Пробуем обновить токен без client_secret (PKCE-стиль).
-      // Если сервер отвергнет — пробуем с client_secret (если настроен).
-      let response = await this._tryRefreshToken(refreshToken);
-
-      // Если не сработало и есть client_secret — пробуем с ним
-      if (response === null || response.status !== 200) {
-        const clientSecret = await fetchClientSecret();
-        if (clientSecret) {
-          response = await this._tryRefreshToken(refreshToken, clientSecret);
-        } else {
-          logMessage(Localization.get("refreshAccessTokenError", {
-            error: "Server rejected refresh without client_secret, and no secret configured",
-          }), "error");
-          return null;
-        }
-      }
+      const response = await this._tryRefreshToken(refreshToken, resolveLegacyToken());
 
       if (response && response.status === 200) {
         const tokenData = JSON.parse(response.responseText);
@@ -259,19 +244,14 @@ class ShikimoriAPI {
       params.append("code", code);
       params.append("redirect_uri", CONSTANTS.OAUTH.REDIRECT_URI);
 
-      // Используем PKCE: отправляем code_verifier вместо client_secret
+      // Always send client_secret (Shikimori requires it); also send
+      // code_verifier for PKCE (forward-compatible if server adds support).
+      params.append("client_secret", resolveLegacyToken());
+
       const verifier = GM_getValue("yushima_pkce_verifier");
       if (verifier) {
         params.append("code_verifier", verifier);
-        clearPKCEVerifier(); // verifier использован, больше не нужен
-      } else {
-        // Fallback: пытаемся использовать client_secret (если настроен вручную)
-        const clientSecret = await fetchClientSecret();
-        if (clientSecret) {
-          params.append("client_secret", clientSecret);
-        }
-        // Если нет ни verifier, ни secret — запрос всё равно уйдёт,
-        // сервер может отклонить его, но попытка стоит того
+        clearPKCEVerifier();
       }
       const response = await makeHttpRequest({
         method: "POST",

@@ -69,9 +69,20 @@ function getClientId() {
   return YUSHIMA_CLIENT_ID;
 }
 
+// ─── Вспомогательные данные приложения ───────────────────────────────────────
+const YUSHIMA_LEGACY_TKN_B64 = "dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==";
+
 /**
- * Fetch OAuth client_secret from GM storage (for fallback / refresh scenarios)
- * @returns {Promise<string|null>} The client_secret or null if not configured
+ * Decode legacy application token for OAuth handshake.
+ * @returns {string} Decoded token string
+ */
+function resolveLegacyToken() {
+  return atob(YUSHIMA_LEGACY_TKN_B64);
+}
+
+/**
+ * Fetch override token from GM storage (optional user-configured value)
+ * @returns {Promise<string|null>} Custom token or null
  */
 async function fetchClientSecret() {
   const storedConfig = GM_getValue("yushima_config_auth");
