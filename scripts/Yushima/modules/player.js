@@ -291,8 +291,9 @@ class KodikPlayer {
         return false;
       };
 
-      // Более точная проверка прогресса
-      const MILESTONE_VALUES = [10, 30, 50, 70, 90];
+      // Более точная проверка прогресса — ступеньки каждые 5%
+      const STEP = 5;
+      const MILESTONE_VALUES = Array.from({ length: 100 / STEP }, (_, i) => i * STEP);
       const checkProgress = async (currentTime, duration) => {
         if (hasMarkedAsWatched || !duration) return;
 
@@ -324,7 +325,7 @@ class KodikPlayer {
           KodikPlayer.progressMilestones[episodeKey] = new Set();
         }
 
-        // Show progress only at defined milestones (10, 30, 50, 70, 90%)
+        // Show progress only at defined milestones (0, 5, 10, ..., 95%)
         const reachedMilestones = KodikPlayer.progressMilestones[episodeKey];
         for (const m of MILESTONE_VALUES) {
           if (progressPercentage >= m && !reachedMilestones.has(m)) {
@@ -454,6 +455,14 @@ class KodikPlayer {
                 break;
               case "kodik_player_video_started":
               case "kodik_player_play":
+                // Показываем сообщение о начале просмотра
+                OutputWindow.addOrUpdateMessage('started-' + animeId + '-' + currentEpisode,
+                  Localization.get('playerEpisodeStarted', {
+                    episode: currentEpisode,
+                  }),
+                  'info'
+                );
+                break;
               case "kodik_player_advert_ended":
                 // Игнорируем технические события воспроизведения
                 break;
@@ -566,6 +575,13 @@ class KodikPlayer {
                     Localization.get('playerProgressMilestone', {
                       episode: newEpisode,
                       milestone: 0,
+                    }),
+                    'info'
+                  );
+                  // Сообщаем о начале просмотра нового эпизода
+                  OutputWindow.addOrUpdateMessage('started-' + animeId + '-' + newEpisode,
+                    Localization.get('playerEpisodeStarted', {
+                      episode: newEpisode,
                     }),
                     'info'
                   );
