@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.8.0
+// @version      2.8.1
 // @description  Integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -81,6 +81,42 @@
       }
     }
   });
+
+  // Periodic check for authorization code on this page (handles SPA navigation
+  // on OAuth callback pages, e.g. Shikimori Turbolinks /oauth/authorize/CODE)
+  let authCodePollTimer = null;
+  function startAuthCodePolling() {
+    if (authCodePollTimer) return;
+    if (window.yushimaAuthProcessed) return;
+    authCodePollTimer = setInterval(() => {
+      const code = extractAuthorizationCode();
+      if (code && !window.yushimaAuthProcessed) {
+        window.yushimaAuthProcessed = true;
+        clearInterval(authCodePollTimer);
+        authCodePollTimer = null;
+        cleanAuthorizationCodeFromUrl();
+        OAuthHandler.processAuthorizationCode(code).then(success => {
+          if (success) {
+            logMessage(Localization.get("authSuccess"), "success");
+            localStorage.setItem("yushima_auth_timestamp", Date.now().toString());
+            try { window.close(); } catch (e) { /* main tab, can't close */ }
+          } else {
+            window.yushimaAuthProcessed = false;
+            logMessage(Localization.get("authFailed"), "error");
+          }
+        });
+      }
+    }, 1000);
+    // Stop polling after 5 minutes to avoid infinite checking
+    setTimeout(() => {
+      if (authCodePollTimer) {
+        clearInterval(authCodePollTimer);
+        authCodePollTimer = null;
+      }
+    }, 300000);
+  }
+  // Start polling on every page; harmless if no auth code present
+  startAuthCodePolling();
 
   // Debounce utility to throttle frequent events (e.g. MutationObserver)
   function debounce(fn, delay) {
