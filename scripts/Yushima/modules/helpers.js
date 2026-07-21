@@ -135,12 +135,8 @@ async function createAuthUrl() {
   const clientId = getClientId();
   const { challenge } = await getOrCreatePKCEVerifier();
 
-  // Use current page URL as redirect URI so the auth window bounces back to a page our script controls.
-  // This enables automatic code detection via URL parameter or storage event.
-  const redirectUri = window.location.href;
-
   return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}` +
     `&response_type=code` +
     `&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}` +
     `&code_challenge=${challenge}` +

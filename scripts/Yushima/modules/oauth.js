@@ -80,17 +80,37 @@ class OAuthHandler {
         // 2. Try to extract code from page content (for OOB flow)
         if (!code) {
           try {
-            const body = authWindow.document.body;
-            if (body) {
-              const text = body.textContent || '';
-              // Look for code pattern: alphanumeric code displayed on the OOB page
-              const codeMatch = text.match(/([a-zA-Z0-9_-]{20,})/);
-              if (codeMatch && !codeMatch[1].includes(' ')) {
-                code = codeMatch[1];
+            const doc = authWindow.document;
+            if (doc && doc.body) {
+              // 2a. Look for a <code> element (Shikimori OOB typically shows code in <code>)
+              const codeEl = doc.querySelector('code');
+              if (codeEl) {
+                const trimmed = codeEl.textContent.trim();
+                if (trimmed && /^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) {
+                  code = trimmed;
+                }
+              }
+
+              // 2b. Look for text after known labels
+              if (!code) {
+                const text = doc.body.textContent || '';
+                const labelMatch = text.match(/(?:код\s*авторизации|authorization\s*code|code)\s*:?\s*([a-zA-Z0-9_-]{20,})/i);
+                if (labelMatch) {
+                  code = labelMatch[1];
+                }
+              }
+
+              // 2c. Fallback: any long alphanumeric string
+              if (!code) {
+                const text = doc.body.textContent || '';
+                const fallbackMatch = text.match(/([a-zA-Z0-9_-]{20,})/);
+                if (fallbackMatch) {
+                  code = fallbackMatch[1];
+                }
               }
             }
           } catch (e) {
-            // Cross-orign or body not ready
+            // Cross-origin or body not ready
           }
         }
 
