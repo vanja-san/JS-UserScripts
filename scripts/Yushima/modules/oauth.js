@@ -68,11 +68,25 @@ class OAuthHandler {
 
         let code = null;
 
-        // 1. Try to get code from URL query/hash (works if Shikimori uses code param)
+        // 1. Try to get code from URL — query param, hash, or path segment (/authorize/CODE)
         try {
           const url = authWindow.location.href;
-          const urlCode = new URL(url).searchParams.get('code');
+
+          // 1a. Query param ?code=
+          let urlCode = new URL(url).searchParams.get('code');
           if (urlCode) code = urlCode;
+
+          // 1b. Path segment: /authorize/CODE (Shikimori OOB)
+          if (!code) {
+            const pathSegments = new URL(url).pathname.split('/');
+            const authorizeIndex = pathSegments.indexOf('authorize');
+            if (authorizeIndex !== -1 && authorizeIndex + 1 < pathSegments.length) {
+              const pathCode = pathSegments[authorizeIndex + 1];
+              if (pathCode && /^[a-zA-Z0-9._-]+$/.test(pathCode)) {
+                code = pathCode;
+              }
+            }
+          }
         } catch (e) {
           // Cross-origin or other error - silently continue
         }
@@ -82,8 +96,8 @@ class OAuthHandler {
           try {
             const doc = authWindow.document;
             if (doc && doc.body) {
-              // 2a. Look for a <code> element (Shikimori OOB typically shows code in <code>)
-              const codeEl = doc.querySelector('code');
+              // 2a. Look for <code id="authorization_code"> (Shikimori OOB exact element)
+              const codeEl = doc.querySelector('#authorization_code, code.b-code');
               if (codeEl) {
                 const trimmed = codeEl.textContent.trim();
                 if (trimmed && /^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) {
@@ -91,7 +105,18 @@ class OAuthHandler {
                 }
               }
 
-              // 2b. Look for text after known labels
+              // 2b. Any <code> element with long content
+              if (!code) {
+                const codeEl = doc.querySelector('code');
+                if (codeEl) {
+                  const trimmed = codeEl.textContent.trim();
+                  if (trimmed && /^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) {
+                    code = trimmed;
+                  }
+                }
+              }
+
+              // 2c. Look for text after known labels
               if (!code) {
                 const text = doc.body.textContent || '';
                 const labelMatch = text.match(/(?:код\s*авторизации|authorization\s*code|code)\s*:?\s*([a-zA-Z0-9_-]{20,})/i);
@@ -100,7 +125,7 @@ class OAuthHandler {
                 }
               }
 
-              // 2c. Fallback: any long alphanumeric string
+              // 2d. Fallback: any long alphanumeric string
               if (!code) {
                 const text = doc.body.textContent || '';
                 const fallbackMatch = text.match(/([a-zA-Z0-9_-]{20,})/);
