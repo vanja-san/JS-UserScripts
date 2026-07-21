@@ -194,7 +194,7 @@ class KodikPlayer {
       let videoDuration = 0;
       let videoCurrentTime = 0;
       let lastTimeUpdateMessage = 0;
-      let watchedPositions = new Set();
+      const watchedPositions = new Set();
 
       // Отслеживание времени просмотра для каждого эпизода
       // Maximum entries to prevent memory leaks when switching many episodes
@@ -936,7 +936,7 @@ class KodikPlayer {
       }, 3000);
 
       // Fallback timer-based progress tracking
-      let lastTrackedTime = 0;
+      const lastTrackedTime = 0;
       const fallbackInterval = setInterval(() => {
         if (hasMarkedAsWatched) {
           clearInterval(fallbackInterval);
@@ -1020,7 +1020,7 @@ class KodikPlayer {
   static insertPlayer(playerElement) {
     cleanupExistingPlayer();
     // Find the main anime entry block
-    let target = document.querySelector(".b-db_entry");
+    const target = document.querySelector(".b-db_entry");
 
     if (target) {
       target.after(playerElement);

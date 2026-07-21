@@ -31,7 +31,7 @@ class Settings {
 
   static getAllSettings() {
     const settings = {};
-    for (const [key, defaultValue] of Object.entries(this.DEFAULTS)) {
+    for (const [key] of Object.entries(this.DEFAULTS)) {
       settings[key] = this.getSetting(key);
     }
     return settings;

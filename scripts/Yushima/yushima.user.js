@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.7.0
+// @version      2.7.1
 // @description  Integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -93,7 +93,6 @@
         try {
           window.close();
         } catch (e) {
-          console.log(Localization.get("couldNotCloseTab"));
           alert(
             Localization.get("authSuccess") +
               " " +

@@ -221,7 +221,7 @@ function cleanupExistingPlayer() {
  * Searches in: query params, hash fragment, path segments (e.g. /authorize/CODE), and inline code=
  */
 async function checkForAuthorizationCode() {
-  let code = extractAuthorizationCode();
+  const code = extractAuthorizationCode();
 
   if (code) {
     // Очищаем URL от кода авторизации
