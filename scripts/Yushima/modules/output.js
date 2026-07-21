@@ -8,8 +8,9 @@ class OutputWindow {
   static isResizing = false;
   static dragOffset = { x: 0, y: 0 };
   static resizeStart = { x: 0, y: 0, width: 0, height: 0 };
-  static messageFilter = 'all'; // 'all', 'debug', 'error', 'info', 'success', 'warn'
+  static messageFilter = 'warn'; // 'all', 'debug', 'error', 'info', 'success', 'warn'
   static messages = []; // Store all messages
+  static messageMap = {}; // Messages by ID for dynamic updates
   static lastTimeUpdateMessage = 0; // Track last time update message
 
   static init() {
@@ -230,12 +231,44 @@ class OutputWindow {
     const newMessage = {
       timestamp: new Date(),
       message: message,
-      type: type
+      type: type,
+      id: null
     };
 
     this.messages.push(newMessage);
 
     // Render messages based on current filter
+    this.renderMessages();
+  }
+
+  /**
+   * Add or update a message by ID. If a message with the same ID exists,
+   * it is replaced (for dynamic updates like progress percentage).
+   * @param {string} id - Unique identifier for the message
+   * @param {string} message - Message text
+   * @param {string} type - Message type (info, warn, error, success, debug)
+   */
+  static addOrUpdateMessage(id, message, type = 'info') {
+    this.init();
+
+    if (this.messageMap[id] !== undefined) {
+      // Update existing message
+      const idx = this.messageMap[id];
+      this.messages[idx].message = message;
+      this.messages[idx].type = type;
+      this.messages[idx].timestamp = new Date();
+    } else {
+      // Add new message
+      const newMessage = {
+        timestamp: new Date(),
+        message: message,
+        type: type,
+        id: id
+      };
+      this.messages.push(newMessage);
+      this.messageMap[id] = this.messages.length - 1;
+    }
+
     this.renderMessages();
   }
 
@@ -319,6 +352,7 @@ class OutputWindow {
 
   static clear() {
     this.messages = [];
+    this.messageMap = {};
     if (this.contentElement) {
       this.contentElement.innerHTML = '';
     }

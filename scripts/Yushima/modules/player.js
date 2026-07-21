@@ -168,14 +168,12 @@ class KodikPlayer {
       statusText.style.color = "#2ecc71";
       statusText.style.fontWeight = "bold";
       authButton.style.display = "none";
-      logMessage(Localization.get("authStatusUpdateAuthenticated"), "success");
     } else {
       statusText.textContent = Localization.get("authStatusAuthNeeded");
       statusText.style.color = "#e74c3c";
       statusText.style.fontWeight = "normal";
       authButton.style.display = "flex";
       authButton.textContent = Localization.get("authButtonAuthenticate");
-      logMessage(Localization.get("authStatusUpdateNotAuthenticated"), "warn");
     }
   }
   /**
@@ -318,55 +316,19 @@ class KodikPlayer {
         }
 
         // Create a unique key for this episode
-        const episodeKey = `${animeId}-${episode}`;
+        const episodeKey = `${animeId}-${currentEpisode}`;
 
         // Initialize milestone tracking for this episode if needed
         if (!KodikPlayer.progressMilestones[episodeKey]) {
           KodikPlayer.progressMilestones[episodeKey] = [];
         }
 
-        // Show progress percentage message every 10% threshold
-        const currentMilestone = Math.floor(progressPercentage / 10) * 10;
-        const hasReachedMilestone =
-          KodikPlayer.progressMilestones[episodeKey].includes(currentMilestone);
-
-        if (
-          progressPercentage > 0 &&
-          currentMilestone > 0 &&
-          !hasReachedMilestone &&
-          currentMilestone % 10 === 0
-        ) {
-          // Mark this milestone as reached
-          KodikPlayer.progressMilestones[episodeKey].push(currentMilestone);
-          KodikPlayer.progressMilestones[episodeKey].sort((a, b) => a - b);
-
-          logMessage(
-            Localization.get("playerProgressMilestone", {
-              episode: episode,
-              milestone: currentMilestone,
-            }),
-            "info",
-          );
-        }
-
-        // If we reach the threshold for marking as watched, log a specific message
-        const progressThreshold = Settings.getSetting("progressThreshold");
-        if (progress >= progressThreshold && !hasMarkedAsWatched) {
-          const thresholdPercent = Math.round(progressThreshold * 100);
-          if (
-            progressPercentage >= thresholdPercent &&
-            progressPercentage < thresholdPercent + 5
-          ) {
-            // Only log once
-            logMessage(
-              Localization.get("playerThresholdReached", {
-                episode: episode,
-                threshold: thresholdPercent,
-              }),
-              "info",
-            );
-          }
-        }
+        // Update dynamic progress line (single line that updates percentage)
+        const progressMsg = Localization.get('playerProgressMilestone', {
+          episode: currentEpisode,
+          milestone: progressPercentage,
+        });
+        OutputWindow.addOrUpdateMessage('progress-' + episodeKey, progressMsg, 'info');
 
         if (progress >= progressThreshold) {
           const roundedPosition = Math.round(currentTime / 10) * 10;
@@ -416,43 +378,16 @@ class KodikPlayer {
               // Обрабатываем специфические строковые сообщения от Kodik
               switch (event.data) {
                 case "flow_progress":
-                  // Прогресс может означать обновление времени, проверим прогресс если знаем продолжительность
-                  if (videoDuration > 0) {
-                    // Мы не знаем точное текущее время, но можем периодически проверять
-                    // Проверим текущий прогресс через backup проверки
-                  }
-                  break;
-                case "flow_load":
-                  logMessage(Localization.get("playerFlowLoad"), "debug");
-                  break;
-                case "flow_ready":
-                  logMessage(Localization.get("playerFlowReady"), "debug");
-                  break;
-                case "flow_resume":
-                  logMessage(Localization.get("playerFlowResume"), "debug");
-                  break;
-                case "flow_beforeseek":
-                  logMessage(
-                    Localization.get("playerFlowSeekStarted"),
-                    "debug",
-                  );
-                  break;
-                case "flow_seek":
-                  logMessage(
-                    Localization.get("playerFlowSeekCompleted"),
-                    "debug",
-                  );
-                  break;
-                case "flow_pause":
-                  logMessage(Localization.get("playerFlowPause"), "debug");
-                  break;
-                default:
-                  logMessage(
-                    Localization.get("playerUnknownStringMessage", {
-                      message: event.data,
-                    }),
-                    "debug",
-                  );
+              case "flow_load":
+              case "flow_ready":
+              case "flow_resume":
+              case "flow_beforeseek":
+              case "flow_seek":
+              case "flow_pause":
+                // Игнорируем технические события потока
+                break;
+              default:
+                // Неизвестные строковые сообщения игнорируем
               }
               return;
             }
@@ -473,14 +408,6 @@ class KodikPlayer {
               case "kodik_player_duration_update":
                 if (typeof data.value === "number") {
                   videoDuration = data.value;
-                  const { minutes, seconds } = formatTime(data.value);
-                  logMessage(
-                    Localization.get("playerDurationUpdated", {
-                      minutes: minutes,
-                      seconds: seconds,
-                    }),
-                    "info",
-                  );
                   // Обновляем общую длительность для текущего эпизода
                   if (!episodeWatchTime[currentEpisode]) {
                     episodeWatchTime[currentEpisode] = {
@@ -500,20 +427,7 @@ class KodikPlayer {
                   if (initialEpisodeFromKodik) {
                     initialEpisodeFromKodik = false;
                   }
-                  // Throttle time update messages to once every 10 minutes (600,000 ms)
-                  const now = Date.now();
-                  if (now - lastTimeUpdateMessage >= 600000) {
-                    // 10 minutes = 600,000 ms
-                    const { minutes, seconds } = formatTime(data.value);
-                    logMessage(
-                      Localization.get("playerTimeUpdated", {
-                        minutes: minutes,
-                        seconds: seconds,
-                      }),
-                      "debug",
-                    );
-                    lastTimeUpdateMessage = now;
-                  }
+                  // Time updates are tracked internally, no log output to avoid spam
                   // Обновляем время просмотра для текущего эпизода
                   if (!episodeWatchTime[currentEpisode]) {
                     episodeWatchTime[currentEpisode] = {
@@ -532,13 +446,9 @@ class KodikPlayer {
                 }
                 break;
               case "kodik_player_video_started":
-                logMessage(Localization.get("playerVideoStarted"), "info");
-                break;
               case "kodik_player_play":
-                logMessage(Localization.get("playerVideoPlay"), "info");
-                break;
               case "kodik_player_advert_ended":
-                logMessage(Localization.get("playerAdvertEnded"), "info");
+                // Игнорируем технические события воспроизведения
                 break;
               case "kodik_player_current_episode":
                 // data.value может быть числом, строкой или объектом {episode: N, number: N}
@@ -576,13 +486,6 @@ class KodikPlayer {
                     }
                   }
 
-                  logMessage(
-                    Localization.get("playerCurrentEpisodeChange", {
-                      newEpisode: newEpisode,
-                    }),
-                    "info",
-                  );
-
                   // Обновляем переменную эпизода на новый
                   const oldEpisode = currentEpisode;
                   currentEpisode = newEpisode;
@@ -599,13 +502,6 @@ class KodikPlayer {
                       const progressPercent = Math.round(progress * 100);
 
                       if (progress >= progressThreshold && !synced) {
-                        logMessage(
-                          Localization.get("playerProgressReached", {
-                            episode: oldEpisode,
-                            progress: progressPercent,
-                          }),
-                          "info",
-                        );
                         await markAsWatched(oldEpisode);
                       }
                     } else if (!hasMarkedAsWatched) {
@@ -657,14 +553,17 @@ class KodikPlayer {
                     );
                   }
 
-                  logMessage(
-                    Localization.get("playerEpisodeStarted", {
+                  // Reset progress display for new episode
+                  const newEpisodeKey = animeId + '-' + newEpisode;
+                  OutputWindow.addOrUpdateMessage('progress-' + newEpisodeKey,
+                    Localization.get('playerProgressMilestone', {
                       episode: newEpisode,
+                      milestone: 0,
                     }),
-                    "info",
+                    'info'
                   );
                 } else {
-                  logMessage(Localization.get("playerCurrentEpisode"), "info");
+                  // Episode change not relevant, ignore
                 }
                 break;
 
@@ -691,7 +590,7 @@ class KodikPlayer {
             data.type === "player_state" ||
             (data.event && data.event === "player_state")
           ) {
-            logMessage(Localization.get("playerLegacyState"), "debug");
+            // Legacy player state handled without log output
             const duration =
               data.duration ||
               (data.metadata && data.metadata.duration) ||
@@ -713,7 +612,6 @@ class KodikPlayer {
                 data.event === "ended") &&
               !hasMarkedAsWatched
             ) {
-              logMessage(Localization.get("playerVideoEndedMark"), "info");
               await markAsWatched();
             }
           } else if (
@@ -721,7 +619,7 @@ class KodikPlayer {
             data.event === "video_progress" ||
             data.event === "progress"
           ) {
-            logMessage(Localization.get("playerVideoProgress"), "debug");
+            // Video progress - handled without log output
             const progress =
               data.progress ||
               (data.percent && data.percent / 100) ||
@@ -739,7 +637,6 @@ class KodikPlayer {
             data.event === "finish" ||
             (data.state && data.state === "ended")
           ) {
-            logMessage(Localization.get("playerVideoCompletion"), "info");
             if (!hasMarkedAsWatched) {
               await markAsWatched();
             }
@@ -747,7 +644,7 @@ class KodikPlayer {
             data.event === "timeupdate" ||
             data.type === "timeupdate"
           ) {
-            logMessage(Localization.get("playerTimeUpdate"), "debug");
+            // Time update handled without log output
             const currentTime = data.currentTime || data.position;
             const duration = data.duration || videoDuration;
             if (
@@ -760,7 +657,7 @@ class KodikPlayer {
             data.type === "request_capabilities" ||
             data.type === "request_progress_updates"
           ) {
-            logMessage(Localization.get("playerCapabilitiesRequest"), "debug");
+            // Capabilities handled without log output
             try {
               if (iframe.contentWindow) {
                 iframe.contentWindow.postMessage(
@@ -782,17 +679,12 @@ class KodikPlayer {
           }
           // Additional message type support for different Kodik player versions
           else if (data.event && typeof data.event === "string") {
-            logMessage(
-              Localization.get("playerUnknownEvent", { event: data.event }),
-              "debug",
-            );
             // Some players might send different event names
             if (
               ["video_ended", "ended", "complete", "finished"].includes(
                 data.event,
               )
             ) {
-              logMessage(Localization.get("playerVideoEnded"), "info");
               if (!hasMarkedAsWatched) {
                 await markAsWatched();
               }

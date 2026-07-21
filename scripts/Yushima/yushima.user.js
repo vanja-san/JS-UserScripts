@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.7.1
+// @version      2.7.2
 // @description  Integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -313,23 +313,24 @@
     GM_registerMenuCommand(Localization.get("menuShowOutput"), () => {
       if (OutputWindow && !OutputWindow.isVisible()) {
         OutputWindow.show();
-        logMessage(Localization.get("menuOutputShown"), "info");
+        Settings.setSetting('showOutputWindow', true);
       } else if (OutputWindow && OutputWindow.isVisible()) {
         OutputWindow.hide();
-        logMessage(Localization.get("menuOutputHidden"), "info");
+        Settings.setSetting('showOutputWindow', false);
       }
     });
   }
 
-  // Initialize the output window
+  // Initialize the output window based on saved setting
   setTimeout(() => {
-    if (ShikimoriAPI.isAnimePage()) {
+    if (Settings.getSetting('showOutputWindow')) {
       OutputWindow.show();
     }
   }, 1000);
 
   // Reinitialize the output window after page navigation
   function reinitializeOutputWindow() {
+    if (!Settings.getSetting('showOutputWindow')) return;
     if (ShikimoriAPI.isAnimePage()) {
       if (!document.getElementById("yushima-output-window")) {
         OutputWindow.windowElement = null;
@@ -345,7 +346,7 @@
 
   // Check and restore output window after navigation
   setTimeout(() => {
-    if (ShikimoriAPI.isAnimePage()) {
+    if (Settings.getSetting('showOutputWindow') && ShikimoriAPI.isAnimePage()) {
       reinitializeOutputWindow();
     }
   }, 1500);
