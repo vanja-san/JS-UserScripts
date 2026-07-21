@@ -144,14 +144,11 @@ async function getAnimeTitle(animeId) {
  */
 async function createAuthUrl() {
   const clientId = getClientId();
-  const { challenge } = await getOrCreatePKCEVerifier();
 
   return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}` +
     `&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}` +
     `&response_type=code` +
-    `&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}` +
-    `&code_challenge=${challenge}` +
-    `&code_challenge_method=S256`;
+    `&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
 }
 
 /**

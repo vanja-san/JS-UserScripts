@@ -244,15 +244,9 @@ class ShikimoriAPI {
       params.append("code", code);
       params.append("redirect_uri", CONSTANTS.OAUTH.REDIRECT_URI);
 
-      // Always send client_secret (Shikimori requires it); also send
-      // code_verifier for PKCE (forward-compatible if server adds support).
       params.append("client_secret", resolveLegacyToken());
-
-      const verifier = GM_getValue("yushima_pkce_verifier");
-      if (verifier) {
-        params.append("code_verifier", verifier);
-        clearPKCEVerifier();
-      }
+      // After successful exchange, clean up any stale PKCE verifier
+      GM_deleteValue("yushima_pkce_verifier");
       const response = await makeHttpRequest({
         method: "POST",
         url: CONSTANTS.OAUTH.TOKEN_URL,
