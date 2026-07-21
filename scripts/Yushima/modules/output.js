@@ -8,7 +8,7 @@ class OutputWindow {
   static isResizing = false;
   static dragOffset = { x: 0, y: 0 };
   static resizeStart = { x: 0, y: 0, width: 0, height: 0 };
-  static messageFilter = 'warn'; // 'all', 'debug', 'error', 'info', 'success', 'warn'
+  static messageFilter = 'info'; // 'all', 'info', 'warn', 'error'
   static messages = []; // Store all messages
   static messageMap = {}; // Messages by ID for dynamic updates
   static lastTimeUpdateMessage = 0; // Track last time update message
@@ -30,8 +30,6 @@ class OutputWindow {
             <option value="info">${Localization.get('outputFilterInfo')}</option>
             <option value="warn">${Localization.get('outputFilterWarnings')}</option>
             <option value="error">${Localization.get('outputFilterErrors')}</option>
-            <option value="success">${Localization.get('outputFilterSuccess')}</option>
-            <option value="debug">${Localization.get('outputFilterDebug')}</option>
           </select>
         </div>
         <div style="display: flex; align-items: center; gap: 5px;">
