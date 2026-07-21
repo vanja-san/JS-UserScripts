@@ -27,17 +27,13 @@ class OAuthHandler {
   /**
    * Initiate OAuth authentication flow
    */
-  static initiateAuthFlow() {
+  static async initiateAuthFlow() {
     // Use the out-of-band flow as originally designed
-    const authUrl = createAuthUrl();
+    const authUrl = await createAuthUrl();
     // Use a named window so we can potentially reference it later
-    const authWindow = window.open(authUrl, 'shikimori_auth_window', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    window.open(authUrl, 'shikimori_auth_window', 'width=800,height=600,scrollbars=yes,resizable=yes');
 
-    if (authWindow) {
-      logMessage('Authentication window opened. Please authorize the application and return to this page. The page will automatically refresh after successful authentication.', 'info');
-    } else {
-      logMessage('Authentication window opened. Please authorize the application and return to this page. The page will automatically refresh after successful authentication.', 'info');
-    }
+    logMessage(Localization.get('oauthWindowOpened'), 'info');
   }
   /**
    * Process authorization code from URL parameters
@@ -57,12 +53,12 @@ class OAuthHandler {
    * Show authentication code input dialog - REMOVED in favor of fully automated authentication
    * This function is kept for backwards compatibility but simply opens auth window
    */
-  static showAuthCodeInput() {
+  static async showAuthCodeInput() {
     // Open the authentication page in a new window
-    const authUrl = createAuthUrl();
+    const authUrl = await createAuthUrl();
     window.open(authUrl, 'shikimori_auth_window', 'width=800,height=600,scrollbars=yes,resizable=yes');
 
-    logMessage('Authentication window opened. Please authorize the application and return to this page. The page will automatically refresh after successful authentication.', 'info');
+    logMessage(Localization.get('oauthWindowOpened'), 'info');
   }
 
   /**

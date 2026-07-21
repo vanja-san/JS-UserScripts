@@ -196,8 +196,25 @@ class KodikPlayer {
       let lastTimeUpdateMessage = 0;
       let watchedPositions = new Set();
 
-      // Отслеживание времени просмотра для каждого эпизода (как в Mirual)
+      // Отслеживание времени просмотра для каждого эпизода
+      // Maximum entries to prevent memory leaks when switching many episodes
+      const MAX_WATCH_TIME_ENTRIES = 100;
       const episodeWatchTime = {}; // { episode: { watched: 0, total: 0, synced: false } }
+
+      /**
+       * Clean up old episode watch time entries to prevent unbounded growth
+       * Removes entries beyond MAX_WATCH_TIME_ENTRIES, keeping the newest ones
+       * @param {number} [keepCount] - Number of entries to keep (defaults to MAX_WATCH_TIME_ENTRIES)
+       */
+      function cleanupWatchTimeEntries(keepCount = MAX_WATCH_TIME_ENTRIES) {
+        const episodes = Object.keys(episodeWatchTime).map(Number);
+        episodes.sort((a, b) => b - a); // newest first
+        if (episodes.length > keepCount) {
+          episodes.slice(keepCount).forEach((ep) => {
+            delete episodeWatchTime[ep];
+          });
+        }
+      }
       let currentEpisode = episode;
       let initialEpisodeFromKodik = true; // Флаг для первого сообщения от Kodik
 
@@ -598,6 +615,8 @@ class KodikPlayer {
 
                   // Сбрасываем статус просмотра для нового эпизода
                   hasMarkedAsWatched = false;
+                  // Ограничиваем размер хранилища, удаляя старые записи
+                  cleanupWatchTimeEntries();
                   // Инициализируем новый эпизод с нулевым временем просмотра
                   episodeWatchTime[newEpisode] = {
                     watched: 0,
@@ -608,6 +627,15 @@ class KodikPlayer {
                   videoCurrentTime = 0;
                   videoDuration = 0;
                   watchedPositions.clear();
+                  // Ограничиваем размер progressMilestones (оставляем только последние 200)
+                  if (KodikPlayer.progressMilestones) {
+                    const keys = Object.keys(KodikPlayer.progressMilestones);
+                    if (keys.length > 200) {
+                      keys.sort().slice(0, keys.length - 200).forEach((k) => {
+                        delete KodikPlayer.progressMilestones[k];
+                      });
+                    }
+                  }
                   lastProgressUpdate = Date.now();
 
                   // Запрашиваем обновления прогресса для нового эпизода
@@ -622,12 +650,19 @@ class KodikPlayer {
                     }
                   } catch (e) {
                     logMessage(
-                      `Не удалось запросить обновления для эпизода ${newEpisode}`,
+                      Localization.get("playerFetchUpdatesFailed", {
+                        episode: newEpisode,
+                      }),
                       "warn",
                     );
                   }
 
-                  logMessage(`Начало просмотра эпизода ${newEpisode}`, "info");
+                  logMessage(
+                    Localization.get("playerEpisodeStarted", {
+                      episode: newEpisode,
+                    }),
+                    "info",
+                  );
                 } else {
                   logMessage(Localization.get("playerCurrentEpisode"), "info");
                 }

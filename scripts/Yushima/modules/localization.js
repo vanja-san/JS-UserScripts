@@ -124,7 +124,23 @@ const Localization = {
       playerHeadline: 'player',
 
       // Default values
-      defaultEpisode: 1
+      defaultEpisode: 1,
+
+      // Hardcoded strings that were missing from localization
+      authSuccessCloseTab: 'You can now close this tab and return to the original page.',
+      pleaseTryAgain: 'Please try again.',
+      oauthWindowOpened: 'Authentication window opened. Please authorize the application and return to this page. The page will automatically refresh after successful authentication.',
+      oauthConfigStoredSuccess: 'OAuth config value successfully stored in GM storage',
+      invalidConfigFormat: 'Invalid config value format',
+      errorStoringConfig: 'Error storing config value: {message}',
+      errorDecodingConfig: 'Error decoding stored config value: {message}',
+      errorDecodingConfigBackup: 'Error decoding stored config. Using fallback values.',
+      errorDecodingFallbackSecrets: 'Error decoding fallback secrets: {message}',
+      couldNotCloseTab: 'Could not close tab automatically, redirecting...',
+      playerFetchUpdatesFailed: 'Failed to request updates for episode {episode}',
+      playerEpisodeStarted: 'Started watching episode {episode}',
+      playerUnknownFormat: 'Unknown data format',
+      playerCurrentEpisodeChange: 'Player: Episode changed to {newEpisode}'
     },
     ru: {
       // Output window
@@ -244,7 +260,23 @@ const Localization = {
       playerHeadline: 'плеер',
 
       // Default values
-      defaultEpisode: 1
+      defaultEpisode: 1,
+
+      // Hardcoded strings that were missing from localization
+      authSuccessCloseTab: 'Вы можете закрыть эту вкладку и вернуться на исходную страницу.',
+      pleaseTryAgain: 'Пожалуйста, попробуйте снова.',
+      oauthWindowOpened: 'Окно аутентификации открыто. Пожалуйста, авторизуйте приложение и вернитесь на эту страницу. Страница автоматически обновится после успешной аутентификации.',
+      oauthConfigStoredSuccess: 'Значение конфигурации OAuth успешно сохранено в GM хранилище',
+      invalidConfigFormat: 'Неверный формат значения конфигурации',
+      errorStoringConfig: 'Ошибка сохранения значения конфигурации: {message}',
+      errorDecodingConfig: 'Ошибка декодирования сохранённого значения конфигурации: {message}',
+      errorDecodingConfigBackup: 'Ошибка декодирования сохранённой конфигурации. Используются резервные значения.',
+      errorDecodingFallbackSecrets: 'Ошибка декодирования резервных секретов: {message}',
+      couldNotCloseTab: 'Не удалось закрыть вкладку автоматически, перенаправление...',
+      playerFetchUpdatesFailed: 'Не удалось запросить обновления для эпизода {episode}',
+      playerEpisodeStarted: 'Начало просмотра эпизода {episode}',
+      playerUnknownFormat: 'Неизвестный формат данных',
+      playerCurrentEpisodeChange: 'Плеер: Эпизод изменён на {newEpisode}'
     }
   },
 

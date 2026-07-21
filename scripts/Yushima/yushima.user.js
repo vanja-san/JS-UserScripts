@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.6.1
+// @version      2.7.0
 // @description  Integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -30,22 +30,11 @@
 (function () {
   "use strict";
 
-  // Initialize OAuth configuration in GM storage if not already present
-  // This ensures the config is available for OAuth requests
-  const storedConfig = GM_getValue("yushima_config_auth");
-  if (!storedConfig) {
-    // Set the Base64-encoded OAuth config for the first time
-    GM_setValue(
-      "yushima_config_auth",
-      "dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==",
-    );
-  }
-
   // Prevent multiple executions of the script by checking if it's already running
-  if (window.plasheekScriptRunning) {
+  if (window.yushimaScriptRunning) {
     return;
   }
-  window.plasheekScriptRunning = true;
+  window.yushimaScriptRunning = true;
 
   /**
    * Update the auth handler to reset flag after successful authentication
@@ -55,7 +44,7 @@
   OAuthHandler.processAuthorizationCode = async function (code) {
     const success = await originalProcessAuthorizationCode.call(this, code);
     if (success) {
-      GM_setValue("shikimori_auth_initiated", false);
+      GM_setValue("yushima_auth_initiated", false);
     }
     return success;
   };
@@ -80,72 +69,58 @@
     localStorage.removeItem("yushima_auth_timestamp");
   }
 
-  // Set up periodic checks for authentication status from other tabs
-  setInterval(async () => {
-    const authTimestamp = localStorage.getItem("yushima_auth_timestamp");
-    if (authTimestamp) {
-      const timestamp = parseInt(authTimestamp);
+  // Listen for authentication success from other tabs via localStorage changes
+  window.addEventListener("storage", (event) => {
+    if (event.key === "yushima_auth_timestamp" && event.newValue) {
+      const timestamp = parseInt(event.newValue);
       const now = Date.now();
       // Only consider it fresh if it's within the last 30 seconds
       if (now - timestamp < 30000) {
         logMessage(Localization.get("authSuccess"), "success");
         window.location.reload();
       }
-      // Clear the stored timestamp so we don't keep refreshing
-      localStorage.removeItem("yushima_auth_timestamp");
-    } else {
-      // Also check if the user has become authenticated without going through our process
-      const isAuthenticated = await OAuthHandler.isAuthenticated();
-      if (isAuthenticated) {
-        // Update auth cache since authentication state has changed
-        if (
-          typeof OAuthHandler !== "undefined" &&
-          OAuthHandler.lastAuthCheck !== undefined
-        ) {
-          OAuthHandler.lastAuthCheck = 0;
-          OAuthHandler.lastAuthResult = null;
+    }
+  });
+
+  // Also handle authorization callback pages that need cross-tab notification
+  (async () => {
+    const code = extractAuthorizationCode();
+    if (code) {
+      const success = await OAuthHandler.processAuthorizationCode(code);
+      if (success) {
+        logMessage(Localization.get("authSuccess"), "success");
+        localStorage.setItem("yushima_auth_timestamp", Date.now().toString());
+        try {
+          window.close();
+        } catch (e) {
+          console.log(Localization.get("couldNotCloseTab"));
+          alert(
+            Localization.get("authSuccess") +
+              " " +
+              Localization.get("authSuccessCloseTab"),
+          );
         }
+      } else {
+        logMessage(Localization.get("authFailed"), "error");
+        alert(
+          Localization.get("authFailed") +
+            " " +
+            Localization.get("pleaseTryAgain"),
+        );
       }
     }
-  }, 2000); // Check every 2 seconds
+  })();
 
-  // Also check if we're on an authorization callback page with code in path
-  const pathSegments = window.location.pathname.split("/");
-  const authorizeIndex = pathSegments.indexOf("authorize");
-  if (authorizeIndex !== -1 && authorizeIndex + 1 < pathSegments.length) {
-    const code = pathSegments[authorizeIndex + 1]; // The code is the next segment after 'authorize'
-    // Verify it looks like a valid code (alphanumeric, hyphens, underscores, and dots)
-    if (code && /^[a-zA-Z0-9._-]+$/.test(code)) {
-      // Process the authorization code directly
-      OAuthHandler.processAuthorizationCode(code).then((success) => {
-        if (success) {
-          logMessage(Localization.get("authSuccess"), "success");
-
-          // Store the success status in localStorage so the main tab can detect it
-          localStorage.setItem("yushima_auth_success", Date.now().toString());
-          localStorage.setItem("yushima_auth_timestamp", Date.now().toString());
-
-          // Try to close this tab since we're done with authentication
-          // This only works if the tab was opened by a script (like window.open)
-          try {
-            window.close();
-          } catch (e) {
-            // If we can't close the tab, redirect back to main site
-            // In some browsers, window.close() only works for tabs opened via window.open()
-            console.log("Could not close tab automatically, redirecting...");
-
-            // Try to redirect user's attention back to the original tab
-            alert(
-              Localization.get("authSuccess") +
-                " You can now close this tab and return to the original page.",
-            );
-          }
-        } else {
-          logMessage(Localization.get("authFailed"), "error");
-          alert(Localization.get("authFailed") + " " + "Please try again.");
-        }
-      });
-    }
+  // Debounce utility to throttle frequent events (e.g. MutationObserver)
+  function debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        fn.apply(this, args);
+        timer = null;
+      }, delay);
+    };
   }
 
   // Flag to prevent duplicate initialization
@@ -208,8 +183,9 @@
   setTimeout(async () => {
     await safeInitializePlayer();
 
-    // Enhanced MutationObserver to detect changes in page content
-    const observer = new MutationObserver(async (mutations) => {
+    // Debounced MutationObserver to detect changes in page content
+    // Debounce at 300ms to avoid excessive processing on rapid DOM changes
+    const handlePageChange = debounce(async (mutations) => {
       let pageChanged = false;
       let animePageDetected = false;
 
@@ -280,7 +256,9 @@
         // Also reinitialize output window after navigation
         setTimeout(reinitializeOutputWindow, 100);
       }
-    });
+    }, 300);
+
+    const observer = new MutationObserver(handlePageChange);
 
     observer.observe(document.body, {
       childList: true,
@@ -327,11 +305,20 @@
     });
   }, CONSTANTS.PLAYER_INIT_DELAY);
 
-  // Register Tampermonkey menu command for output window
+  // Register Tampermonkey menu commands
   if (typeof GM_registerMenuCommand !== "undefined") {
+    GM_registerMenuCommand(
+      Localization.get("menuSettings"),
+      Settings.showSettingsDialog,
+    );
     GM_registerMenuCommand(Localization.get("menuShowOutput"), () => {
-      OutputWindow.show();
-      logMessage(Localization.get("menuOutputShown"), "info");
+      if (OutputWindow && !OutputWindow.isVisible()) {
+        OutputWindow.show();
+        logMessage(Localization.get("menuOutputShown"), "info");
+      } else if (OutputWindow && OutputWindow.isVisible()) {
+        OutputWindow.hide();
+        logMessage(Localization.get("menuOutputHidden"), "info");
+      }
     });
   }
 

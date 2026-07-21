@@ -48,7 +48,7 @@ class ShikimoriAPI {
     try {
       const options = {
         method: "GET",
-        url: `//${window.location.hostname}/api${endpoint}`,
+        url: `https://${window.location.hostname}/api${endpoint}`,
         headers: {
           "User-Agent": "Yushima",
         },
@@ -144,7 +144,7 @@ class ShikimoriAPI {
    * @returns {Promise<string|null>} Access token or null if not available
    */
   static async getAccessToken() {
-    const tokenData = GM_getValue("shikimori_oauth_token");
+    const tokenData = GM_getValue("yushima_oauth_token");
     if (!tokenData) {
       return null;
     }
@@ -163,43 +163,31 @@ class ShikimoriAPI {
    */
   static async refreshAccessToken(refreshToken) {
     try {
-      const params = new URLSearchParams();
-      params.append("grant_type", "refresh_token");
-      let clientId = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo"; // Use the known client ID
-      let clientSecret = ""; // Will be fetched from gist
+      // Пробуем обновить токен без client_secret (PKCE-стиль).
+      // Если сервер отвергнет — пробуем с client_secret (если настроен).
+      let response = await this._tryRefreshToken(refreshToken);
 
-      // Fetch secrets from gist
-      const remoteSecrets = await fetchSecretsFromGist();
-      if (remoteSecrets && remoteSecrets.client_id) {
-        clientId = remoteSecrets.client_id;
-        clientSecret = remoteSecrets.client_secret;
+      // Если не сработало и есть client_secret — пробуем с ним
+      if (response === null || response.status !== 200) {
+        const clientSecret = await fetchClientSecret();
+        if (clientSecret) {
+          response = await this._tryRefreshToken(refreshToken, clientSecret);
+        } else {
+          logMessage(Localization.get("refreshAccessTokenError", {
+            error: "Server rejected refresh without client_secret, and no secret configured",
+          }), "error");
+          return null;
+        }
       }
 
-      if (!clientSecret) {
-        logMessage(Localization.get("oauthClientSecretMissing"), "error");
-        return null;
-      }
-      params.append("client_id", clientId);
-      params.append("client_secret", clientSecret);
-      params.append("refresh_token", refreshToken);
-      const response = await makeHttpRequest({
-        method: "POST",
-        url: CONSTANTS.OAUTH.TOKEN_URL,
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "Yushima",
-        },
-        data: params.toString(),
-      });
-      if (response.status === 200) {
+      if (response && response.status === 200) {
         const tokenData = JSON.parse(response.responseText);
         const newTokenData = {
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,
           expiresAt: Date.now() + tokenData.expires_in * 1000 - 60000,
         };
-        GM_setValue("shikimori_oauth_token", newTokenData);
-        // Reset auth cache since authentication state has changed
+        GM_setValue("yushima_oauth_token", newTokenData);
         if (
           typeof OAuthHandler !== "undefined" &&
           OAuthHandler.lastAuthCheck !== undefined
@@ -209,13 +197,14 @@ class ShikimoriAPI {
         }
         return tokenData.access_token;
       } else {
+        const status = response ? response.status : "no response";
         logMessage(
           Localization.get("refreshAccessTokenError", {
-            error: `Status ${response.status}`,
+            error: `Status ${status}`,
           }),
           "error",
         );
-        GM_deleteValue("shikimori_oauth_token");
+        GM_deleteValue("yushima_oauth_token");
         return null;
       }
     } catch (error) {
@@ -223,6 +212,36 @@ class ShikimoriAPI {
         Localization.get("refreshAccessTokenError", { error: error.message }),
         "error",
       );
+      return null;
+    }
+  }
+
+  /**
+   * Internal helper to make a refresh token request
+   * @param {string} refreshToken
+   * @param {string} [clientSecret] - Optional client_secret
+   * @returns {Promise<Object|null>} HTTP response or null
+   */
+  static async _tryRefreshToken(refreshToken, clientSecret) {
+    try {
+      const params = new URLSearchParams();
+      params.append("grant_type", "refresh_token");
+      params.append("client_id", getClientId());
+      params.append("refresh_token", refreshToken);
+      if (clientSecret) {
+        params.append("client_secret", clientSecret);
+      }
+      const response = await makeHttpRequest({
+        method: "POST",
+        url: CONSTANTS.OAUTH.TOKEN_URL,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Yushima",
+        },
+        data: params.toString(),
+      });
+      return response;
+    } catch (error) {
       return null;
     }
   }
@@ -236,24 +255,24 @@ class ShikimoriAPI {
     try {
       const params = new URLSearchParams();
       params.append("grant_type", "authorization_code");
-      let clientId = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo";
-      let clientSecret = "";
-
-      // Fetch secrets from gist
-      const remoteSecrets = await fetchSecretsFromGist();
-      if (remoteSecrets && remoteSecrets.client_id) {
-        clientId = remoteSecrets.client_id;
-        clientSecret = remoteSecrets.client_secret;
-      }
-
-      if (!clientSecret) {
-        logMessage(Localization.get("oauthClientSecretMissing"), "error");
-        return false;
-      }
-      params.append("client_id", clientId);
-      params.append("client_secret", clientSecret);
+      params.append("client_id", getClientId());
       params.append("code", code);
       params.append("redirect_uri", CONSTANTS.OAUTH.REDIRECT_URI);
+
+      // Используем PKCE: отправляем code_verifier вместо client_secret
+      const verifier = GM_getValue("yushima_pkce_verifier");
+      if (verifier) {
+        params.append("code_verifier", verifier);
+        clearPKCEVerifier(); // verifier использован, больше не нужен
+      } else {
+        // Fallback: пытаемся использовать client_secret (если настроен вручную)
+        const clientSecret = await fetchClientSecret();
+        if (clientSecret) {
+          params.append("client_secret", clientSecret);
+        }
+        // Если нет ни verifier, ни secret — запрос всё равно уйдёт,
+        // сервер может отклонить его, но попытка стоит того
+      }
       const response = await makeHttpRequest({
         method: "POST",
         url: CONSTANTS.OAUTH.TOKEN_URL,
@@ -270,7 +289,7 @@ class ShikimoriAPI {
           refreshToken: tokenData.refresh_token,
           expiresAt: Date.now() + tokenData.expires_in * 1000 - 60000,
         };
-        GM_setValue("shikimori_oauth_token", newTokenData);
+        GM_setValue("yushima_oauth_token", newTokenData);
         // Reset auth cache since authentication state has changed
         if (
           typeof OAuthHandler !== "undefined" &&

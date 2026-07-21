@@ -1,91 +1,88 @@
-async function fetchSecretsFromGist() {
-  // Получаем OAuth конфигурацию из GM-хранилища
+// ─── PKCE (Proof Key for Code Exchange) ───────────────────────────────────────
+// Вместо client_secret используем PKCE — стандарт OAuth 2.0 для публичных клиентов.
+// Это безопаснее: даже если код авторизации перехвачен, без code_verifier его
+// нельзя обменять на токен.
+
+/**
+ * Generate a cryptographically random PKCE code verifier (43–128 chars)
+ * @returns {string} Base64url-encoded random string
+ */
+function generatePKCEVerifier() {
+  const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  const array = new Uint8Array(43);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => charset[byte % charset.length]).join("");
+}
+
+/**
+ * Compute PKCE code challenge = base64url(sha256(codeVerifier))
+ * @param {string} verifier - The code verifier
+ * @returns {Promise<string>} Base64url-encoded SHA-256 hash
+ */
+async function generatePKCEChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", encoder.encode(verifier));
+  return base64urlEncode(new Uint8Array(hash));
+}
+
+/**
+ * Base64url encode a byte array (no padding)
+ * @param {Uint8Array} bytes
+ * @returns {string}
+ */
+function base64urlEncode(bytes) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/**
+ * Get or create the PKCE code verifier, stored in GM storage
+ * @returns {Promise<{verifier: string, challenge: string}>}
+ */
+async function getOrCreatePKCEVerifier() {
+  let verifier = GM_getValue("yushima_pkce_verifier");
+  if (!verifier) {
+    verifier = generatePKCEVerifier();
+    GM_setValue("yushima_pkce_verifier", verifier);
+  }
+  const challenge = await generatePKCEChallenge(verifier);
+  return { verifier, challenge };
+}
+
+/**
+ * Clear the stored PKCE verifier (should be done after successful auth)
+ */
+function clearPKCEVerifier() {
+  GM_deleteValue("yushima_pkce_verifier");
+}
+
+// ─── Client ID (публичный, безопасно хранить в коде) ─────────────────────────
+const YUSHIMA_CLIENT_ID = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo";
+
+/**
+ * Get the OAuth client ID
+ * @returns {string} The client ID
+ */
+function getClientId() {
+  return YUSHIMA_CLIENT_ID;
+}
+
+/**
+ * Fetch OAuth client_secret from GM storage (for fallback / refresh scenarios)
+ * @returns {Promise<string|null>} The client_secret or null if not configured
+ */
+async function fetchClientSecret() {
   const storedConfig = GM_getValue("yushima_config_auth");
   if (storedConfig) {
     try {
-      // Декодируем Base64-закодированную конфигурацию
       const decodedConfig = atob(storedConfig);
       if (/^[a-zA-Z0-9_-]+$/.test(decodedConfig)) {
-        return {
-          client_id: "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo", // фиксированный client_id
-          client_secret: decodedConfig,
-        };
+        return decodedConfig;
       }
     } catch (decodeError) {
-      logMessage(
-        "Error decoding stored config. Using fallback values.",
-        "error",
-      );
-    }
-  }
-
-  // Если не удалось получить из хранилища, используем резервные значения
-  return fetchEncodedSecretsBackup();
-}
-
-/**
- * Backup function with encoded secrets (fallback if Gist unavailable)
- * @returns {Object|null} Object containing client_id, client_secret
- */
-function fetchEncodedSecretsBackup() {
-  // Используем фиксированный client_id и Base64-закодированный client_secret
-  const clientId = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo";
-  const encodedSecret =
-    "dk1JUXE3YXg5WGthcXhsaUZ6c0daTGpfOHJLQUxrcHFzcXFFbjhBMkVaaw==";
-
-  try {
-    const decodedSecret = atob(encodedSecret);
-    return {
-      client_id: clientId,
-      client_secret: decodedSecret,
-    };
-  } catch (error) {
-    logMessage("Error decoding fallback secrets: " + error.message, "error");
-    return null;
-  }
-}
-
-/**
- * Set OAuth configuration value in GM storage
- * @param {string} value - The OAuth configuration value to store
- */
-function setOAuthConfig(value) {
-  try {
-    // Проверяем, что значение имеет правильный формат
-    if (/^[a-zA-Z0-9_-]+$/.test(value)) {
-      // Кодируем значение в Base64 для хранения
-      const encodedValue = btoa(value);
-      GM_setValue("yushima_config_auth", encodedValue);
-      logMessage(
-        "OAuth config value successfully stored in GM storage",
-        "success",
-      );
-      return true;
-    } else {
-      logMessage("Invalid config value format", "error");
-      return false;
-    }
-  } catch (error) {
-    logMessage("Error storing config value: " + error.message, "error");
-    return false;
-  }
-}
-
-/**
- * Get OAuth configuration value from GM storage
- * @returns {string|null} The decoded config value or null if not found
- */
-function getOAuthConfig() {
-  const storedValue = GM_getValue("yushima_config_auth");
-  if (storedValue) {
-    try {
-      return atob(storedValue);
-    } catch (error) {
-      logMessage(
-        "Error decoding stored config value: " + error.message,
-        "error",
-      );
-      return null;
+      logMessage(Localization.get("errorDecodingConfigBackup"), "error");
     }
   }
   return null;
@@ -131,14 +128,19 @@ async function getAnimeTitle(animeId) {
 }
 
 /**
- * Create OAuth authorization URL
- * @returns {string} Authorization URL
+ * Create OAuth authorization URL with PKCE code challenge
+ * @returns {Promise<string>} Authorization URL
  */
-function createAuthUrl() {
-  // Используем фиксированный client_id
-  const clientId = "QGgOhZu0sah_CnzwgLKIWu6Nil8STVCirCYhlAq7tmo";
+async function createAuthUrl() {
+  const clientId = getClientId();
+  const { challenge } = await getOrCreatePKCEVerifier();
 
-  return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}`;
+  return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}` +
+    `&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}` +
+    `&code_challenge=${challenge}` +
+    `&code_challenge_method=S256`;
 }
 
 /**
@@ -157,10 +159,18 @@ function makeHttpRequest(options) {
 }
 
 /**
- * Determine if current page is in English based on headline content
+ * Determine if current page is in English
+ * Checks <html lang> attribute first, falls back to headline content
  * @returns {boolean} Whether the page is in English
  */
 function isEnglishPage() {
+  // Primary: check <html lang="..."> attribute (most reliable)
+  const htmlLang = document.documentElement.getAttribute("lang");
+  if (htmlLang) {
+    return htmlLang.startsWith("en");
+  }
+
+  // Fallback: check headline content (for SPA pages that may not set lang)
   const currentHeadline = document.querySelector(".subheadline");
   return currentHeadline && currentHeadline.textContent.includes("Information");
 }
@@ -208,68 +218,83 @@ function cleanupExistingPlayer() {
 
 /**
  * Check URL for authorization code and process it if present
+ * Searches in: query params, hash fragment, path segments (e.g. /authorize/CODE), and inline code=
  */
 async function checkForAuthorizationCode() {
-  // Проверяем параметр code в URL
-  const urlParams = new URLSearchParams(window.location.search);
-  let code = urlParams.get("code");
-
-  // Проверяем также, может быть, это URL, который был скопирован с кодом авторизации
-  if (!code) {
-    // Ищем код авторизации в хеше URL (на случай, если он есть в #fragment)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    code = hashParams.get("code");
-  }
-
-  // А также проверяем хеш в формате #code=... как альтернативу
-  if (!code && window.location.hash) {
-    const match = window.location.hash.match(/[#&]code=([^&]*)/);
-    if (match) {
-      code = decodeURIComponent(match[1]);
-    }
-  }
+  let code = extractAuthorizationCode();
 
   if (code) {
-    // Удаляем параметр code из URL, чтобы избежать повторной обработки
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.delete("code");
-    currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, "");
-    if (currentUrl.href !== window.location.href) {
-      window.history.replaceState({}, document.title, currentUrl.href);
-    }
+    // Очищаем URL от кода авторизации
+    cleanAuthorizationCodeFromUrl();
 
     const success = await OAuthHandler.processAuthorizationCode(code);
     if (success) {
       logMessage(Localization.get("authSuccess"), "success");
-      // Добавляем небольшую задержку перед перезагрузкой для отображения сообщения
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } else {
       logMessage(Localization.get("authFailed"), "error");
-      alert(Localization.get("authFailed") + " " + "Please try again.");
+      alert(
+        Localization.get("authFailed") + " " + Localization.get("pleaseTryAgain"),
+      );
     }
-  } else {
-    // Дополнительно проверяем, может быть, пользователь скопировал URL с кодом вручную
-    const currentUrl = window.location.href;
-    if (currentUrl.includes("code=")) {
-      const manualCodeMatch = currentUrl.match(/[?&]code=([^&]*)/);
-      if (manualCodeMatch) {
-        const manualCode = decodeURIComponent(manualCodeMatch[1]);
-        if (manualCode) {
-          const success =
-            await OAuthHandler.processAuthorizationCode(manualCode);
-          if (success) {
-            logMessage(Localization.get("authSuccess"), "success");
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } else {
-            logMessage(Localization.get("authFailed"), "error");
-            alert(Localization.get("authFailed") + " " + "Please try again.");
-          }
-        }
-      }
+  }
+}
+
+/**
+ * Extract authorization code from various URL locations
+ * @returns {string|null} The authorization code or null
+ */
+function extractAuthorizationCode() {
+  // 1. Check query parameter "code"
+  const urlParams = new URLSearchParams(window.location.search);
+  let code = urlParams.get("code");
+  if (code) return code;
+
+  // 2. Check hash fragment "code"
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  code = hashParams.get("code");
+  if (code) return code;
+
+  // 3. Check hash in format #code=...
+  if (window.location.hash) {
+    const match = window.location.hash.match(/[#&]code=([^&]*)/);
+    if (match) {
+      return decodeURIComponent(match[1]);
     }
+  }
+
+  // 4. Check path segments: /authorize/CODE
+  const pathSegments = window.location.pathname.split("/");
+  const authorizeIndex = pathSegments.indexOf("authorize");
+  if (authorizeIndex !== -1 && authorizeIndex + 1 < pathSegments.length) {
+    const pathCode = pathSegments[authorizeIndex + 1];
+    if (pathCode && /^[a-zA-Z0-9._-]+$/.test(pathCode)) {
+      return pathCode;
+    }
+  }
+
+  // 5. Fallback: inline code= in full URL
+  const fullUrl = window.location.href;
+  if (fullUrl.includes("code=")) {
+    const manualMatch = fullUrl.match(/[?&]code=([^&]*)/);
+    if (manualMatch) {
+      return decodeURIComponent(manualMatch[1]);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Clean authorization code from URL to prevent re-processing
+ */
+function cleanAuthorizationCodeFromUrl() {
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.delete("code");
+  currentUrl.hash = currentUrl.hash.replace(/[#&]code=[^&]*/, "");
+  if (currentUrl.href !== window.location.href) {
+    window.history.replaceState({}, document.title, currentUrl.href);
   }
 }
