@@ -2,7 +2,7 @@
 // @name         Yushima
 // @name:ru      Yushima
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Yushima
-// @version      2.7.4
+// @version      2.8.0
 // @description  Integration of player on Shikimori website with automatic browsing tracking
 // @description:ru  Интеграция плеера на сайт Shikimori с автоматическим отслеживанием просмотра
 // @author       vanja-san
@@ -81,34 +81,6 @@
       }
     }
   });
-
-  // Also handle authorization callback pages that need cross-tab notification
-  (async () => {
-    const code = extractAuthorizationCode();
-    if (code) {
-      const success = await OAuthHandler.processAuthorizationCode(code);
-      if (success) {
-        logMessage(Localization.get("authSuccess"), "success");
-        localStorage.setItem("yushima_auth_timestamp", Date.now().toString());
-        try {
-          window.close();
-        } catch (e) {
-          alert(
-            Localization.get("authSuccess") +
-              " " +
-              Localization.get("authSuccessCloseTab"),
-          );
-        }
-      } else {
-        logMessage(Localization.get("authFailed"), "error");
-        alert(
-          Localization.get("authFailed") +
-            " " +
-            Localization.get("pleaseTryAgain"),
-        );
-      }
-    }
-  })();
 
   // Debounce utility to throttle frequent events (e.g. MutationObserver)
   function debounce(fn, delay) {

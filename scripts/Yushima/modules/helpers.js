@@ -135,8 +135,12 @@ async function createAuthUrl() {
   const clientId = getClientId();
   const { challenge } = await getOrCreatePKCEVerifier();
 
+  // Use current page URL as redirect URI so the auth window bounces back to a page our script controls.
+  // This enables automatic code detection via URL parameter or storage event.
+  const redirectUri = window.location.href;
+
   return `${CONSTANTS.OAUTH.AUTH_URL}?client_id=${clientId}` +
-    `&redirect_uri=${encodeURIComponent(CONSTANTS.OAUTH.REDIRECT_URI)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&response_type=code` +
     `&scope=${encodeURIComponent(CONSTANTS.OAUTH.SCOPES)}` +
     `&code_challenge=${challenge}` +
@@ -224,15 +228,22 @@ async function checkForAuthorizationCode() {
   const code = extractAuthorizationCode();
 
   if (code) {
-    // Очищаем URL от кода авторизации
+    // Clean authorization code from URL to prevent re-processing
     cleanAuthorizationCodeFromUrl();
 
     const success = await OAuthHandler.processAuthorizationCode(code);
     if (success) {
       logMessage(Localization.get("authSuccess"), "success");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Notify the main tab via localStorage and try to close this window
+      localStorage.setItem("yushima_auth_timestamp", Date.now().toString());
+      try {
+        window.close();
+      } catch (e) {
+        // If window.close() fails, this is the main tab — reload to reflect auth state
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
     } else {
       logMessage(Localization.get("authFailed"), "error");
       alert(
