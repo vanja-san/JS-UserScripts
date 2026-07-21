@@ -292,6 +292,7 @@ class KodikPlayer {
       };
 
       // Более точная проверка прогресса
+      const MILESTONE_VALUES = [10, 30, 50, 70, 90];
       const checkProgress = async (currentTime, duration) => {
         if (hasMarkedAsWatched || !duration) return;
 
@@ -320,15 +321,21 @@ class KodikPlayer {
 
         // Initialize milestone tracking for this episode if needed
         if (!KodikPlayer.progressMilestones[episodeKey]) {
-          KodikPlayer.progressMilestones[episodeKey] = [];
+          KodikPlayer.progressMilestones[episodeKey] = new Set();
         }
 
-        // Update dynamic progress line (single line that updates percentage)
-        const progressMsg = Localization.get('playerProgressMilestone', {
-          episode: currentEpisode,
-          milestone: progressPercentage,
-        });
-        OutputWindow.addOrUpdateMessage('progress-' + episodeKey, progressMsg, 'info');
+        // Show progress only at defined milestones (10, 30, 50, 70, 90%)
+        const reachedMilestones = KodikPlayer.progressMilestones[episodeKey];
+        for (const m of MILESTONE_VALUES) {
+          if (progressPercentage >= m && !reachedMilestones.has(m)) {
+            reachedMilestones.add(m);
+            const progressMsg = Localization.get('playerProgressMilestone', {
+              episode: currentEpisode,
+              milestone: m,
+            });
+            OutputWindow.addOrUpdateMessage('progress-' + episodeKey, progressMsg, 'info');
+          }
+        }
 
         if (progress >= progressThreshold) {
           const roundedPosition = Math.round(currentTime / 10) * 10;
