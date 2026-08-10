@@ -2,9 +2,9 @@
 // @name         Pinato
 // @name:ru      Pinato
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Pinato
-// @version      1.23
-// @description  Opens Pinterest pins in a clean modal overlay.
-// @description:ru  Открывайте пины в Pinterest в чистом модульном оверлее.
+// @version      1.38
+// @description  Opens Pinterest image pins in a full‑screen modal with upgraded quality. Video pins are ignored.
+// @description:ru  Открывает пины-изображения в полноэкранном модальном окне с улучшенным качеством. Видео-пины игнорируются.
 // @author       vanja-san
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=pinterest.com
 // @match        *://*.pinterest.com/*
@@ -15,7 +15,6 @@
 (() => {
   'use strict';
 
-  // ─── Styles ───
   GM_addStyle(`
     .pm-overlay {
       position: fixed;
@@ -38,30 +37,44 @@
 
     .pm-modal {
       position: relative;
-      max-width: 95vw;
-      max-height: 95vh;
-      width: auto;
-      height: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: transparent;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
       animation: pm-scaleIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+      max-width: 95vw;
+      max-height: 95vh;
+      width: auto;
+      height: auto;
     }
     @keyframes pm-scaleIn {
       from { transform: scale(0.95); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
 
-    .pm-image {
-      display: block;
-      width: auto;
-      height: auto;
+    .pm-image-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       max-width: 95vw;
       max-height: 95vh;
+      width: auto;
+      height: auto;
+    }
+
+    .pm-image {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
       object-fit: contain;
       background: #181818;
       border-radius: 12px;
+      display: block;
     }
 
     .pm-close {
@@ -87,7 +100,7 @@
       opacity: 0;
       pointer-events: none;
     }
-    .pm-modal:hover .pm-close {
+    .pm-image-wrapper:hover .pm-close {
       opacity: 1;
       pointer-events: auto;
     }
@@ -114,8 +127,10 @@
       flex-wrap: wrap;
       align-items: flex-start;
       gap: 8px 16px;
+      max-height: 40%;
+      overflow: hidden;
     }
-    .pm-modal:hover .pm-info {
+    .pm-image-wrapper:hover .pm-info {
       opacity: 1;
     }
     .pm-info * { pointer-events: auto; }
@@ -123,6 +138,8 @@
     .pm-text {
       flex: 1 1 auto;
       min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
     }
     .pm-title {
       font-size: 18px;
@@ -132,6 +149,12 @@
       color: #fff;
       text-shadow: 0 1px 4px rgba(0,0,0,0.3);
       word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-height: 2.6em;
     }
     .pm-description {
       font-size: 14px;
@@ -172,10 +195,16 @@
         border-radius: 0;
         box-shadow: none;
       }
-      .pm-image {
+      .pm-image-wrapper {
         max-width: 100vw;
         max-height: 100vh;
+        width: 100%;
+        height: 100%;
+      }
+      .pm-image {
         border-radius: 0;
+        max-width: 100%;
+        max-height: 100%;
       }
       .pm-info {
         border-radius: 0;
@@ -183,6 +212,7 @@
         opacity: 1;
         pointer-events: auto;
         flex-wrap: wrap;
+        max-height: 30%;
       }
       .pm-close {
         top: 8px;
@@ -217,6 +247,7 @@
       background: rgba(0,0,0,0.5);
       border-radius: 12px;
       z-index: 1;
+      pointer-events: none;
     }
     .pm-loader::after {
       content: '';
@@ -233,7 +264,6 @@
     }
   `);
 
-  // ─── Helpers ───
   const escapeHtml = text => {
     if (!text) return '';
     return text
@@ -242,6 +272,43 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
   };
+
+  // ─── Upgrade image URL to original quality ──────────────────────
+
+  const getUpgradedUrls = url => {
+    if (!url || !url.includes('i.pinimg.com')) return [url];
+
+    // Find size pattern like /236x/, /474x/, /736x/, etc.
+    const sizeMatch = url.match(/\/(\d+x)\//);
+    if (!sizeMatch) return [url];
+
+    const size = sizeMatch[1];
+    // Replace size segment with /originals/
+    const baseUrl = url.replace(`/${size}/`, '/originals/');
+    // Remove query parameters
+    const cleanBase = baseUrl.split('?')[0];
+
+    // Generate possible extensions
+    const extensions = ['.jpg', '.png', '.webp'];
+    const urls = [];
+
+    // Original with current extension (keep as is)
+    urls.push(cleanBase);
+
+    // Try other extensions
+    const baseWithoutExt = cleanBase.replace(/\.[^.]+$/, '');
+    for (const ext of extensions) {
+      const newUrl = baseWithoutExt + ext;
+      if (newUrl !== cleanBase) urls.push(newUrl);
+    }
+
+    // Fallback to the original URL as last resort
+    urls.push(url);
+
+    return urls;
+  };
+
+  // ─── Helpers ──────────────────────────────────────────────────────
 
   const getBestImageUrl = img => {
     if (!img) return '';
@@ -267,42 +334,21 @@
     return null;
   };
 
-  const findImage = link => {
-    let img = link.querySelector('img');
-    if (img) return img;
-
+  const isVideoPin = link => {
+    if (link.querySelector('video')) return true;
     const containerSelectors = ['[data-testid="pin"]', '.Pin', '.Grid__Pin', '.pinWrapper'];
     const container = findClosest(link, containerSelectors);
-    if (container) {
-      img = container.querySelector('img');
-      if (img) return img;
-    }
+    if (container && container.querySelector('video')) return true;
+    return false;
+  };
 
-    let el = link.parentElement;
-    let level = 0;
-    while (el && el !== document.body && level < 10) {
-      img = el.querySelector('img');
-      if (img) return img;
-      el = el.parentElement;
-      level++;
-    }
-
-    const parent = link.parentElement;
-    if (parent) {
-      img = parent.querySelector('img');
-      if (img) return img;
-      const grandparent = parent.parentElement;
-      if (grandparent) {
-        const siblings = grandparent.querySelectorAll('img');
-        for (const sib of siblings) {
-          if (sib.closest('a[href*="/pin/"]') === link) {
-            return sib;
-          }
-        }
-      }
-    }
-
-    return null;
+  const isJunkText = text => {
+    if (!text) return true;
+    const clean = text.trim();
+    if (/^video::cue/.test(clean)) return true;
+    if (/\{.*\}/.test(clean) && /:\s*[^;]+;/.test(clean)) return true;
+    if (/color\s*:\s*white/.test(clean)) return true;
+    return false;
   };
 
   const getPinData = link => {
@@ -311,10 +357,22 @@
       title: '',
       description: '',
       pinUrl: link.href,
+      urls: [],
     };
 
-    const img = findImage(link);
-    if (img) data.imageUrl = getBestImageUrl(img);
+    let img = link.querySelector('img');
+    if (!img) {
+      const containerSelectors = ['[data-testid="pin"]', '.Pin', '.Grid__Pin', '.pinWrapper'];
+      const container = findClosest(link, containerSelectors);
+      if (container) img = container.querySelector('img');
+    }
+    if (img) {
+      const rawUrl = getBestImageUrl(img);
+      if (rawUrl) {
+        data.imageUrl = rawUrl;
+        data.urls = getUpgradedUrls(rawUrl);
+      }
+    }
 
     const containerSelectors = ['[data-testid="pin"]', '.Pin', '.Grid__Pin', '.pinWrapper'];
     const container = findClosest(link, containerSelectors) || link.parentElement;
@@ -354,17 +412,18 @@
 
     if (!title && img) {
       const alt = img.alt;
-      if (alt && !alt.startsWith('Пин содержит это изображение')) {
+      if (alt && !isJunkText(alt)) {
         title = alt;
       }
     }
 
     if (!title) {
       const linkText = link.textContent.trim();
-      if (linkText && !linkText.startsWith('Пин содержит это изображение')) {
+      if (linkText && !isJunkText(linkText)) {
         title = linkText;
       }
     }
+
     data.title = title || 'Untitled';
 
     if (container) {
@@ -397,7 +456,6 @@
     modal.style.background = '#222';
   };
 
-  // ─── Modal management ───
   const createModal = data => {
     const old = document.querySelector('.pm-overlay');
     if (old) old.remove();
@@ -406,23 +464,45 @@
     overlay.className = 'pm-overlay';
     const escapedTitle = escapeHtml(data.title);
     const escapedDescription = data.description ? escapeHtml(data.description) : '';
-    const escapedImageUrl = escapeHtml(data.imageUrl || '');
     const escapedPinUrl = escapeHtml(data.pinUrl || '#');
+
+    // Use the first upgraded URL or fallback to original
+    const imageUrls = data.urls && data.urls.length ? data.urls : [data.imageUrl];
+    const firstUrl = imageUrls[0] || '';
+
+    let mediaHtml = '';
+
+    if (firstUrl) {
+      mediaHtml = `
+        <div class="pm-image-wrapper">
+          <img class="pm-image" alt="${escapedTitle}" src="${escapeHtml(firstUrl)}" crossorigin="anonymous" referrerpolicy="no-referrer">
+          <button class="pm-close" type="button">✕</button>
+          <div class="pm-info">
+            <div class="pm-text">
+              <div class="pm-title">${escapedTitle}</div>
+              ${escapedDescription ? `<div class="pm-description">${escapedDescription}</div>` : ''}
+            </div>
+            <div class="pm-actions">
+              <a class="pm-button" href="${escapedPinUrl}" target="_blank" rel="noopener noreferrer" data-pm-ignore="true">Open on Pinterest</a>
+            </div>
+          </div>
+          <div class="pm-loader">Loading...</div>
+        </div>
+      `;
+    } else {
+      mediaHtml = `
+        <div style="display:flex;align-items:center;justify-content:center;background:#222;color:#fff;font-size:16px;width:400px;height:300px;text-align:center;padding:20px;border-radius:12px;">
+          <div>
+            <div>Image not available</div>
+            <a href="${escapedPinUrl}" target="_blank" rel="noopener noreferrer" style="color:#e60023;text-decoration:underline;display:inline-block;margin-top:12px;">Open on Pinterest</a>
+          </div>
+        </div>
+      `;
+    }
 
     overlay.innerHTML = `
       <div class="pm-modal" role="dialog" aria-modal="true">
-        <button class="pm-close" type="button">✕</button>
-        <img class="pm-image" alt="${escapedTitle}" src="${escapedImageUrl}" crossorigin="anonymous" referrerpolicy="no-referrer">
-        <div class="pm-loader">Loading...</div>
-        <div class="pm-info">
-          <div class="pm-text">
-            <div class="pm-title">${escapedTitle}</div>
-            ${escapedDescription ? `<div class="pm-description">${escapedDescription}</div>` : ''}
-          </div>
-          <div class="pm-actions">
-            <a class="pm-button" href="${escapedPinUrl}" target="_blank" rel="noopener noreferrer" data-pm-ignore="true">Open on Pinterest</a>
-          </div>
-        </div>
+        ${mediaHtml}
       </div>
     `;
 
@@ -430,27 +510,32 @@
 
     const modal = overlay.querySelector('.pm-modal');
     const closeBtn = overlay.querySelector('.pm-close');
-    const img = overlay.querySelector('.pm-image');
     const loader = overlay.querySelector('.pm-loader');
+    const img = overlay.querySelector('.pm-image');
 
-    if (data.imageUrl) {
-      img.src = data.imageUrl;
-      img.onload = () => {
-        loader.style.display = 'none';
-      };
-      img.onerror = () => {
-        loader.style.display = 'none';
-        if (img.crossOrigin === 'anonymous') {
-          img.removeAttribute('crossorigin');
-          img.src = data.imageUrl;
-          img.onerror = () => {
-            showError(modal, 'Image failed to load');
-          };
+    if (img && firstUrl) {
+      let urlIndex = 0;
+      const tryNextUrl = () => {
+        urlIndex++;
+        if (urlIndex < imageUrls.length) {
+          const nextUrl = imageUrls[urlIndex];
+          img.src = nextUrl;
         } else {
+          loader.style.display = 'none';
           showError(modal, 'Image failed to load');
         }
       };
-    } else {
+
+      img.onload = () => {
+        loader.style.display = 'none';
+        // After image loads, the wrapper will adjust its size automatically
+      };
+      img.onerror = () => {
+        tryNextUrl();
+      };
+      // Start loading
+      img.src = firstUrl;
+    } else if (img) {
       loader.style.display = 'none';
       showError(modal, 'Image not found');
     }
@@ -472,21 +557,32 @@
       }
     });
 
-    closeBtn.addEventListener('click', closeModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
     document.body.classList.add('pm-no-scroll');
     overlay.classList.add('active');
     modal.focus();
   };
 
-  // ─── Click interceptor ───
+  // ─── Click interceptor ──────────────────────────────────────────
+
   document.addEventListener(
     'click',
     e => {
       const link = e.target.closest('a[href*="/pin/"]');
+
+      // If click is inside our own modal, ignore
+      if (e.target.closest('.pm-overlay')) return;
+
+      // If click is inside Pinterest's closeup (video/image viewer), ignore
+      if (e.target.closest('[data-test-id="closeup-visual-container"]')) return;
+
       if (!link) return;
-      if (link.closest('.pm-overlay') || link.dataset.pmIgnore === 'true') return;
+      if (link.dataset.pmIgnore === 'true') return;
       if (e.ctrlKey || e.metaKey || e.button === 1) return;
+
+      // Check if this pin is a video — if yes, ignore it (let it open normally)
+      if (isVideoPin(link)) return;
 
       e.preventDefault();
       e.stopPropagation();
