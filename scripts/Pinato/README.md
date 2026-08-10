@@ -36,7 +36,7 @@
    - [Greasemonkey](https://www.greasespot.net/) (may require adaptation)
 
 2. Click the link below to install the script:  
-   👉 **[Install Pinato](https://raw.githubusercontent.com/vanja-san/Pinato/main/pinato.user.js)**
+   👉 **[Install Pinato](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Pinato/pinato.user.js)**
 
    Alternatively, create a new script manually and paste the contents of [this file](pinato.user.js).
 

@@ -34,7 +34,7 @@
    - [Greasemonkey](https://www.greasespot.net/) (может потребоваться адаптация)
 
 2. Нажмите на ссылку ниже, чтобы установить скрипт:  
-   👉 **[Установить Pinterest Modal Viewer](https://raw.githubusercontent.com/vanja-san/Pinato/main/pinato.user.js)**  
+   👉 **[Установить Pinterest Modal Viewer](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Pinato/pinato.user.js)**  
 
    Либо создайте новый скрипт вручную и скопируйте содержимое [этого файла](pinato.user.js).
 
