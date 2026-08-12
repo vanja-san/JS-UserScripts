@@ -2,9 +2,9 @@
 // @name         Pinato
 // @name:ru      Pinato
 // @namespace    https://github.com/vanja-san/JS-UserScripts/main/scripts/Pinato
-// @version      1.38
-// @description  Opens Pinterest image pins in a full‑screen modal with upgraded quality. Video pins are ignored.
-// @description:ru  Открывает пины-изображения в полноэкранном модальном окне с улучшенным качеством. Видео-пины игнорируются.
+// @version      1.41
+// @description  Opens Pinterest image pins in a modal with upgraded quality.
+// @description:ru  Открывает пины-изображения в модальном окне с улучшенным качеством.
 // @author       vanja-san
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=pinterest.com
 // @match        *://*.pinterest.com/*
@@ -37,9 +37,7 @@
 
     .pm-modal {
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-block;
       background: transparent;
       border-radius: 12px;
       overflow: hidden;
@@ -47,34 +45,21 @@
       animation: pm-scaleIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
       max-width: 95vw;
       max-height: 95vh;
-      width: auto;
-      height: auto;
+      vertical-align: middle;
     }
     @keyframes pm-scaleIn {
       from { transform: scale(0.95); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
 
-    .pm-image-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .pm-image {
+      display: block;
       max-width: 95vw;
       max-height: 95vh;
       width: auto;
       height: auto;
-    }
-
-    .pm-image {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-      object-fit: contain;
       background: #181818;
       border-radius: 12px;
-      display: block;
     }
 
     .pm-close {
@@ -100,7 +85,7 @@
       opacity: 0;
       pointer-events: none;
     }
-    .pm-image-wrapper:hover .pm-close {
+    .pm-modal:hover .pm-close {
       opacity: 1;
       pointer-events: auto;
     }
@@ -130,7 +115,7 @@
       max-height: 40%;
       overflow: hidden;
     }
-    .pm-image-wrapper:hover .pm-info {
+    .pm-modal:hover .pm-info {
       opacity: 1;
     }
     .pm-info * { pointer-events: auto; }
@@ -195,16 +180,10 @@
         border-radius: 0;
         box-shadow: none;
       }
-      .pm-image-wrapper {
+      .pm-image {
         max-width: 100vw;
         max-height: 100vh;
-        width: 100%;
-        height: 100%;
-      }
-      .pm-image {
         border-radius: 0;
-        max-width: 100%;
-        max-height: 100%;
       }
       .pm-info {
         border-radius: 0;
@@ -278,31 +257,21 @@
   const getUpgradedUrls = url => {
     if (!url || !url.includes('i.pinimg.com')) return [url];
 
-    // Find size pattern like /236x/, /474x/, /736x/, etc.
     const sizeMatch = url.match(/\/(\d+x)\//);
     if (!sizeMatch) return [url];
 
-    const size = sizeMatch[1];
-    // Replace size segment with /originals/
-    const baseUrl = url.replace(`/${size}/`, '/originals/');
-    // Remove query parameters
+    const baseUrl = url.replace(`/${sizeMatch[1]}/`, '/originals/');
     const cleanBase = baseUrl.split('?')[0];
 
-    // Generate possible extensions
     const extensions = ['.jpg', '.png', '.webp'];
     const urls = [];
-
-    // Original with current extension (keep as is)
     urls.push(cleanBase);
 
-    // Try other extensions
     const baseWithoutExt = cleanBase.replace(/\.[^.]+$/, '');
     for (const ext of extensions) {
       const newUrl = baseWithoutExt + ext;
       if (newUrl !== cleanBase) urls.push(newUrl);
     }
-
-    // Fallback to the original URL as last resort
     urls.push(url);
 
     return urls;
@@ -345,6 +314,9 @@
   const isJunkText = text => {
     if (!text) return true;
     const clean = text.trim();
+    // Remove "Пин содержит это изображение:" and variations
+    if (clean.startsWith('Пин содержит это изображение')) return true;
+    if (clean.startsWith('Pin contains this image')) return true;
     if (/^video::cue/.test(clean)) return true;
     if (/\{.*\}/.test(clean) && /:\s*[^;]+;/.test(clean)) return true;
     if (/color\s*:\s*white/.test(clean)) return true;
@@ -466,28 +438,24 @@
     const escapedDescription = data.description ? escapeHtml(data.description) : '';
     const escapedPinUrl = escapeHtml(data.pinUrl || '#');
 
-    // Use the first upgraded URL or fallback to original
     const imageUrls = data.urls && data.urls.length ? data.urls : [data.imageUrl];
     const firstUrl = imageUrls[0] || '';
 
     let mediaHtml = '';
-
     if (firstUrl) {
       mediaHtml = `
-        <div class="pm-image-wrapper">
-          <img class="pm-image" alt="${escapedTitle}" src="${escapeHtml(firstUrl)}" crossorigin="anonymous" referrerpolicy="no-referrer">
-          <button class="pm-close" type="button">✕</button>
-          <div class="pm-info">
-            <div class="pm-text">
-              <div class="pm-title">${escapedTitle}</div>
-              ${escapedDescription ? `<div class="pm-description">${escapedDescription}</div>` : ''}
-            </div>
-            <div class="pm-actions">
-              <a class="pm-button" href="${escapedPinUrl}" target="_blank" rel="noopener noreferrer" data-pm-ignore="true">Open on Pinterest</a>
-            </div>
+        <img class="pm-image" alt="${escapedTitle}" src="${escapeHtml(firstUrl)}" crossorigin="anonymous" referrerpolicy="no-referrer">
+        <button class="pm-close" type="button">✕</button>
+        <div class="pm-info">
+          <div class="pm-text">
+            <div class="pm-title">${escapedTitle}</div>
+            ${escapedDescription ? `<div class="pm-description">${escapedDescription}</div>` : ''}
           </div>
-          <div class="pm-loader">Loading...</div>
+          <div class="pm-actions">
+            <a class="pm-button" href="${escapedPinUrl}" target="_blank" rel="noopener noreferrer" data-pm-ignore="true">Open on Pinterest</a>
+          </div>
         </div>
+        <div class="pm-loader">Loading...</div>
       `;
     } else {
       mediaHtml = `
@@ -528,12 +496,10 @@
 
       img.onload = () => {
         loader.style.display = 'none';
-        // After image loads, the wrapper will adjust its size automatically
       };
       img.onerror = () => {
         tryNextUrl();
       };
-      // Start loading
       img.src = firstUrl;
     } else if (img) {
       loader.style.display = 'none';
@@ -571,17 +537,12 @@
     e => {
       const link = e.target.closest('a[href*="/pin/"]');
 
-      // If click is inside our own modal, ignore
       if (e.target.closest('.pm-overlay')) return;
-
-      // If click is inside Pinterest's closeup (video/image viewer), ignore
       if (e.target.closest('[data-test-id="closeup-visual-container"]')) return;
-
       if (!link) return;
       if (link.dataset.pmIgnore === 'true') return;
       if (e.ctrlKey || e.metaKey || e.button === 1) return;
 
-      // Check if this pin is a video — if yes, ignore it (let it open normally)
       if (isVideoPin(link)) return;
 
       e.preventDefault();
