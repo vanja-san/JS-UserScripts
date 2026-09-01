@@ -1,0 +1,17 @@
+<img width="16" height="11" alt="ru" src="https://github.com/user-attachments/assets/fec055f0-e3d1-4fb9-a869-f5dd53e951ad" /> Русский
+<img width="16" height="11" alt="us" src="https://github.com/user-attachments/assets/d1d687d5-eb4c-4363-afdb-45c97d201bec" /> [Английский](./README.md)
+# 🛖 Мои пользовательские скрипты
+> Коллекция скриптов Quality-of-Life для различных сайтов.
+
+#### СПИСОК СКРИПТОВ ⬇️
+1. `Booru Tag Hauler` • `Копируй все теги из всплывающего окошка картинки в один клик.` <br>
+[[ Установить ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Booru%20Tags%20Hauler/Booru_Tags_Hauler.user.js) / [[ Readme и скриншоты ]](./scripts/Booru%20Tags%20Hauler/) / [[ Graysfork ]](https://greasyfork.org/ru/scripts/546052-booru-tags-hauler)
+
+2. `Nexus Russian Localizer` • `Добавляет русский перевод на сайт NexusMods.`<br>
+[[ Установить ]](https://raw.githubusercontent.com/vanja-san/JS-UserScripts/main/scripts/Nexus%20Russian%20Localizer/NRL.user.js) / [[ Readme & скриншоты ]](./scripts/Nexus%20Russian%20Localizer/) / [ Graysfork ]
+ <br><br>
+# ℹ️ Как использовать
+1. Установить менеджер пользовательских скриптов ( [Tampermonkey](https://www.tampermonkey.net/) или другой )
+
+2. Кликнуть на `[ Установить ]` у скрипта которого хотите. Ваш менеджер пользовательских скриптов откроет окно установки.
+3. Если хотите узнать о скриптах подробнее, просто нажмите  `[ Readme и описание ]`.
