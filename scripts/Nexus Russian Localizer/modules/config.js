@@ -1,6 +1,6 @@
 // Конфигурация для NRL.user.js
 window.CONFIG = {
-  CACHE_VERSION: 'v1.0.4', // Updated version to invalidate cache after pluralization fixes
+  CACHE_VERSION: 'v1.0.5', // Updated version for hash-based auto-invalidation
   DB_NAME: 'translationCache',
   DB_VERSION: 1,
   STORE_NAME: 'translations',

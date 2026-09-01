@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.7.0
+// @version         2.7.1
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -37,15 +37,19 @@
       const cache = new TranslationCache();
       await cache.initDB();
 
+      // Проверяем, изменились ли переводы с момента последнего запуска.
+      // Если да — очищаем устаревший кэш автоматически (без ручной очистки).
+      const cacheInvalidated = await cache.checkTranslationsIntegrity();
+
       // Инициализируем контекстный матчинг
       const contextMatcher = new ContextMatcher(window.NRL_TRANSLATIONS);
 
       const translator = new TranslationEngine(cache);
       translator.contextMatcher = contextMatcher; // Устанавливаем после инициализации
 
-      // Предварительное кэширование при первом запуске
+      // Предварительное кэширование при первом запуске ИЛИ после инвалидации кэша
       const isInitialized = await cache.get('initialized');
-      if (!isInitialized) {
+      if (!isInitialized || cacheInvalidated) {
         await cache.preCacheTranslations();
         await cache.save('initialized', 'true');
       }
@@ -454,12 +458,17 @@
    // Функция для очистки кэша
    async function clearCache() {
      try {
-       // Очистка IndexedDB
+       // Очистка IndexedDB — ждём завершения удаления
        if ('indexedDB' in window) {
-         const deleteReq = indexedDB.deleteDatabase(window.CONFIG?.DB_NAME || 'translationCache');
+         const dbToDelete = window.CONFIG?.DB_NAME || 'translationCache';
          await new Promise((resolve) => {
+           const deleteReq = indexedDB.deleteDatabase(dbToDelete);
+           // Обработка всех событий, чтобы promise гарантированно разрешился
            deleteReq.onsuccess = () => resolve();
-           deleteReq.onerror = () => resolve(); // Просто продолжаем, даже если ошибка
+           deleteReq.onerror = () => resolve();
+           deleteReq.onblocked = () => resolve();
+           // Таймаут-страховка: если событие не сработало (БД не существовала)
+           setTimeout(resolve, 500);
          });
        }
 

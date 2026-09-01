@@ -209,7 +209,8 @@ class TranslationCache {
       const keysToDelete = [];
 
       for (const record of allRecords) {
-        if (!record.key.includes(currentVersion)) {
+        // Не удаляем запись хеша — она управляет автоинвалидацией
+        if (!record.key.includes(currentVersion) && record.key !== '__translations_hash__') {
           keysToDelete.push(record.key);
         }
       }
@@ -480,6 +481,153 @@ class TranslationCache {
 
     // Массовое сохранение в IndexedDB
     await this.bulkSaveTranslations(bulkData);
+  }
+
+  /**
+   * Вычисляет хеш словаря переводов для автоинвалидации кэша
+   * Использует алгоритм djb2 — детерминированный и быстрый
+   * @returns {string} hex-строка хеша
+   */
+  computeTranslationsHash() {
+    const main = window.NRL_TRANSLATIONS?.main || {};
+    const contextual = window.NRL_TRANSLATIONS?.contextual || {};
+    const months = window.NRL_TRANSLATIONS?.months || {};
+
+    // Сортируем ключи для детерминированности
+    const mainKeys = Object.keys(main).sort();
+    const contextKeys = Object.keys(contextual).sort();
+    const monthKeys = Object.keys(months).sort();
+
+    let str = 'main:';
+    for (const k of mainKeys) {
+      str += k + '=' + main[k] + '|';
+    }
+    str += 'ctx:';
+    for (const k of contextKeys) {
+      const ctx = contextual[k];
+      const ctxKeys = Object.keys(ctx).sort();
+      for (const ck of ctxKeys) {
+        str += k + ':' + ck + '=' + ctx[ck] + '|';
+      }
+    }
+    str += 'mon:';
+    for (const k of monthKeys) {
+      str += k + '=' + months[k] + '|';
+    }
+
+    // djb2 hash
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash + str.charCodeAt(i)) & 0xFFFFFFFF;
+    }
+    return (hash >>> 0).toString(16);
+  }
+
+  /**
+   * Сохраняет хеш переводов в IndexedDB
+   * @param {string} hash - хеш для сохранения
+   */
+  async saveTranslationsHash(hash) {
+    if (!this.db) return;
+    try {
+      const storeName = window.CONFIG?.STORE_NAME || 'translations';
+      const transaction = this.db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      store.put({
+        key: '__translations_hash__',
+        value: hash,
+        timestamp: Date.now()
+      });
+    } catch (e) {
+      console.warn('[NRL] Ошибка сохранения хеша переводов:', e);
+    }
+  }
+
+  /**
+   * Получает сохранённый хеш переводов из IndexedDB
+   * @returns {Promise<string|null>} сохранённый хеш или null
+   */
+  async getTranslationsHash() {
+    if (!this.db) return null;
+    try {
+      const storeName = window.CONFIG?.STORE_NAME || 'translations';
+      const transaction = this.db.transaction([storeName], 'readonly');
+      const store = transaction.objectStore(storeName);
+      const request = store.get('__translations_hash__');
+      return new Promise((resolve) => {
+        request.onerror = () => resolve(null);
+        request.onsuccess = () => resolve(request.result?.value || null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Удаляет хеш переводов из IndexedDB
+   */
+  async clearTranslationsHash() {
+    if (!this.db) return;
+    try {
+      const storeName = window.CONFIG?.STORE_NAME || 'translations';
+      const transaction = this.db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      store.delete('__translations_hash__');
+    } catch (e) {
+      // Игнорируем ошибки
+    }
+  }
+
+  /**
+   * Проверяет целостность переводов: сравнивает текущий хеш с сохранённым.
+   * Если хеш изменился — очищает все кэшированные данные (старые переводы устарели).
+   * Вызывать ПОСЛЕ initDB() и ДО preCacheTranslations().
+   * @returns {Promise<boolean>} true если кэш был очищен (переводы изменились)
+   */
+  async checkTranslationsIntegrity() {
+    if (!this.db) return false;
+
+    const currentHash = this.computeTranslationsHash();
+    const storedHash = await this.getTranslationsHash();
+
+    if (storedHash && storedHash !== currentHash) {
+      console.log('[NRL] Переводы изменились — очищаем устаревший кэш');
+      await this.clearAllCachedData();
+      await this.saveTranslationsHash(currentHash);
+      return true;
+    }
+
+    // Сохраняем хеш, если его ещё нет (первый запуск)
+    if (!storedHash) {
+      await this.saveTranslationsHash(currentHash);
+    }
+
+    return false;
+  }
+
+  /**
+   * Полная очистка всех записей в IndexedDB (кроме хеша)
+   */
+  async clearAllCachedData() {
+    if (!this.db) return;
+    try {
+      const storeName = window.CONFIG?.STORE_NAME || 'translations';
+      const transaction = this.db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      const allRecords = await this.getAllRecords(store);
+
+      for (const record of allRecords) {
+        // Не удаляем запись хеша — она будет обновлена вызывающим кодом
+        if (record.key !== '__translations_hash__') {
+          store.delete(record.key);
+        }
+      }
+
+      // Очищаем также кэш в памяти
+      this.memoryCache.clear();
+    } catch (e) {
+      console.warn('[NRL] Ошибка очистки кэша:', e);
+    }
   }
 }
 
