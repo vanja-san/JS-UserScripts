@@ -13,15 +13,15 @@ window.CONFIG = {
   PRIORITY_SELECTORS: ['h1', 'h2', 'h3', 'nav', 'button', 'a', '[data-translate-priority="high"]', '.title', '.header', '.nav-link'],
   // CSS-селекторы элементов, которые НЕ нужно переводить (названия/описания модов, пользовательский контент)
   IGNORED_SELECTORS: [
-    '.mod-name', '.mod-title', '.name',                          // Названия модов
-    '.mod-card .title a', '.list-item .name a',                  // Названия модов в карточках
-    'h3 a[href*="/mods/"]', 'h4 a[href*="/mods/"]',             // Названия модов в заголовках
-    '.mod-desc', '.description', '.summary', '.mod-details',     // Описания модов
-    '.mod-card .description', '.mod-card .summary',              // Описания в карточках
-    '.user-content', '.wysiwyg',                                 // Пользовательский контент
-    'blockquote', '.quote',                                      // Цитаты
-    'article .body', 'article .content',                         // Текст статей
-    'i',                                                         // Иконки (Font Awesome и т.д.)
+    '.mod-name', '.mod-title', '.name',                                                       // Названия модов
+    '.mod-card .title a', '.list-item .name a',                                               // Названия модов в карточках
+    'h3 a[href*="/mods/"]', 'h4 a[href*="/mods/"]',                                           // Названия модов в заголовках
+    '.mod-desc', '.description', '.summary', '.mod-details', '.mod_description_container',    // Описания модов
+    '.mod-card .description', '.mod-card .summary',                                           // Описания в карточках
+    '.user-content', '.wysiwyg',                                                              // Пользовательский контент
+    'blockquote', '.quote',                                                                   // Цитаты
+    'article .body', 'article .content',                                                      // Текст статей
+    'i', '.material-icons-outlined'                                                           // Иконки (Font Awesome и т.д.)
   ],
   MUTATION_OBSERVER_OPTIONS: {
     childList: true,
