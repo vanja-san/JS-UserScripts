@@ -113,11 +113,11 @@ class PluralizationEngine {
   /**
    * Translate a suffix character to Russian.
    * @param {string} suffixChar
-   * @returns {string} e.g. " тыс." or "" if no suffix
+   * @returns {string} e.g. "тыс." or "" if no suffix
    */
   translateSuffix(suffixChar) {
     const info = this.getSuffixInfo(suffixChar);
-    return info ? ' ' + info.ru : '';
+    return info ? info.ru : '';
   }
 
   /**
@@ -453,7 +453,7 @@ class PluralizationEngine {
             `(${this._escapeRegex(numInfo.numStr)})\\s*${this._escapeRegex(numInfo.suffix)}\\b`,
             'i'
           );
-          node.textContent = t.replace(pattern, `$1 ${suffixInfo.ru}`);
+          node.textContent = t.replace(pattern, `$1${suffixInfo.ru}`);
         }
         break;
       }
