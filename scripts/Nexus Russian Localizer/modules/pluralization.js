@@ -289,11 +289,17 @@ class PluralizationEngine {
     if (!numInfo) return false;
 
     // Pluralize the noun
-    const pluralized = this.pluralize(numInfo.fullNum, noun.ruForms);
+    let pluralized = this.pluralize(numInfo.fullNum, noun.ruForms);
+
+    // Preserve original capitalization: "Моды" → "Модов", "моды" → "модов"
+    const originalText = text.trim();
+    if (originalText && originalText[0] === originalText[0].toUpperCase() && originalText[0] !== originalText[0].toLowerCase()) {
+      pluralized = pluralized.charAt(0).toUpperCase() + pluralized.slice(1);
+    }
 
     // Replace the noun in the text node
     const nodeText = node.textContent;
-    const regex = new RegExp(this._escapeRegex(text.trim()), 'gi');
+    const regex = new RegExp(this._escapeRegex(originalText), 'gi');
     if (regex.test(nodeText)) {
       node.textContent = nodeText.replace(regex, pluralized);
     }
