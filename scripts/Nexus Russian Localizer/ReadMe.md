@@ -37,10 +37,11 @@
 - `translations.js` - словарь переводов
 - `ReadMe.md` - документация
 - `modules/`
-  - `config.js` - настройки
+  - `config.js` - настройки (включая IGNORED_SELECTORS для названий/описаний модов)
   - `context-matcher.js` - контекстные правила перевода
   - `date-formatter.js` - форматирование строк с датами
-  - `helpers.js` - вспомогательные функции (плюрализация, динамические шаблоны)
+  - `helpers.js` - совместимость (обёртки для PluralizationEngine)
   - `lru-cache.js` - LRU-кэш в памяти и управление кэшами
-  - `translation-cache.js` - кэш переводов (IndexedDB + Web Worker)
+  - `pluralization.js` - движок плюрализации (суффиксы k/m/b/t, склонение слов, шаблоны)
+  - `translation-cache.js` - кэш переводов (IndexedDB + Web Worker + автоинвалидация по хешу)
   - `translation-engine.js` - движок перевода (обработка DOM, атрибутов, MutationObserver)

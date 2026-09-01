@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.7.1
+// @version         2.8.0
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -13,6 +13,7 @@
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/translations.js
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/config.js
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/lru-cache.js
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/pluralization.js
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/helpers.js
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/date-formatter.js
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/context-matcher.js
