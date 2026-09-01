@@ -930,6 +930,7 @@ const DICTIONARIES = {
     "Poses": "Позы",
     "Power Armour": "Силовая броня",
     "Quests and Adventures": "Квесты и приключение",
+    "You have to be logged in to download files": "Войдите, чтобы скачивать файлы",
     "Radio": "Радио",
     "ReShade Presets": "Пресеты для ReShade",
     "Saved Games": "Игровые сохранения",
