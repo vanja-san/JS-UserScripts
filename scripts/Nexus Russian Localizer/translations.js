@@ -132,7 +132,6 @@ const DICTIONARIES = {
     "Modding tutorials": "Обучение моддингу",
     "Explore": "Изучить",
     "Vortex mod manager": "Менеджер модов Vortex",
-    "Members": "Участники",
     "starter mods": " стартовые моды",
     "Start with the essential starter mods and helpful tools to begin your journey.": "Начните с основных стартовых модов и полезных инструментов, чтобы начать своё путешествие.",
     "Install a ready-made set of mods to get started fast": "Установите готовый набор модов, чтобы начать быстро.",
@@ -1412,7 +1411,9 @@ const DICTIONARIES = {
       "div > p": "Скачиваний"
     },
     "Mods": {
-      "div > p": "Модов"
+      "div > p > a": "модов",
+      "button > span": "Моды",
+      "li > p": "Моды"
     },
     "Members": {
       "p > span": "Участник",
