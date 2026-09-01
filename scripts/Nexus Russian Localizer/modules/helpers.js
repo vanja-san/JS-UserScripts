@@ -13,7 +13,7 @@ window.pluralize = (number, forms) => {
 window.PLURAL_MAP = {};
 
 /**
- * @deprecated Use window.pluralizationEngine.suffixMap instead
+ * @deprecated Suffix translations removed — suffixes kept as-is (k, m, b, t)
  */
 window.SUFFIX_TRANSLATIONS = {};
 
@@ -21,7 +21,6 @@ window.SUFFIX_TRANSLATIONS = {};
 window.addEventListener('DOMContentLoaded', () => {
   if (window.pluralizationEngine) {
     window.PLURAL_MAP = Object.fromEntries(window.pluralizationEngine.pluralMap);
-    window.SUFFIX_TRANSLATIONS = { ...window.pluralizationEngine.suffixMap };
   }
 });
 

@@ -21,6 +21,7 @@ window.CONFIG = {
     '.user-content', '.wysiwyg',                                 // Пользовательский контент
     'blockquote', '.quote',                                      // Цитаты
     'article .body', 'article .content',                         // Текст статей
+    'i',                                                         // Иконки (Font Awesome и т.д.)
   ],
   MUTATION_OBSERVER_OPTIONS: {
     childList: true,

@@ -16,12 +16,12 @@ class PluralizationEngine {
     /** @type {Map<string, string[]>} en word → [ru singular, ru few, ru many] */
     this.pluralMap = new Map();
 
-    /** @type {{k:{ru:string,multiplier:number},m:{...},b:{...},t:{...}}} */
-    this.suffixMap = {
-      k: { ru: 'тыс.',  multiplier: 1_000 },
-      m: { ru: 'млн',   multiplier: 1_000_000 },
-      b: { ru: 'млрд',  multiplier: 1_000_000_000 },
-      t: { ru: 'трлн',  multiplier: 1_000_000_000_000 }
+    /** Multipliers for suffixes (no Russian text — suffixes kept as-is) */
+    this.suffixMultipliers = {
+      k: 1_000,
+      m: 1_000_000,
+      b: 1_000_000_000,
+      t: 1_000_000_000_000
     };
 
     /** Number + optional suffix pattern: captures $, 8.9k, 100, etc. */
@@ -97,27 +97,7 @@ class PluralizationEngine {
    * @returns {boolean}
    */
   isSuffix(s) {
-    return s && s.length === 1 && s.toLowerCase() in this.suffixMap;
-  }
-
-  /**
-   * Get suffix info (Russian text + multiplier).
-   * @param {string} suffixChar - 'k', 'm', 'b', 't'
-   * @returns {{ru: string, multiplier: number} | null}
-   */
-  getSuffixInfo(suffixChar) {
-    if (!suffixChar) return null;
-    return this.suffixMap[suffixChar.toLowerCase()] || null;
-  }
-
-  /**
-   * Translate a suffix character to Russian.
-   * @param {string} suffixChar
-   * @returns {string} e.g. " тыс." or "" if no suffix
-   */
-  translateSuffix(suffixChar) {
-    const info = this.getSuffixInfo(suffixChar);
-    return info ? ' ' + info.ru : '';
+    return s && s.length === 1 && s.toLowerCase() in this.suffixMultipliers;
   }
 
   /**
@@ -128,8 +108,9 @@ class PluralizationEngine {
    * @returns {number}
    */
   expandNumber(num, suffixChar) {
-    const info = this.getSuffixInfo(suffixChar);
-    return info ? num * info.multiplier : num;
+    if (!suffixChar) return num;
+    const multiplier = this.suffixMultipliers[suffixChar.toLowerCase()];
+    return multiplier ? num * multiplier : num;
   }
 
   // ──────────────────────────────────────────────
@@ -178,13 +159,8 @@ class PluralizationEngine {
     const [, currency, numStr, suffix] = m;
     if (!suffix) return { text, replaced: false }; // no suffix → nothing to translate
 
-    // Verify the entire text is just the number (with optional currency/space)
-    const cleaned = trimmed.replace(/\s+/g, ' ').trim();
-    const expected = (currency || '') + numStr + suffix;
-    if (cleaned.toLowerCase() !== expected.toLowerCase()) return { text, replaced: false };
-
-    const translated = (currency || '') + numStr + this.translateSuffix(suffix);
-    return { text: translated, replaced: true };
+    // Suffixes are kept as-is (k, m, b, t) — no translation needed
+    return { text, replaced: false };
   }
 
   // ──────────────────────────────────────────────
@@ -408,12 +384,12 @@ class PluralizationEngine {
     if (isNaN(num)) return prefix + numStr + (suffix || '') + ' ' + ruForms[2];
 
     const fullNum = this.expandNumber(num, suffix);
-    const translatedSuffix = this.translateSuffix(suffix);
+    // Keep suffix as-is (k, m, b, t) — no Russian translation
     // Preserve currency prefix if present
     const currency = numStr.match(/^([\$€£])\s*/)?.[1] || '';
     const cleanNum = numStr.replace(/^[\s\$€£]+/, '');
 
-    return `${prefix}${currency}${cleanNum}${translatedSuffix} ${this.pluralize(fullNum, ruForms)}`;
+    return `${prefix}${currency}${cleanNum}${suffix || ''} ${this.pluralize(fullNum, ruForms)}`;
   }
 
   /**
@@ -438,26 +414,7 @@ class PluralizationEngine {
    * @param {{suffix: string, numStr: string}} numInfo
    */
   _translateNumberNodeSuffix(parentElement, numInfo) {
-    if (!numInfo.suffix) return;
-
-    // Find text nodes in the parent that contain the number+suffix
-    const walker = document.createTreeWalker(parentElement, NodeFilter.SHOW_TEXT);
-    let node;
-    while (node = walker.nextNode()) {
-      const t = node.textContent;
-      if (t && t.includes(numInfo.suffix) && t.includes(numInfo.numStr)) {
-        // Replace "8.9k" with "8.9 тыс."
-        const suffixInfo = this.getSuffixInfo(numInfo.suffix);
-        if (suffixInfo) {
-          const pattern = new RegExp(
-            `(${this._escapeRegex(numInfo.numStr)})\\s*${this._escapeRegex(numInfo.suffix)}\\b`,
-            'i'
-          );
-          node.textContent = t.replace(pattern, `$1 ${suffixInfo.ru}`);
-        }
-        break;
-      }
-    }
+    // Suffixes are kept as-is (k, m, b, t) — no translation needed
   }
 
   /**

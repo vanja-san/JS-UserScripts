@@ -9,6 +9,7 @@ const DICTIONARIES = {
     "All mods": "Все моды",
     "Trending mods": "Набирающие популярность",
     "New": "Новые",
+    "Mods": "Моды",
     "Images": "Изображения",
     "Videos": "Видео",
     "Articles": "Статьи",
@@ -189,7 +190,7 @@ const DICTIONARIES = {
     "View more": "Смотреть все",
     "Get started": "Начать",
     "Next level graphics": "Графика следующего уровня",
-    "Auto-install 100s of mods": "Автоматическая установка сотен модов",
+    "Auto-install 100s of mods": "Автоустановка сотен модов",
     "Epic new content": "Эпический новый контент",
     "Infinite replayability": "Бесконечная реиграбельность",
     "Updated": "Обновлённые",
@@ -345,9 +346,9 @@ const DICTIONARIES = {
     "Cancel your subscription at anytime, plus a": "Отмените подписку в любое время, а также имеется ",
     "refund policy": "политика возврата",
     "based on how many mods you download.": ", основанная на том, сколько модов вы скачиваете.",
-    "Download count": "Кол-во скачиваний",
-    "Mods count": "Кол-во модов",
-    "Collections count": "Кол-во коллекций",
+    "Download count": "Скачиваний",
+    "Mods count": "Модов",
+    "Collections count": "Коллекций",
     "Name": "Название",
     "Date added": "Дата добавления",
     "20 Items": "20 элементов",
@@ -1088,6 +1089,7 @@ const DICTIONARIES = {
     "View image gallery": "Посмотреть изображения",
     "for": " для ",
     "Search": "Поиск",
+    "Discover Vortex": "Посмотреть на Vortex",
     "Top 30 Files in past two weeks:": "Топ-30 файлов за последние две недели: ",
     "Top Lists": "Топ списков",
     "Most endorsed files in the last two weeks": "Самые одобренные файлы за последние две недели",
@@ -1400,7 +1402,7 @@ const DICTIONARIES = {
     "(Article title)": "(Заголовок статьи)",
     "Create new article": "Создать новую статью",
     "Explore mods": "Исследовать моды",
-    "Mod faster with premium": "Мод быстрее с Премиумом"
+    "Mod faster with premium": "Моддинг быстрее с Премиумом"
   },
 
   // Контекстный словарь: более компактный формат
@@ -1416,7 +1418,7 @@ const DICTIONARIES = {
     "Forums": {
       "span": "Форум",
       "li > a.link": "Форум",
-      "p > a.link": "форуму"
+      "p > a.nxm-link-primary": "Форуму"
     },
     "log in": {
       "p > a": "войдите"
