@@ -180,7 +180,6 @@ const DICTIONARIES = {
     "Endorsement reminder": "Напоминание об одобрении",
     "Are you enjoying the mods you've downloaded? Endorsing a mod shows your support for the author who created it and helps other users discover quality content. It only takes a few seconds.": "Вам нравятся моды, которые вы загрузили? Одобрение мода показывает вашу поддержку автору, который его создал, и помогает другим пользователям находить качественный контент. Это займет всего несколько секунд.",
     "User": "Пользователь",
-    "Mod": "Мод",
     "Date": "Дата",
     "View all": "Смотреть все",
     "View more": "Смотреть все",
