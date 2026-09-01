@@ -1425,7 +1425,7 @@ const DICTIONARIES = {
 
     // ── Forums: game section link (<p> inside <a>), nav (<span>), footer (<a> inside <li>) ──
     "Forums": {
-      "a.nxm-link > p": "форуму",
+      "p > a": "форуму",
       "span": "Форум",
       "li > a.nxm-link": "Форум"
     },
