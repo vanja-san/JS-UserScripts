@@ -1,6 +1,10 @@
 // Модуль для обработки строк с датами
 class DateFormatter {
   constructor() {
+    // LRU-кэш результатов format() для повторных вызовов с тем же текстом
+    this._formatCache = new Map();
+    this._formatCacheLimit = 500;
+
     // Паттерны для различных форматов дат с префиксами
     this.datePatterns = [
       // Паттерн для 'Published {date}'
@@ -234,12 +238,24 @@ class DateFormatter {
   format(text) {
     if (!text || typeof text !== 'string') return text;
 
+    // Проверяем кэш — избегаем повторного перебора 9 паттернов для того же текста
+    const cached = this._formatCache.get(text);
+    if (cached !== undefined) return cached;
+
     let result = text;
     
     // Применяем все паттерны
     for (const patternConfig of this.datePatterns) {
       result = result.replace(patternConfig.pattern, patternConfig.replacement);
     }
+
+    // Сохраняем в кэш (только если текст изменился или первый вызов)
+    if (this._formatCache.size >= this._formatCacheLimit) {
+      // Удаляем самую старую запись (первая в Map)
+      const firstKey = this._formatCache.keys().next().value;
+      this._formatCache.delete(firstKey);
+    }
+    this._formatCache.set(text, result);
 
     return result;
   }

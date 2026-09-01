@@ -324,10 +324,15 @@ class TranslationEngine {
             const numberMatch = parentText.match(/(\d+\.?\d*)([kmbt]?)/i);
             if (numberMatch) {
               const numStr = numberMatch[1];
+              const suffix = numberMatch[2] ? numberMatch[2].toLowerCase() : '';
               const num = parseFloat(numStr);
               if (!isNaN(num) && num >= 0) {
+                // Учитываем суффикс (k, m, b, t) для корректной плюрализации
+                // Например: "30k mods" → num=30, suffix="k" → fullNum=30000
+                const suffixInfo = suffix ? window.SUFFIX_TRANSLATIONS?.[suffix] : null;
+                const fullNum = suffixInfo ? num * suffixInfo.multiplier : num;
                 const ruForms = window.PLURAL_MAP[pluralKey];
-                const pluralized = window.pluralize(num, ruForms);
+                const pluralized = window.pluralize(fullNum, ruForms);
                 if (window.NRL_DEBUG?.enabled) {
                   console.log('NRL: Applying pluralization:', trimmedText, '->', pluralized, 'num:', num);
                 }
@@ -421,24 +426,23 @@ class TranslationEngine {
       // Проверяем, нужно ли пропустить этот элемент
       const elementClasses = element.classList;
       if (elementClasses && elementClasses.length > 0) {
-        // Оптимизируем проверку классов
-        const classesArray = Array.from(elementClasses);
-        const ignoredClassesArray = Array.from(window.IGNORED_CLASSES || new Set());
-        const alwaysTranslateClassesArray = Array.from(window.ALWAYS_TRANSLATE_CLASSES || new Set());
+        // Используем Set.has() и DOMTokenList.contains() напрямую — без Array.from
+        const ignoredClasses = window.IGNORED_CLASSES;
+        const alwaysTranslateClasses = window.ALWAYS_TRANSLATE_CLASSES;
 
         // Проверяем, есть ли классы, которые нужно всегда переводить
         let alwaysTranslate = false;
-        for (const cls of classesArray) {
-          if (alwaysTranslateClassesArray.includes(cls)) {
+        for (const cls of elementClasses) {
+          if (alwaysTranslateClasses && alwaysTranslateClasses.has(cls)) {
             alwaysTranslate = true;
             break;
           }
         }
 
         // Если не всегда переводить, проверяем игнорируемые классы
-        if (!alwaysTranslate) {
-          for (const cls of classesArray) {
-            if (ignoredClassesArray.includes(cls)) {
+        if (!alwaysTranslate && ignoredClasses) {
+          for (const cls of elementClasses) {
+            if (ignoredClasses.has(cls)) {
               return;
             }
           }
@@ -670,9 +674,8 @@ class TranslationEngine {
                 nodesToProcess.add(node);
 
                 // Check if node is visible (even if currently hidden)
-                const isVisible = node.offsetParent !== null || node.tagName === 'BODY' ||
-                                 getComputedStyle(node).display !== 'none' ||
-                                 getComputedStyle(node).visibility !== 'hidden';
+                // Avoid getComputedStyle in hot path — use offsetParent + tagName check only
+                const isVisible = node.offsetParent !== null || node.tagName === 'BODY';
 
                 if (isVisible) {
                   // Рекурсивно добавляем дочерние элементы

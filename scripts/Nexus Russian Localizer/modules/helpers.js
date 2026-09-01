@@ -14,6 +14,14 @@ window.pluralize = (number, forms) => {
   return forms[2];
 };
 
+// Перевод суффиксов сокращений (k, m, b, t) и множители для плюрализации
+window.SUFFIX_TRANSLATIONS = {
+  k: { ru: 'тыс.', multiplier: 1000 },
+  m: { ru: 'млн', multiplier: 1000000 },
+  b: { ru: 'млрд', multiplier: 1000000000 },
+  t: { ru: 'трлн', multiplier: 1000000000000 }
+};
+
 window.createPluralizationTemplates = (units) => {
   // Build a map of English plural nouns to their Russian forms for parent-based pluralization
   if (!window.PLURAL_MAP) window.PLURAL_MAP = {};
@@ -42,8 +50,15 @@ window.createPluralizationTemplates = (units) => {
         return match; // Return original if number is out of range
       }
       const suffixStr = suffix ? suffix.toLowerCase() : '';
-      // Preserve leading characters (like $) and suffix
-      return `${leading}${numStr}${suffixStr} ${window.pluralize(num, ru)}`;
+
+      // Вычисляем полное число с учётом суффикса для корректной плюрализации
+      // Например: "30k mods" → num=30, suffix="k" → fullNum=30000 → "модов"
+      const suffixInfo = suffixStr ? window.SUFFIX_TRANSLATIONS[suffixStr] : null;
+      const fullNum = suffixInfo ? num * suffixInfo.multiplier : num;
+      const translatedSuffix = suffixInfo ? ' ' + suffixInfo.ru : '';
+
+      // Preserve leading characters (like $) and translated suffix
+      return `${leading}${numStr}${translatedSuffix} ${window.pluralize(fullNum, ru)}`;
     }
   }));
 };

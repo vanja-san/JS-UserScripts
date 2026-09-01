@@ -33,14 +33,14 @@
    - В процессе перевода!
 
 ## Структура проекта:
-- `NRL-dev.user.js` - основной скрипт
+- `NRL.user.js` - основной скрипт
 - `translations.js` - словарь переводов
 - `ReadMe.md` - документация
 - `modules/`
   - `config.js` - настройки
   - `context-matcher.js` - контекстные правила перевода
   - `date-formatter.js` - форматирование строк с датами
-  - `helpers.js` - вспомогательные функции
-  - `lru-cache.js` - кэширование
-  - `translation-cache.js` - кэш перевода
-  - `translation-engine.js` - движок перевода
+  - `helpers.js` - вспомогательные функции (плюрализация, динамические шаблоны)
+  - `lru-cache.js` - LRU-кэш в памяти и управление кэшами
+  - `translation-cache.js` - кэш переводов (IndexedDB + Web Worker)
+  - `translation-engine.js` - движок перевода (обработка DOM, атрибутов, MutationObserver)

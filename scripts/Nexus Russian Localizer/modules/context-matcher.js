@@ -184,13 +184,6 @@ class ContextMatcher {
         return false;
       }
 
-      // Ограничиваем глубину поиска для производительности
-      if (i < -50) {
-        console.warn('Selector depth is too deep, aborting:', element);
-        if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);
-        return false;
-      }
-
       const selector = compiledSelector[i];
       if (!selector) {
         if (window.contextCheckCache) window.contextCheckCache.set(cacheKey, false);

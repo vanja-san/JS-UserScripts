@@ -28,8 +28,13 @@ class TranslationCache {
       return;
     }
 
+    // Валидация compressionThreshold — предотвращает инъекцию кода через window.CONFIG
+    const safeThreshold = (typeof compressionThreshold === 'number' && compressionThreshold > 0 && compressionThreshold < 10000)
+      ? compressionThreshold
+      : 100;
+
     const workerCode = `
-      const COMPRESSION_THRESHOLD = ${compressionThreshold};
+      const COMPRESSION_THRESHOLD = ${safeThreshold};
 
       function compressText(text) {
         if (text.length < COMPRESSION_THRESHOLD) return text;

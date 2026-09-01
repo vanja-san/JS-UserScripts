@@ -96,10 +96,16 @@ function checkAndTrimContextCache() {
 }
 
 // Добавляем периодическую проверку размера кэша
-const memoryCheckInterval = setInterval(checkAndTrimContextCache, 30000); // каждые 30 секунд
+window._nrlMemoryCheckInterval = setInterval(checkAndTrimContextCache, 30000); // каждые 30 секунд
 
 // Добавим функцию для очистки кэшей при необходимости с лучшим управлением памятью
 window.clearAllCaches = function() {
+  // Останавливаем периодическую проверку памяти
+  if (window._nrlMemoryCheckInterval) {
+    clearInterval(window._nrlMemoryCheckInterval);
+    window._nrlMemoryCheckInterval = null;
+  }
+
   if (window.contextCheckCache && typeof window.contextCheckCache.clear === 'function') {
     window.contextCheckCache.clear();
   }
@@ -119,8 +125,9 @@ window.cleanupNRL = function() {
   window.clearAllCaches();
 
   // Очищаем интервал проверки памяти
-  if (memoryCheckInterval) {
-    clearInterval(memoryCheckInterval);
+  if (window._nrlMemoryCheckInterval) {
+    clearInterval(window._nrlMemoryCheckInterval);
+    window._nrlMemoryCheckInterval = null;
   }
 
   console.log('NRL resources cleaned up successfully');
@@ -128,7 +135,11 @@ window.cleanupNRL = function() {
 
 // Добавляем обработчик выгрузки страницы для очистки ресурсов
 window.addEventListener('beforeunload', () => {
-  // Не используем window.cleanupNRL здесь, так как это может привести к проблемам с доступом к DOM
+  // Останавливаем периодическую проверку памяти при выгрузке
+  if (window._nrlMemoryCheckInterval) {
+    clearInterval(window._nrlMemoryCheckInterval);
+    window._nrlMemoryCheckInterval = null;
+  }
   if (window.templateCache) {
     window.templateCache.clear();
   }

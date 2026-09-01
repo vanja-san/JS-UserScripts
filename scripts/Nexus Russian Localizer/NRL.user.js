@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         2.6.9
+// @version         2.7.0
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
@@ -73,21 +73,23 @@
       specificElements = specificElements.concat(Array.from(timeElements));
 
       // Затем обрабатываем важные элементы, содержащие текст
+      // Примечание: translateElementBatch уже пропускает обработанные элементы через WeakSet,
+      // поэтому дублирования перевода не возникает. TreeWalker в setTimeout ниже догонит
+      // динамически загруженный контент и текстовые узлы, которые querySelectorAll не покрывает.
       const importantSelectors = 'h1, h2, h3, h4, h5, h6, p, span, div, a, button, li, td, th, small, label, caption';
       const importantElements = document.querySelectorAll(importantSelectors);
 
-      // Оптимизируем проверку игнорируемых классов
-      const ignoredClassesArray = Array.from(window.IGNORED_CLASSES);
-      const ignoredClassesLen = ignoredClassesArray.length;
+      // Оптимизируем проверку игнорируемых классов — используем Set.has() напрямую
+      const ignoredClasses = window.IGNORED_CLASSES;
 
       for (const element of importantElements) {
         // Проверяем, есть ли у элемента текстовое содержимое для перевода
         if (element.textContent && element.textContent.trim()) {
           // Проверяем игнорируемые классы
           let shouldIgnore = false;
-          if (element.classList && element.classList.length > 0) {
-            for (let i = 0; i < ignoredClassesLen; i++) {
-              if (element.classList.contains(ignoredClassesArray[i])) {
+          if (element.classList && element.classList.length > 0 && ignoredClasses) {
+            for (const cls of element.classList) {
+              if (ignoredClasses.has(cls)) {
                 shouldIgnore = true;
                 break;
               }
@@ -180,8 +182,7 @@
         translator.cleanup();
       });
 
-      // Debug: log initialization success
-      console.log('NRL: Инициализация успешно завершена');
+      // Clear debug log — use NRL_DEBUG.log() for development only
 
     } catch (error) {
       console.error('Ошибка инициализации:', error);
@@ -190,9 +191,13 @@
 
       // Fallback: простая обработка без кэширования
       const contextMatcher = new ContextMatcher(window.NRL_TRANSLATIONS);
-      const simpleTranslate = (node) => {
+      const MAX_SIMPLE_DEPTH = 100; // Защита от переполнения стека
+      const simpleTranslate = (node, depth = 0) => {
+        if (depth > MAX_SIMPLE_DEPTH) return;
         if (node.nodeType === Node.TEXT_NODE) {
-          let text = node.textContent.trim();
+          const rawText = node.textContent;
+          if (!rawText) return;
+          let text = rawText.trim();
           if (!text) return;
           const element = node.parentElement;
 
@@ -253,7 +258,7 @@
 
           // Специальная обработка элементов времени
           if (tagName === 'time') {
-            let text = node.textContent.trim();
+            let text = (node.textContent || '').trim();
             if (text) {
               // Применяем форматирование дат
               let translated = window.dateFormatter.format(text);
@@ -275,7 +280,7 @@
             const tooltipElement = document.getElementById(ariaDescribedBy);
             if (tooltipElement) {
               // Обрабатываем текст в элементе подсказки
-              let text = tooltipElement.textContent.trim();
+              let text = (tooltipElement.textContent || '').trim();
               if (text) {
                 // Применяем форматирование дат
                 let translated = window.dateFormatter.format(text);
@@ -335,7 +340,7 @@
 
           // Рекурсивно обходим дочерние элементы
           for (const child of node.childNodes) {
-            simpleTranslate(child);
+            simpleTranslate(child, depth + 1);
           }
         }
       };
