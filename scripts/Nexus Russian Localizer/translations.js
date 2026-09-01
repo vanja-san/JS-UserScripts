@@ -1398,7 +1398,9 @@ const DICTIONARIES = {
     "Recent Changes": "Последние изменения",
     "No changes during the given period match these criteria.": "Никакие изменения в течение данного периода не соответствуют этим критериям.",
     "(Article title)": "(Заголовок статьи)",
-    "Create new article": "Создать новую статью"
+    "Create new article": "Создать новую статью",
+    "Explore mods": "Исследовать моды",
+    "Mod faster with premium": "Мод быстрее с Премиумом"
   },
 
   // Контекстный словарь: более компактный формат
