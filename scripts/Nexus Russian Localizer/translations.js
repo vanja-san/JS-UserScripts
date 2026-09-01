@@ -5,7 +5,6 @@ const DICTIONARIES = {
   main: {
     "Home": "Главная",
     "Games": "Игры",
-
     "All mods": "Все моды",
     "Trending mods": "Набирающие популярность",
     "New": "Новые",
@@ -932,6 +931,9 @@ const DICTIONARIES = {
     "Quests and Adventures": "Квесты и приключение",
     "You have to be logged in to download files": "Войдите, чтобы скачивать файлы",
     "Radio": "Радио",
+    "Manual": "Вручную",
+    "Version history": "История версий",
+    "Total downloads": "Скачиваний",
     "ReShade Presets": "Пресеты для ReShade",
     "Saved Games": "Игровые сохранения",
     "Skills and Leveling": "Навыки и повышение уровня",
