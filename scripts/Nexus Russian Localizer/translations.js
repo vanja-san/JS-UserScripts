@@ -1089,6 +1089,7 @@ const DICTIONARIES = {
     "View image gallery": "Посмотреть изображения",
     "for": " для ",
     "Search": "Поиск",
+    "NEW RELEASE": "НОВЫЙ РЕЛИЗ",
     "Discover Vortex": "Посмотреть на Vortex",
     "Top 30 Files in past two weeks:": "Топ-30 файлов за последние две недели: ",
     "Top Lists": "Топ списков",
@@ -1405,24 +1406,49 @@ const DICTIONARIES = {
     "Mod faster with premium": "Моддинг быстрее с Премиумом"
   },
 
-  // Контекстный словарь: более компактный формат
+  // Контекстный словарь: ключ = оригинальный текст, значение = { CSS-селектор: перевод }
+  // element.matches(селектор) вызывается на node.parentNode (элемент-владелец текстового узла)
   contextual: {
-    "Mods": {
-      "div > p": "Модов",
-      "li > p": "Моды"
+    // ── Stats section (homepage): numbers + labels in separate <p> elements ──
+    "Downloads": {
+      "div > p": "Скачиваний"
     },
+    "Mods": {
+      "div > p": "Модов"
+    },
+    "Members": {
+      "p > span": "Участник",
+      "div > p": "Участников"
+    },
+    "Rewards": {
+      "p > span": "Вознаграждений"
+    },
+
+    // ── Forums: game section link (<p> inside <a>), nav (<span>), footer (<a> inside <li>) ──
+    "Forums": {
+      "a.nxm-link > p": "форуму",
+      "span": "Форум",
+      "li > a.nxm-link": "Форум"
+    },
+
+    // ── Download button vs section heading ──
     "Download": {
       "h2": "Загрузки",
       "button": "Скачать"
     },
-    "Forums": {
-      "span": "Форум",
-      "li > a.nxm-link": "Форум",
-      "p > a.nxm-link": "форуму"
-    },
+
+    // ── Auth / forms ──
     "log in": {
       "p > a": "войдите"
     },
+    "Terms of Service": {
+      "form > p > a": "условия использования"
+    },
+    "Privacy Policy": {
+      "form > p > a": "политику конфиденциальности"
+    },
+
+    // ── Sort / filter dropdowns ──
     "Size": {
       "option": "Размеру",
       "span > span": "Размеру"
@@ -1441,22 +1467,14 @@ const DICTIONARIES = {
     "Priority": {
       "option": "Важности"
     },
+
+    // ── Misc ──
     "info": {
       "i": "info"
-    },
-    "Terms of Service": {
-      "form > p > a": "условия использования"
-    },
-    "Privacy Policy": {
-      "form > p > a": "политику конфиденциальности"
     },
     "Premium Member": {
       "p > span": "Премиум-участник",
       "span > span": "Премиум-участник"
-    },
-    "Members": {
-      "p > span": "Участник",
-      "div > p": "Участников"
     },
     "and": {
       "p > span > span": "и ещё"
