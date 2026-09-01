@@ -1411,7 +1411,7 @@ const DICTIONARIES = {
       "div > p": "Скачиваний"
     },
     "Mods": {
-      "div > p > a": "модов",
+      "p > a": "модов",
       "button > span": "Моды",
       "li > p": "Моды"
     },
