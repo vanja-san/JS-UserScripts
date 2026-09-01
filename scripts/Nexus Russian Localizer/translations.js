@@ -1413,7 +1413,8 @@ const DICTIONARIES = {
     "Mods": {
       "p > a": "модов",
       "button > span": "Моды",
-      "li > p": "Моды"
+      "li > p": "Моды",
+      "div > h2": "Моды"
     },
     "Members": {
       "p > span": "Участник",
