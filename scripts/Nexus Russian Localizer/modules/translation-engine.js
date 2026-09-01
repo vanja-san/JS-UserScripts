@@ -101,17 +101,17 @@ class TranslationEngine {
         const dynamicResult = await this.applyDynamicTemplates(currentValue, element);
         let translated = dynamicResult.replaced ? dynamicResult.text : null;
 
-        // If no dynamic template matched, check for direct translation
-        if (!translated) {
-          translated = window.NRL_TRANSLATIONS?.main[currentValue];
-        }
-
-        // Check context matching if no direct translation
-        if (!translated) {
+        // If no dynamic template matched, check context first (priority over dictionary)
+        if (!translated && element) {
           const contextualResult = this.#contextMatcher?.findTranslation(currentValue, element);
           if (contextualResult) {
             translated = contextualResult.translation;
           }
+        }
+
+        // Then check dictionary
+        if (!translated) {
+          translated = window.NRL_TRANSLATIONS?.main[currentValue];
         }
 
         // Apply date formatting if no translation found
@@ -303,15 +303,8 @@ class TranslationEngine {
         }
       }
 
-      // 3. Затем проверяем общий словарь
-      const directTranslation = window.NRL_TRANSLATIONS?.main[text];
-      if (directTranslation) {
-        node.textContent = directTranslation;
-        await this.#cache.cacheTranslation(text, '', directTranslation);
-        return true;
-      }
-
-      // 4. Затем проверяем контекстные правила
+      // 3. Сначала проверяем контекстные правила (приоритет над словарём,
+      //    чтобы падеж и т.д. определялись по элементу, а не по тексту)
       if (element) {
         const contextualResult = this.#contextMatcher?.findTranslation(text, element);
         if (contextualResult) {
@@ -319,6 +312,14 @@ class TranslationEngine {
           await this.#cache.cacheTranslation(text, contextualResult.context, contextualResult.translation);
           return true;
         }
+      }
+
+      // 4. Затем проверяем общий словарь
+      const directTranslation = window.NRL_TRANSLATIONS?.main[text];
+      if (directTranslation) {
+        node.textContent = directTranslation;
+        await this.#cache.cacheTranslation(text, '', directTranslation);
+        return true;
       }
 
       // 5. If we reach here, we couldn't translate, but still need to remember we processed this
@@ -461,17 +462,17 @@ class TranslationEngine {
         const dynamicResult = await this.applyDynamicTemplates(originalText, element);
         let translated = dynamicResult.replaced ? dynamicResult.text : null;
 
-        // If no dynamic template matched, check dictionary
-        if (!translated) {
-          translated = window.NRL_TRANSLATIONS?.main[originalText];
-        }
-
-        // Check context matching if no direct translation
-        if (!translated) {
+        // If no dynamic template matched, check context first (priority over dictionary)
+        if (!translated && element) {
           const contextualResult = this.#contextMatcher?.findTranslation(originalText, element);
           if (contextualResult) {
             translated = contextualResult.translation;
           }
+        }
+
+        // Then check dictionary
+        if (!translated) {
+          translated = window.NRL_TRANSLATIONS?.main[originalText];
         }
 
         // Apply date formatting if no translation found

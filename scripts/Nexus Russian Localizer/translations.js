@@ -1417,8 +1417,8 @@ const DICTIONARIES = {
     },
     "Forums": {
       "span": "Форум",
-      "li > a.link": "Форум",
-      "p > a.nxm-link-primary": "Форуму"
+      "li > a.nxm-link": "Форум",
+      "p > a.nxm-link": "Форуму"
     },
     "log in": {
       "p > a": "войдите"
