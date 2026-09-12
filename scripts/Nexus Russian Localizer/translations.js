@@ -16,7 +16,6 @@ const DICTIONARIES = {
     "All collections": "Все коллекции",
     "Highest rated": "Самый высокий рейтинг",
     "Collections tutorials": "Обучение коллекций",
-    "Media": "Медиа",
     "Latest": "Последние",
     "Supporter images": "Изображения поддержки",
     "Upgrade": "Улучшить",
@@ -383,7 +382,7 @@ const DICTIONARIES = {
     "Show only updated mods": "Показывать только обновлённые моды",
     "File size": "Размер файла",
     "Endorsements": "Одобрений",
-    "Make mods.": "Создавайте моды. ",
+    "Make mods.": "Создавай моды. ",
     "Notifications": "Уведомления",
     "Mark all as read (": "Пометить все прочитаным (",
     "Settings": "Настройки",
@@ -409,7 +408,7 @@ const DICTIONARIES = {
     "Let us know if you’d find this useful by voting below.": "Дайте нам знать, если вы найдёте это полезным, проголосовав ниже.",
     "Not interested": "Не интересует",
     "I'd use this!": "Я бы этим пользовался!",
-    "Earn rewards.": "Получайте награды.",
+    "Earn rewards.": "Получай награды.",
     "Cash payouts": "Денежные выплаты",
     "Free Premium": "Бесплатный премиум",
     "Learn More": "Подробнее",
@@ -1423,7 +1422,6 @@ const DICTIONARIES = {
   // Контекстный словарь: ключ = оригинальный текст, значение = { CSS-селектор: перевод }
   // element.matches(селектор) вызывается на node.parentNode (элемент-владелец текстового узла)
   contextual: {
-    // ── Stats section (homepage): numbers + labels in separate <p> elements ──
     "Downloads": {
       "div > p": "Скачиваний"
     },
@@ -1443,20 +1441,17 @@ const DICTIONARIES = {
       "p > span": "Вознаграждений"
     },
 
-    // ── Forums: game section link (<p> inside <a>), nav (<span>), footer (<a> inside <li>) ──
     "Forums": {
       "p > a": "форуму",
       "span": "Форум",
       "li > a.nxm-link": "Форум"
     },
 
-    // ── Download button vs section heading ──
     "Download": {
       "h2": "Загрузки",
       "button": "Скачать"
     },
 
-    // ── Auth / forms ──
     "log in": {
       "p > a": "войдите"
     },
@@ -1467,7 +1462,6 @@ const DICTIONARIES = {
       "form > p > a": "политику конфиденциальности"
     },
 
-    // ── Sort / filter dropdowns ──
     "Size": {
       "option": "Размеру",
       "span > span": "Размеру"
@@ -1487,7 +1481,6 @@ const DICTIONARIES = {
       "option": "Важности"
     },
 
-    // ── Misc ──
     "info": {
       "i": "info"
     },
@@ -1500,6 +1493,9 @@ const DICTIONARIES = {
     },
     "Manual": {
       "a > span": "Вручную"
+    },
+    "Media": {
+      "h2": "Медиа"
     }
   },
 
