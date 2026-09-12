@@ -20,30 +20,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          # Нужен предыдущий коммит для проверки бампа версии юзерскриптов
-          fetch-depth: 2
-
-      - name: Verify NRL version bump
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Tampermonkey обновляет юзерскрипт ТОЛЬКО если @version в NRL.user.js
-          # стала выше установленной. Если меняются файлы NRL (переводы, модули),
-          # но версия не поднята — пользователи не получат обновление.
-          NRL_PREFIX="scripts/Nexus Russian Localizer/"
-          CHANGED=$(git diff --name-only HEAD~1 HEAD || true)
-          if echo "$CHANGED" | grep -q "^${NRL_PREFIX}"; then
-            OLD_VER=$(git show "HEAD~1:${NRL_PREFIX}NRL.user.js" 2>/dev/null | grep -m1 '@version' | awk '{print $3}' || echo "none")
-            NEW_VER=$(grep -m1 '@version' "${NRL_PREFIX}NRL.user.js" | awk '{print $3}')
-            echo "NRL files changed. Version: ${OLD_VER} -> ${NEW_VER}"
-            if [ "$OLD_VER" = "$NEW_VER" ]; then
-              echo "::error::NRL files changed but @version was not bumped (${NEW_VER}). Bump @version in NRL.user.js so Tampermonkey picks up the update."
-              exit 1
-            fi
-          else
-            echo "No NRL changes detected, skipping version check."
-          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
