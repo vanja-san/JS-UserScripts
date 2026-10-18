@@ -70,8 +70,10 @@ async function run() {
   fixture.innerHTML = FIXTURE;
 
   // ── Публичный API: NRL.user.js падал целиком, когда пропадал installRouter ──
-  const requiredApi = ['installRouter', 'start', 'enable', 'restoreAll', 'isRunning',
-    'translateAll', 'report', 'setMissedTerms', 'stop', 'safe'];
+  // enable/isRunning/stop убраны вместе с внутренним тумблером: включение
+  // и выключение делает менеджер скриптов.
+  const requiredApi = ['installRouter', 'start', 'restoreAll',
+    'translateAll', 'report', 'setMissedTerms', 'safe'];
   const missing = requiredApi.filter(name => typeof window.NRL?.[name] !== 'function');
   check('публичный API полон', missing.join(','), '');
   check('вложенные объекты на месте',

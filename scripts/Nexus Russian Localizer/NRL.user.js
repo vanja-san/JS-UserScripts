@@ -53,59 +53,53 @@
   }
 
   // ── Меню ──────────────────────────────────────────────────────────────
+  // Всё меню строится заново одной функцией: у пунктов с переключением
+  // меняется подпись и состав, а не только обработчик.
 
-  const dynamicMenus = [];
+  let menuIds = [];
 
-  function refreshDynamicMenus() {
-    while (dynamicMenus.length) {
-      const id = dynamicMenus.pop();
+  function unregisterMenu() {
+    while (menuIds.length) {
+      const id = menuIds.pop();
       try { GM_unregisterMenuCommand(id); } catch { /* менеджер без поддержки */ }
     }
+  }
+
+  function buildMenu() {
+    if (typeof GM_registerMenuCommand !== 'function') return;
+    unregisterMenu();
 
     const nrl = api();
     if (!nrl) return;
     const add = (label, handler) => {
-      try { dynamicMenus.push(GM_registerMenuCommand(label, handler)); } catch { /* игнорируем */ }
+      try { menuIds.push(GM_registerMenuCommand(label, handler)); } catch { /* игнорируем */ }
     };
 
-    const missed = nrl.Missed;
-    const enabled = nrl.dict.missedTerms.enabled;
-    add(`NRL: ${enabled ? 'Отключить' : 'Включить'} учёт непереведённых`, () => {
-      const next = !enabled;
-      nrl.setMissedTerms(next);
-      console.log('[NRL] Учёт непереведённых', next ? 'включён' : 'выключен');
-      refreshDynamicMenus();
+    add('NRL: Статистика перевода', () => nrl.report());
+
+    add(`NRL: Отладка: ${nrl.debug.on ? 'выключить' : 'включить'}`, () => {
+      if (nrl.debug.on) nrl.debug.disable();
+      else nrl.debug.enable();
+      buildMenu();
     });
 
-    if (!enabled) return;
-    const stats = missed.stats();
+    const missedOn = nrl.dict.missedTerms.enabled;
+    add(`NRL: Учёт непереведённых: ${missedOn ? 'выключить' : 'включить'}`, () => {
+      nrl.setMissedTerms(!missedOn);
+      console.log('[NRL] Учёт непереведённых', !missedOn ? 'включён' : 'выключен');
+      buildMenu();
+    });
+
+    if (!missedOn) return;
+    const stats = nrl.Missed.stats();
     if (!stats.terms) return;
 
-    add(`NRL: Экспорт непереведённых (${stats.terms})`, () => missed.exportFile());
-    add(`NRL: Очистить непереведённые`, () => {
+    add(`NRL: Экспорт непереведённых (${stats.terms})`, () => nrl.Missed.exportFile());
+    add('NRL: Очистить непереведённые', () => {
       if (!confirm(`Удалить ${stats.terms} записей?`)) return;
-      missed.clearAll();
-      refreshDynamicMenus();
+      nrl.Missed.clearAll();
+      buildMenu();
     });
-  }
-
-  function registerMenu() {
-    if (typeof GM_registerMenuCommand !== 'function') return;
-
-    try {
-      GM_registerMenuCommand('NRL: Перевести страницу заново', () => {
-        const nrl = api();
-        if (!nrl) return;
-        nrl.translateAll('menu');
-      });
-      GM_registerMenuCommand('NRL: Вернуть английский оригинал', () => api()?.restoreAll());
-      GM_registerMenuCommand('NRL: Статистика перевода', () => api()?.report());
-      GM_registerMenuCommand('NRL: Включить отладку', () => api()?.debug.enable());
-      GM_registerMenuCommand('NRL: Выключить отладку', () => api()?.debug.disable());
-      refreshDynamicMenus();
-    } catch (error) {
-      console.error('[NRL] Ошибка регистрации меню:', error);
-    }
   }
 
   // ── Запуск ────────────────────────────────────────────────────────────
@@ -133,7 +127,7 @@
     try {
       await whenDomReady();
       await nrl.start();
-      refreshDynamicMenus();
+      buildMenu();
     } catch (error) {
       console.error('[NRL] Ошибка инициализации:', error);
     } finally {
@@ -142,6 +136,11 @@
     }
   }
 
-  registerMenu();
+  try {
+    buildMenu();
+  } catch (error) {
+    console.error('[NRL] Ошибка регистрации меню:', error);
+  }
+
   boot();
 })();
