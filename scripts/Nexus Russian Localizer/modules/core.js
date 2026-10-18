@@ -3,7 +3,8 @@
  *
  * Зависимости: translations.js (window.NRL_TRANSLATIONS), подключается из NRL.user.js.
  * Архитектура:
- *   Storage  — доступ к GM_getValue и localStorage с проверкой записи
+ *   Storage  — localStorage с проверкой записи; GM_* не используются,
+ *              включение и выключение делает менеджер скриптов
  *   safe     — граница ошибок: одна сбойная функция не роняет скрипт
  *   Dictionary — маршрутизация страниц, сборка per-page конфига, поиск
  *   Rules    — даты, плюрализация, размеры файлов
@@ -57,46 +58,29 @@
   //  1. Хранилище и отладка
   // ═══════════════════════════════════════════════════════════════════════
 
-  const has = name => typeof GM !== 'undefined' && typeof GM[name] === 'function';
-
-  /** GM_* — хранилище менеджера скриптов, localStorage — запасной вариант. */
+  /** Только localStorage: GM_* не нужны, включение/выключение — дело менеджера. */
   const Storage = {
-    available(which) {
+    get(key, fallback) {
       try {
-        if (which === 'gm') return has('getValue') && has('setValue');
-        return typeof localStorage !== 'undefined';
-      } catch {
-        return false;
-      }
-    },
-
-    get(key, fallback, which = 'auto') {
-      try {
-        if (which !== 'local' && has('getValue')) {
-          const v = GM_getValue(key, undefined);
-          return v === undefined ? fallback : v;
-        }
-        if (typeof localStorage !== 'undefined') {
-          const v = localStorage.getItem(key);
-          return v === null ? fallback : v;
-        }
+        if (typeof localStorage === 'undefined') return fallback;
+        const v = localStorage.getItem(key);
+        return v === null ? fallback : v;
       } catch { /* запрещённый доступ */ }
       return fallback;
     },
 
-    set(key, value, which = 'auto') {
-      if (which !== 'local' && has('setValue')) {
-        GM_setValue(key, value);
+    set(key, value) {
+      try {
+        if (typeof localStorage === 'undefined') return false;
+        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
         return true;
-      }
-      localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
-      return true;
+      } catch { /* переполненное или запрещённое хранилище */ }
+      return false;
     },
 
-    remove(key, which = 'auto') {
+    remove(key) {
       try {
-        if (which !== 'local' && has('deleteValue')) GM_deleteValue(key);
-        else if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+        if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
       } catch { /* запрещённый доступ */ }
     },
 
@@ -104,10 +88,10 @@
      * Запись с проверкой: возвращает false, если значение не зафиксировалось.
      * Молча теряющиеся настройки — худший вид поломки, поэтому проверяем.
      */
-    setVerified(key, value, which = 'auto') {
+    setVerified(key, value) {
       try {
-        this.set(key, value, which);
-        return this.get(key, '__nrl_missing__', which) === value;
+        this.set(key, value);
+        return this.get(key, '__nrl_missing__') === value;
       } catch {
         return false;
       }
@@ -120,9 +104,9 @@
       try { return JSON.parse(raw); } catch { return fallback; }
     },
 
-    setJson(key, value, which = 'auto') {
+    setJson(key, value) {
       const payload = JSON.stringify(value);
-      return this.setVerified(key, payload, which);
+      return this.setVerified(key, payload);
     }
   };
 
