@@ -1371,23 +1371,6 @@
       debug.log('Восстановлено узлов:', this.translator.stats.restored);
     },
 
-    /** Мгновенное включение после выключения — без перезагрузки страницы. */
-    async enable() {
-      if (this.translator) {
-        this.translator.observe(document.body);
-        await this.translateAll('enable');
-      }
-    },
-
-    stop() {
-      this.translator?.disconnect();
-      Missed.flush();
-    },
-
-    isRunning() {
-      return !!this.translator && !!this.translator.observer;
-    },
-
     translateElement(root) {
       if (!this.translator || !root) return;
       this.translator.enqueue(root);

@@ -163,7 +163,7 @@ async function run() {
   window.NRL.setMissedTerms(false);
   check('учёт непереведённых очищается', window.NRL.Missed.stats().terms, 0);
 
-  // ── Откат к оригиналу и повторное включение ────────────────────────────
+  // ── Откат к оригиналу ─────────────────────────────────────────────────
   window.NRL.restoreAll();
   check('откат вернул заголовок', document.title, 'Skyrim Mods');
   check('откат вернул навигацию', fixture.querySelector('nav').textContent, 'HomeGamesCommunity');
@@ -173,10 +173,6 @@ async function run() {
   check('откат вернул фразу', txt('p2'), 'Recently added');
   check('откат вернул плюрализацию', txt('s1'), '8.9kMods');
   check('откат вернул переиспользованный узел', txt('s3'), '3Support');
-
-  await window.NRL.enable();
-  check('повторное включение вернуло перевод', fixture.querySelector('nav').textContent, 'ГлавнаяИггрыСообщество');
-  check('повторное включение вернуло фразу', txt('p2'), 'Недавно добавлены');
 
   // ── Отчёт ─────────────────────────────────────────────────────────────
   const stats = window.NRL.translator.stats;

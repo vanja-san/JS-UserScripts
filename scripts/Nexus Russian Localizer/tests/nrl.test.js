@@ -281,17 +281,21 @@ test('публичный API покрывает все вызовы из NRL.use
   const methods = {
     installRouter: 'вызывается в boot() до всего остального',
     start: 'вызывается в boot()',
-    enable: 'вызывается переключателем при включении',
-    restoreAll: 'вызывается переключателем при выключении',
-    isRunning: 'переключатель проверяет, что переключение сработало',
+    restoreAll: 'пункт меню «вернуть английский оригинал»',
     translateAll: 'пункт меню «перевести заново»',
     report: 'пункт меню «статистика»',
     setMissedTerms: 'меню учёта непереведённых',
-    stop: 'остановка движка',
     safe: 'используется NRL.user.js'
   };
   for (const [name, reason] of Object.entries(methods)) {
     assert.equal(typeof NRL[name], 'function', `NRL.${name} пропал — ${reason}`);
+  }
+});
+
+test('удалённого переключателя больше нет в API', () => {
+  // Включение/выключение делает менеджер скриптов, свои методы не нужны.
+  for (const name of ['enable', 'stop', 'isRunning', 'toggle']) {
+    assert.equal(NRL[name], undefined, `NRL.${name} не должен существовать`);
   }
 });
 

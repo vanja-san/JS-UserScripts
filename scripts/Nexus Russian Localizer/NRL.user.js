@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         3.1.0-20261018-1624
+// @version         3.1.0-20261018-1704
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @run-at          document-start
@@ -12,8 +12,8 @@
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
 // @downloadURL     https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/NRL.user.js
 // @updateURL       https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/NRL.user.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/translations.js?v=3.1.0-20261018-1624
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/core.js?v=3.1.0-20261018-1624
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/translations.js?v=3.1.0-20261018-1704
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/core.js?v=3.1.0-20261018-1704
 // @grant           GM_registerMenuCommand
 // @grant           GM_unregisterMenuCommand
 // @grant           GM_getValue
@@ -25,114 +25,14 @@
 (function () {
   'use strict';
 
-  // ── Хранилище настроек ────────────────────────────────────────────────
-  // Дублирует NRL.Storage намеренно: включение/выключение должно работать
-  // даже если ядро не загрузилось. Потеря настройки здесь недопустима.
+  // Включение и выключение скрипта делает сам менеджер скриптов,
+  // поэтому своей настройки состояния здесь нет.
 
-  const has = name => typeof GM !== 'undefined' && typeof GM[name] === 'function';
-
-  const store = {
-    get(key) {
-      try {
-        if (has('getValue')) {
-          const v = GM_getValue(key, undefined);
-          if (v !== undefined) return v;
-        }
-      } catch { /* нет доступа */ }
-      try {
-        return localStorage.getItem(key);
-      } catch {
-        return null;
-      }
-    },
-    set(key, value) {
-      let ok = false;
-      if (has('setValue')) {
-        try { GM_setValue(key, value); ok = true; } catch { ok = false; }
-      }
-      try { localStorage.setItem(key, value); } catch { /* приватный режим */ }
-      return ok || this.get(key) === value;
-    }
-  };
-
-  const ENABLED_KEY = 'NRL_ENABLED';
-  const ENABLE_HASH = '#nrl-enable';
   const PENDING_CLASS = 'nrl-pending';
   const STYLE_ID = 'nrl-fouc-style';
   const FOUC_FAILSAFE_MS = 3000;
-  const EMERGENCY_SHORTCUT = 'Alt+Shift+N';
 
   const api = () => window.NRL;
-
-  // ── Включение / выключение ────────────────────────────────────────────
-
-  function isEnabled() {
-    const value = store.get(ENABLED_KEY);
-    if (value === null || value === undefined) return true;
-    return value !== 'false' && value !== false;
-  }
-
-  /**
-   * Переключение без перезагрузки страницы: движок умеет вернуть
-   * английский оригинал и включиться обратно. Если что-то пошло не так —
-   * откатываемся на перезагрузку.
-   */
-  function toggle() {
-    const next = !isEnabled();
-
-    if (!store.set(ENABLED_KEY, String(next))) {
-      alert('[NRL] Не удалось сохранить настройку.\n'
-        + 'Хранилище скриптов недоступно — настройка не сохранится.\n\n'
-        + `Аварийное включение: добавьте ${ENABLE_HASH} к адресу страницы `
-        + `или нажмите ${EMERGENCY_SHORTCUT}.`);
-      return;
-    }
-
-    // Проверяем, что значение действительно зафиксировалось.
-    if (isEnabled() !== next) {
-      alert('[NRL] Настройка не сохранилась — переключение не сработает.\n'
-        + `Аварийное включение: ${ENABLE_HASH} в адресе или ${EMERGENCY_SHORTCUT}.`);
-      return;
-    }
-
-    const nrl = api();
-    if (nrl) {
-      try {
-        if (next) nrl.enable?.();
-        else nrl.restoreAll?.();
-        if (next && !nrl.isRunning?.()) throw new Error('движок не запустился');
-        if (!next && nrl.isRunning?.()) throw new Error('движок не остановлен');
-      } catch (error) {
-        console.error('[NRL] Не удалось применить переключение, перезагружаю:', error);
-        location.reload();
-      }
-    }
-    console.log(`[NRL] Перевод ${next ? 'включён' : 'выключен'}.`);
-  }
-
-  function enableForce() {
-    if (store.set(ENABLED_KEY, 'true') && isEnabled()) location.reload();
-  }
-
-  // ── Аварийные пути включения ──────────────────────────────────────────
-  // Скрипт не должен уметь запереть пользователя в выключенном состоянии.
-
-  function installEmergencyEnable() {
-    if (location.hash === ENABLE_HASH) {
-      store.set(ENABLED_KEY, 'true');
-      history.replaceState(history.state, '', location.href.replace(ENABLE_HASH, ''));
-    }
-
-    document.addEventListener('keydown', (event) => {
-      const matches = event.altKey && event.shiftKey &&
-        (event.key === 'N' || event.key === 'н' || event.code === 'KeyN');
-      if (matches) {
-        event.preventDefault();
-        if (!isEnabled()) enableForce();
-        else console.log('[NRL] Перевод уже включён.');
-      }
-    }, true);
-  }
 
   // ── FOUC ──────────────────────────────────────────────────────────────
 
@@ -196,14 +96,6 @@
     if (typeof GM_registerMenuCommand !== 'function') return;
 
     try {
-      // Регистрируется первым и всегда: это единственный способ
-      // включить скрипт обратно, если он выключен.
-      GM_registerMenuCommand('NRL: Включить / выключить перевод', toggle);
-    } catch (error) {
-      console.error('[NRL] Не удалось зарегистрировать меню:', error);
-    }
-
-    try {
       GM_registerMenuCommand('NRL: Перевести страницу заново', () => {
         const nrl = api();
         if (!nrl) return;
@@ -238,12 +130,6 @@
       console.error('[NRL] Не удалось установить хуки навигации:', error);
     }
 
-    if (!isEnabled()) {
-      console.log('[NRL] Перевод выключен. Включить: меню скрипта, '
-        + `${EMERGENCY_SHORTCUT} или ${ENABLE_HASH} в адресе.`);
-      return;
-    }
-
     hidePage();
     const failsafe = setTimeout(revealPage, FOUC_FAILSAFE_MS);
 
@@ -259,7 +145,6 @@
     }
   }
 
-  installEmergencyEnable();
   registerMenu();
   boot();
 })();
