@@ -1,6 +1,6 @@
 name: Bump thesaurus version
 
-# Словарь версионируется отдельно от кода движка: @require несёт ?v=3.1.0.
+# Словарь версионируется отдельно от кода движка: @require несёт ?v=<метка>.
 # Это позволяет выкатить только новые переводы, не трогая логику.
 # Без этого пользователи месяцами получают залипший словарь из кэша менеджера.
 
@@ -16,20 +16,23 @@ permissions:
 
 jobs:
   bump:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
-      - name: Syntax check and unit tests
-        run: |
-          find scripts -name '*.js' -print0 | xargs -0 -n1 node --check
-          node --test "scripts/Nexus Russian Localizer/tests"
+      - name: Syntax check
+        run: find . -name '*.js' -print0 | xargs -0 -n1 node --check
+        working-directory: scripts/Nexus Russian Localizer
+
+      - name: Unit tests
+        run: node --test tests
+        working-directory: scripts/Nexus Russian Localizer
 
       - name: Align @require cache-buster with @version
         run: node .github/bump-version.js
