@@ -32,7 +32,7 @@ jobs:
           node --test "scripts/Nexus Russian Localizer/tests"
 
       - name: Align @require cache-buster with @version
-        run: node script/bump-version.js
+        run: node .github/bump-version.js
 
       - name: Commit
         run: |
