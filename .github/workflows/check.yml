@@ -31,4 +31,8 @@ jobs:
           find . -name '*.js' -not -path './.cache/*' -print0 | xargs -0 -n1 node --check
 
       - name: Unit tests
-        run: node --test tests
+        # Явные файлы, а не каталог: node --test <dir> на Node 22 выполняет
+        # каталог как модуль и падает с MODULE_NOT_FOUND
+        # (nodejs/node#64555). Node 26 такой случай принимает, поэтому
+        # локально на новой версии баг не воспроизводится.
+        run: node --test tests/*.test.js

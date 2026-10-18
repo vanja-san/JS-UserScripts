@@ -31,7 +31,10 @@ jobs:
         working-directory: scripts/Nexus Russian Localizer
 
       - name: Unit tests
-        run: node --test tests
+        # Явные файлы, а не каталог: node --test <dir> на Node 22 выполняет
+        # каталог как модуль и падает с MODULE_NOT_FOUND
+        # (nodejs/node#64555).
+        run: node --test tests/*.test.js
         working-directory: scripts/Nexus Russian Localizer
 
       - name: Align @require cache-buster with @version
