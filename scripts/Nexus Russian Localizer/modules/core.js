@@ -1283,13 +1283,21 @@
     Missed,
     TitleTranslator,
     translator: null,
+    routerInstalled: false,
 
     loadDictionary,
     buildRules: buildTextRules,
     clearPageConfigCache,
     detectPageType,
     buildPageConfig,
-    get rules() { return TEXT_RULES; },
+
+    /** Ставится сразу при document-start, чтобы не пропустить ранний pushState. */
+    installRouter() {
+      if (this.routerInstalled) return;
+      this.routerInstalled = true;
+      router.install();
+    },
+
     get pageConfig() { return getPageConfig(); },
     lookup,
     pluralize,

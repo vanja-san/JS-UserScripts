@@ -4,7 +4,7 @@
 // @namespace       http://tampermonkey.net/
 // @description     Add Russian localization for Nexus Mods.
 // @description:ru  Добавляет русскую локализацию для сайта Nexus Mods.
-// @version         3.1.0-20261018-1608
+// @version         3.1.0-20261018-1624
 // @author          vanja-san
 // @match           https://*.nexusmods.com/*
 // @run-at          document-start
@@ -12,8 +12,8 @@
 // @icon            https://www.google.com/s2/favicons?sz=64&domain=nexusmods.com
 // @downloadURL     https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/NRL.user.js
 // @updateURL       https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/NRL.user.js
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/translations.js?v=3.1.0-20261018-1608
-// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/core.js?v=3.1.0-20261018-1608
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/translations.js?v=3.1.0-20261018-1624
+// @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/core.js?v=3.1.0-20261018-1624
 // @grant           GM_registerMenuCommand
 // @grant           GM_unregisterMenuCommand
 // @grant           GM_getValue
@@ -98,8 +98,10 @@
     const nrl = api();
     if (nrl) {
       try {
-        if (next) nrl.enable();
-        else nrl.restoreAll();
+        if (next) nrl.enable?.();
+        else nrl.restoreAll?.();
+        if (next && !nrl.isRunning?.()) throw new Error('движок не запустился');
+        if (!next && nrl.isRunning?.()) throw new Error('движок не остановлен');
       } catch (error) {
         console.error('[NRL] Не удалось применить переключение, перезагружаю:', error);
         location.reload();
@@ -228,8 +230,13 @@
     }
 
     // Хуки навигации ставятся сразу: Next.js может вызвать pushState
-    // раньше, чем появится document.body.
-    nrl.installRouter();
+    // раньше, чем появится document.body. Отсутствие метода не должно
+    // мешать переводу — поэтому вызываем через try/catch.
+    try {
+      nrl.installRouter?.();
+    } catch (error) {
+      console.error('[NRL] Не удалось установить хуки навигации:', error);
+    }
 
     if (!isEnabled()) {
       console.log('[NRL] Перевод выключен. Включить: меню скрипта, '

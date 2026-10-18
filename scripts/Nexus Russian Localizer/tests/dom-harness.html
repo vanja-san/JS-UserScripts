@@ -69,6 +69,21 @@ async function run() {
   const fixture = document.getElementById('fixture');
   fixture.innerHTML = FIXTURE;
 
+  // ── Публичный API: NRL.user.js падал целиком, когда пропадал installRouter ──
+  const requiredApi = ['installRouter', 'start', 'enable', 'restoreAll', 'isRunning',
+    'translateAll', 'report', 'setMissedTerms', 'stop', 'safe'];
+  const missing = requiredApi.filter(name => typeof window.NRL?.[name] !== 'function');
+  check('публичный API полон', missing.join(','), '');
+  check('вложенные объекты на месте',
+    [typeof window.NRL?.debug?.enable, typeof window.NRL?.Missed?.stats,
+     typeof window.NRL?.Storage?.setVerified, typeof window.NRL?.TitleTranslator?.apply]
+      .every(t => t === 'function'), true);
+
+  // Навигация ставится один раз и повторный вызов безопасен.
+  window.NRL.installRouter();
+  window.NRL.installRouter();
+  check('installRouter идемпотентен', window.NRL.routerInstalled, true);
+
   await window.NRL.start();
 
   const el = id => fixture.querySelector('#' + id);

@@ -29,6 +29,8 @@ globalThis.location = {
   search: '',
   hash: ''
 };
+globalThis.history = { pushState() {}, replaceState() {} };
+globalThis.addEventListener = () => {};
 globalThis.document = { querySelector: () => null };
 
 require(path.join(ROOT, 'translations.js'));
@@ -246,8 +248,59 @@ test('lookup не падает на невалидном селекторе', ()
 });
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Хранилище
+//  Публичный API
+//  NRL.user.js вызывает эти члены при загрузке и из меню. Если хоть один
+//  пропадёт, скрипт упадёт на реальной странице — проверяем здесь.
 // ═══════════════════════════════════════════════════════════════════════
+
+test('публичный API покрывает все вызовы из NRL.user.js', () => {
+  const methods = {
+    installRouter: 'вызывается в boot() до всего остального',
+    start: 'вызывается в boot()',
+    enable: 'вызывается переключателем при включении',
+    restoreAll: 'вызывается переключателем при выключении',
+    isRunning: 'переключатель проверяет, что переключение сработало',
+    translateAll: 'пункт меню «перевести заново»',
+    report: 'пункт меню «статистика»',
+    setMissedTerms: 'меню учёта непереведённых',
+    stop: 'остановка движка',
+    safe: 'используется NRL.user.js'
+  };
+  for (const [name, reason] of Object.entries(methods)) {
+    assert.equal(typeof NRL[name], 'function', `NRL.${name} пропал — ${reason}`);
+  }
+});
+
+test('вложенные объекты публичного API на месте', () => {
+  assert.equal(typeof NRL.debug.enable, 'function');
+  assert.equal(typeof NRL.debug.disable, 'function');
+  assert.equal(typeof NRL.debug.log, 'function');
+  assert.equal(typeof NRL.debug.warn, 'function');
+  assert.equal(typeof NRL.Missed.stats, 'function');
+  assert.equal(typeof NRL.Missed.record, 'function');
+  assert.equal(typeof NRL.Missed.exportFile, 'function');
+  assert.equal(typeof NRL.Missed.clearAll, 'function');
+  assert.equal(typeof NRL.Storage.setVerified, 'function');
+  assert.equal(typeof NRL.TitleTranslator.apply, 'function');
+  assert.equal(typeof NRL.TitleTranslator.restore, 'function');
+  assert.equal(typeof NRL.dict, 'object');
+  assert.equal(typeof NRL.CONFIG, 'object');
+});
+
+test('installRouter вызывается дважды без побочных последствий', () => {
+  // boot() может отработать повторно, а навигация — уже висеть на хуках.
+  assert.equal(typeof NRL.installRouter, 'function');
+  NRL.installRouter();
+  NRL.installRouter();
+  assert.equal(NRL.routerInstalled, true);
+});
+
+test('safe() глушит исключение и возвращает undefined', () => {
+  const guarded = NRL.safe(() => { throw new Error('boom'); }, 'test');
+  assert.equal(guarded(), undefined);
+  const passthrough = NRL.safe(x => x * 2, 'test');
+  assert.equal(passthrough(21), 42);
+});
 
 test('Storage.setVerified возвращает true при успешной записи', () => {
   assert.equal(NRL.Storage.setVerified('nrl_test_key', 'значение'), true);
