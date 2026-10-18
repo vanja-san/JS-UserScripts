@@ -148,13 +148,16 @@
   debug.init();
 
   /**
-   * Граница ошибок. Одна сбойная функция не должна ронять перевод страницы —
-   * пользователь лучше увидит часть на английском, чем пустую страницу.
+   * Граница ошибок: одна сбойная функция не должна ронять перевод страницы.
+   *
+   * receiver передаётся явно и обязательно. Приватные методы не автосвязываются,
+   * поэтому безопасная обёртка, вызванная как обычная функция, передаёт им
+   * this === undefined и они падают на первом же обращении к полю.
    */
-  function safe(fn, label) {
+  function safe(receiver, fn, label) {
     return function (...args) {
       try {
-        return fn.apply(this, args);
+        return fn.apply(receiver, args);
       } catch (error) {
         console.error(`[NRL] ${label}:`, error);
         return undefined;
@@ -1065,7 +1068,8 @@
 
     observe(root = document.body) {
       if (!root || this.#observer) return;
-      this.#observer = new MutationObserver(records => safe(this.#onMutations, 'MutationObserver')(records));
+      this.#observer = new MutationObserver(
+        records => safe(this, this.#onMutations, 'MutationObserver')(records));
 
       const options = {
         childList: true,
@@ -1097,7 +1101,11 @@
 
       for (const record of records) {
         if (record.type === 'childList') {
-          for (const node of record.addedNodes) {
+          // Настоящий MutationRecord всегда даёт NodeList, но дешёвая проверка
+          // снимает падение на синтетических записях.
+          const added = record.addedNodes;
+          if (!added) continue;
+          for (const node of added) {
             if (this.#isIgnoredMutationTarget(node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)) continue;
             if (node.nodeType === Node.TEXT_NODE) textNodes.add(node);
             else if (node.nodeType === Node.ELEMENT_NODE) addedRoots.add(node);
@@ -1282,6 +1290,9 @@
     Storage,
     Missed,
     TitleTranslator,
+    // Экспортируется для тестов: без него нельзя прогнать обход и
+    // обработку мутаций без реального браузера.
+    Translator,
     translator: null,
     routerInstalled: false,
 
@@ -1349,7 +1360,7 @@
     restoreAll() {
       if (!this.translator) return;
       this.translator.disconnect();
-      safe(this.translator.restoreTree, 'restoreTree')(document.body);
+      safe(this.translator, this.translator.restoreTree, 'restoreTree')(document.body);
       TitleTranslator.restore();
       Missed.flush();
       debug.log('Восстановлено узлов:', this.translator.stats.restored);

@@ -295,11 +295,11 @@ test('installRouter вызывается дважды без побочных п
   assert.equal(NRL.routerInstalled, true);
 });
 
-test('safe() глушит исключение и возвращает undefined', () => {
-  const guarded = NRL.safe(() => { throw new Error('boom'); }, 'test');
-  assert.equal(guarded(), undefined);
-  const passthrough = NRL.safe(x => x * 2, 'test');
-  assert.equal(passthrough(21), 42);
+test('safe() требует receiver и возвращает результат вызова', () => {
+  // Полная проверка safe() на приватных методах — в dom-stub.test.js.
+  const receiver = { double: value => value * 2 };
+  assert.equal(NRL.safe(receiver, receiver.double, 'double')(21), 42);
+  assert.equal(NRL.safe(receiver, () => { throw new Error('boom'); }, 'boom')(), undefined);
 });
 
 test('Storage.setVerified возвращает true при успешной записи', () => {
