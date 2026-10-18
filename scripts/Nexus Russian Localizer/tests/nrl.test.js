@@ -461,9 +461,17 @@ test('игнор-селекторы взяты из реальной разме�
   for (const selector of dead) {
     assert.ok(!selectors.includes(selector), 'селектор ' + selector + ' на сайте не встречается');
   }
-  const alive = ['.prose-lexical', '.prose-markdown', '.mod-header__title', '.swiper'];
+  const alive = ['.mod_description_container', 'i'];
   for (const selector of alive) {
     assert.ok(selectors.includes(selector), 'селектор ' + selector + ' найден в разметке');
+  }
+
+  // Классы ниже ни разу не встретились в разметке nexusmods.com.
+  // Их наличие в игнор-листе было бы молчаливой выдумкой.
+  const invented = ['.prose-lexical', '.prose-markdown', '.mod-header__title',
+    '.group\\/mod-tile', '.collection-mod-row', '.official-collection-tile', '.swiper'];
+  for (const selector of invented) {
+    assert.ok(!selectors.includes(selector), 'выдуманный селектор в игноре: ' + selector);
   }
 });
 

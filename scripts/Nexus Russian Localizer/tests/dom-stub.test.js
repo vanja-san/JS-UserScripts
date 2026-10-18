@@ -282,8 +282,9 @@ test('attributes: изменение title переводится', async () => 
 
 test('мутация внутри игнорируемого элемента пропускается', async () => {
   const { body } = makeBody();
-  // prose-lexical — реальный класс пользовательского текста на Nexus
-  const modName = new MiniElement('span', ['prose-lexical']);
+  // mod_description_container — реальный класс текста пользователя,
+  // проверен на /skyrim/mods/1234
+  const modName = new MiniElement('span', ['mod_description_container']);
   const text = new MiniText('Home');
   modName.appendChild(text);
   body.appendChild(modName);
@@ -363,4 +364,172 @@ test('свой перевод не вызывает повторной прав�
   await settle();
 
   assert.equal(translator.stats.text, before, 'повторно переводить нечего');
+});
+
+// ── Реальная разметка Nexus ──────────────────────────────────────────────
+// Формат проверен по клиентскому коду timeAgo() на странице мода:
+//   function timeAgo(t){ ... r = o + " minute" + (o !== 1 ? "s" : "") }
+//   <span>${timeAgo(updatedAt)} ago</span>
+
+test('относительное время переводится в разметке уведомлений', async () => {
+  const { body } = makeBody();
+
+  // Разметка как в .notification-wrapper на nexusmods.com
+  const wrapper = new MiniElement('li', ['notification-wrapper']);
+  const notification = new MiniElement('div', ['notification']);
+  const anchor = new MiniElement('a', ['notification-link']);
+  const content = new MiniElement('div', ['notification-content']);
+  const date = new MiniElement('div', ['notification-date']);
+
+  const time = new MiniElement('span');
+  time.appendChild(new MiniText('5 minutes ago'));
+
+  date.appendChild(time);
+  content.appendChild(date);
+  anchor.appendChild(content);
+  notification.appendChild(anchor);
+  wrapper.appendChild(notification);
+  body.appendChild(wrapper);
+
+  const translator = new NRL.Translator();
+  await translator.translateTree(body);
+
+  assert.equal(time.childNodes[0].data, '5 минут назад');
+});
+
+test('относительное время переводится при мутации characterData', async () => {
+  const { body } = makeBody();
+  const date = new MiniElement('div', ['notification-date']);
+  const time = new MiniElement('span');
+  const node = new MiniText('2 hours ago');
+  time.appendChild(node);
+  date.appendChild(time);
+  body.appendChild(date);
+
+  const translator = new NRL.Translator();
+  await translator.translateTree(body);
+  translator.observe(body);
+
+  observerRef.callback([{ type: 'characterData', target: node }], observerRef);
+  await settle();
+
+  assert.equal(node.data, '2 часа назад');
+});
+
+test('форматы timeAgo со страницы мода переводятся все', async () => {
+  // Набор строк, которые реально выдаёт клиентский timeAgo().
+  const cases = [
+    ['1 minute ago', '1 минуту назад'],
+    ['5 minutes ago', '5 минут назад'],
+    ['21 minutes ago', '21 минуту назад'],
+    ['1 hour ago', '1 час назад'],
+    ['2 hours ago', '2 часа назад'],
+    ['3 days ago', '3 дня назад'],
+    ['1 week ago', '1 неделю назад'],
+    ['2 months ago', '2 месяца назад'],
+    ['1 year ago', '1 год назад']
+  ];
+  for (const [source, expected] of cases) {
+    assert.equal(NRL.applyTextRules(source), expected, source);
+  }
+});
+
+test('уведомление, вставленное скриптом сайта, переводится', async () => {
+  // Уведомления рендерит клиентский JS после загрузки страницы:
+  // <li class='notification-wrapper ...'><span>${timeAgo(updatedAt)} ago</span>
+  // То есть узел появляется через childList, а не в исходном HTML.
+  const { body } = makeBody();
+  const translator = new NRL.Translator();
+  await translator.translateTree(body);
+  translator.observe(body);
+
+  const wrapper = new MiniElement('li', ['notification-wrapper', 'notification-unread']);
+  const notification = new MiniElement('div', ['notification']);
+  const anchor = new MiniElement('a', ['notification-link']);
+  const content = new MiniElement('div', ['notification-content']);
+  const date = new MiniElement('div', ['notification-date']);
+  const time = new MiniElement('span');
+  const node = new MiniText('5 minutes ago');
+  time.appendChild(node);
+  date.appendChild(time);
+  content.appendChild(date);
+  anchor.appendChild(content);
+  notification.appendChild(anchor);
+  wrapper.appendChild(notification);
+
+  const host = new MiniElement('ul', ['notification-list']);
+  host.appendChild(wrapper);
+  body.appendChild(host);
+
+  observerRef.callback([{ type: 'childList', target: host, addedNodes: [wrapper] }], observerRef);
+  await settle();
+
+  assert.equal(node.data, '5 минут назад');
+});
+
+// ── Описания модов ──────────────────────────────────────────────────────
+// Пользовательский текст не должен переводиться: внутри предложения есть
+// даты и размеры, на которые срабатывают текстовые правила.
+
+test('описание мода не переводится', async () => {
+  const { body } = makeBody();
+  // Реальная разметка со /skyrim/mods/1234:
+  //   <div class="container mod_description_container condensed">
+  const description = new MiniElement('div', ['container', 'mod_description_container', 'condensed']);
+  description.appendChild(new MiniText('Released 12 Jan 2024, updated 3 months ago'));
+  body.appendChild(description);
+
+  const translator = new NRL.Translator();
+  await translator.translateTree(body);
+
+  assert.equal(
+    description.childNodes[0].data,
+    'Released 12 Jan 2024, updated 3 months ago',
+    'текст правила бы изменился, если бы не игнорировался'
+  );
+});
+
+test('описание мода не переводится при вставке в DOM', async () => {
+  // Описание часто приходит AJAX-вкладкой уже после загрузки страницы.
+  const { body } = makeBody();
+  const translator = new NRL.Translator();
+  await translator.translateTree(body);
+  translator.observe(body);
+
+  const description = new MiniElement('div', ['container', 'mod_description_container', 'condensed']);
+  const node = new MiniText('Added 5 Jan 2020, requires 4 GB');
+  description.appendChild(node);
+
+  const target = new MiniElement('div', ['tabs']);
+  target.appendChild(description);
+  body.appendChild(target);
+
+  observerRef.callback([{ type: 'childList', target, addedNodes: [description] }], observerRef);
+  await settle();
+
+  assert.equal(node.data, 'Added 5 Jan 2020, requires 4 GB');
+});
+
+test('правила действительно ломают описание без игнора', () => {
+  // Контрольный тест: если он не сработал, проверка игнора выше ничего не значит.
+  assert.equal(
+    NRL.applyTextRules('Released 12 Jan 2024, updated 3 months ago'),
+    'Released 12 янв 2024, updated 3 месяца назад'
+  );
+});
+
+test('служебные тексты Nexus переводятся, а не игнорируются', () => {
+  // permissions-desc встречается 7 раз на реальной странице мода и содержит
+  // служебный текст («Some assets in this file belong to other authors…»).
+  // Это интерфейс сайта, значит переводится, а не игнорируется.
+  assert.equal(NRL.CONFIG.IGNORED_SELECTORS.includes('.permissions-desc'), false);
+});
+
+test('игнор-лист не содержит классов, которых нет на сайте', () => {
+  // Каждый селектор обязан встречаться в разметке nexusmods.com.
+  // Источник истины — сохранённые страницы, а не память.
+  const verified = new Set(['.mod_description_container', 'i']);
+  for (const selector of NRL.CONFIG.IGNORED_SELECTORS) {
+    assert.equal(verified.has(selector), true, `непроверенный селектор: ${selector}`);
+  }
 });

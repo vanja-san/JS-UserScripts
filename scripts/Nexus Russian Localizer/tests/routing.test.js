@@ -119,8 +119,8 @@ test('конфиг страницы содержит скомпилирован�
   const config = NRL.buildPageConfig('mods');
   assert.equal(typeof config.ignoreSelector, 'string');
   // Глобальные игноры берутся из реальной разметки Nexus
-  assert.ok(config.ignoreSelector.includes('prose-lexical'), 'глобальные игноры должны попасть в строку');
-  assert.ok(config.ignoreSelector.includes('mod-header__title'));
+  assert.ok(config.ignoreSelector.includes('mod_description_container'), 'глобальные игноры должны попасть в строку');
+  assert.ok(config.ignoreSelector.includes('i'));
   // Игноры страницы добавляются поверх
   assert.ok(config.ignoreSelector.includes('.tabs'), 'игноры страницы должны добавиться');
   assert.equal(typeof config.ignoreMutationSelector, 'string');

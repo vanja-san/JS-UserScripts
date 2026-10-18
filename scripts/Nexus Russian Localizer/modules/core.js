@@ -22,19 +22,14 @@
 
   const CONFIG = {
     // Не переводить: пользовательский контент, названия модов и служебные блоки.
-    // Селекторы проверены разбором реальных страниц (docs/nexus-markup.md);
-    // перепроверяй скриптом script/check-ignore-selectors.py после каждого
-    // редизайна сайта. Классы вида nxm-* переживают редизайн, utility-классы
-    // Tailwind — нет, поэтому берём только семантические.
+    // Каждый селектор ниже проверен разбором реальных страниц; класс, которого
+    // нет в разметке, бесполезен и молча вводит в заблуждение. После редизайна
+    // перепроверяй script/check-ignore-selectors.py по сохранённым страницам.
     IGNORED_SELECTORS: [
-      // Пользовательский форматированный текст: описания модов, посты, комментарии
-      '.prose-lexical', '.prose-markdown',
-      // Название мода и плитки в листингах
-      '.mod-header__title', '.group\\/mod-tile',
-      // Строки модов внутри коллекций
-      '.collection-mod-row', '.official-collection-tile',
-      // Карусели с изображениями
-      '.swiper',
+      // Описание мода. Проверено на /skyrim/mods/1234: текст пользователя
+      // внутри <div class="container mod_description_container condensed">.
+      // Правила дат и размеров портят его посреди предложения.
+      '.mod_description_container',
       // Иконки шрифтовых наборов
       'i'
     ],
@@ -640,24 +635,25 @@
     if (cached !== undefined) return cached;
 
     const cleaned = text.replace(RE_CONTROL_CHARS, '');
-    let result = null;
+    let result = cleaned;
 
+    // Правила применяются подряд, а не до первого совпадения: один узел может
+    // содержать и дату, и относительное время ("12 Jan 2024, 3 months ago"),
+    // и ранний выход оставлял вторую часть необработанной.
     for (const rule of TEXT_RULES) {
-      if (!rule.re.test(cleaned)) continue;
+      if (!rule.re.test(result)) continue;
       // null из replacer'а превратился бы в строку "null".
-      const replaced = cleaned.replace(rule.re, (...args) => {
+      const replaced = result.replace(rule.re, (...args) => {
         const out = rule.fn(...args);
         return out === null || out === undefined ? args[0] : out;
       });
-      if (replaced !== cleaned) {
-        result = replaced;
-        break;
-      }
+      if (replaced !== result) result = replaced;
     }
 
     if (ruleCache.size >= CONFIG.RULE_CACHE_LIMIT) ruleCache.clear();
-    ruleCache.set(text, result);
-    return result;
+    const answer = result === cleaned ? null : result;
+    ruleCache.set(text, answer);
+    return answer;
   }
 
   /** «8.9k» -> «8.9 тыс.». Работает, только если заполнен раздел suffixes. */
