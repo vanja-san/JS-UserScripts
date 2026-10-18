@@ -58,29 +58,54 @@
   //  1. Хранилище и отладка
   // ═══════════════════════════════════════════════════════════════════════
 
-  /** Только localStorage: GM_* не нужны, включение/выключение — дело менеджера. */
+  /** Ключи настроек скрипта. Меняются только здесь. */
+  const STORAGE_KEYS = {
+    debug: 'NRL_DEBUG',
+    missedTermsEnabled: 'NRL_MISSED_TERMS_ENABLED',
+    missedTerms: 'NRL_MISSED_TERMS'
+  };
+
+  const has = name => typeof GM !== 'undefined' && typeof GM[name] === 'function';
+
+  /**
+   * Настройки меню живут в GM_*-хранилище менеджера: оно переживает очистку
+   * данных сайта и работает в приватном режиме. localStorage — запасной путь,
+   * если менеджер не дал GM_* или доступ к нему запрещён.
+   * Включение и выключение скрипта сюда не относится — это галочка менеджера.
+   */
   const Storage = {
     get(key, fallback) {
       try {
-        if (typeof localStorage === 'undefined') return fallback;
-        const v = localStorage.getItem(key);
-        return v === null ? fallback : v;
+        if (has('getValue')) {
+          const v = GM_getValue(key, undefined);
+          return v === undefined ? fallback : v;
+        }
+        if (typeof localStorage !== 'undefined') {
+          const v = localStorage.getItem(key);
+          return v === null ? fallback : v;
+        }
       } catch { /* запрещённый доступ */ }
       return fallback;
     },
 
     set(key, value) {
       try {
-        if (typeof localStorage === 'undefined') return false;
-        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
-        return true;
+        if (has('setValue')) {
+          GM_setValue(key, value);
+          return true;
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+          return true;
+        }
       } catch { /* переполненное или запрещённое хранилище */ }
       return false;
     },
 
     remove(key) {
       try {
-        if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+        if (has('deleteValue')) GM_deleteValue(key);
+        else if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
       } catch { /* запрещённый доступ */ }
     },
 
@@ -113,19 +138,19 @@
   const debug = {
     on: false,
     init() {
-      try { this.on = Storage.get('NRL_DEBUG', 'false') === 'true'; } catch { this.on = false; }
+      try { this.on = Storage.get(STORAGE_KEYS.debug, 'false') === 'true'; } catch { this.on = false; }
       return this;
     },
     log(...a) { if (this.on) console.log('[NRL]', ...a); },
     warn(...a) { if (this.on) console.warn('[NRL]', ...a); },
     enable() {
       this.on = true;
-      Storage.set('NRL_DEBUG', 'true');
+      Storage.set(STORAGE_KEYS.debug, 'true');
       console.log('[NRL] Отладка включена. Перезагрузите страницу.');
     },
     disable() {
       this.on = false;
-      Storage.set('NRL_DEBUG', 'false');
+      Storage.set(STORAGE_KEYS.debug, 'false');
       console.log('[NRL] Отладка выключена.');
     }
   };
@@ -280,6 +305,9 @@
     dict.suffixes = new Map(Object.entries(data.suffixes || {}));
     dict.inlineTags = new Set((data.phraseInlineTags || []).map(t => t.toUpperCase()));
     dict.missedTerms = { ...dict.missedTerms, ...(data.missedTerms || {}) };
+    // Сохранённый флаг перекрывает значение из словаря: иначе включённый
+    // учёт молча возвращался в false после перезагрузки страницы.
+    dict.missedTerms.enabled = Storage.get(STORAGE_KEYS.missedTermsEnabled, null) === 'true';
 
     dict.contextual = new Map();
     for (const [text, selectors] of Object.entries(data.contextual || {})) {
@@ -372,7 +400,7 @@
     saveTimer: 0,
 
     load() {
-      this.data = Storage.json('NRL_MISSED_TERMS', {});
+      this.data = Storage.json(STORAGE_KEYS.missedTerms, {});
       return this;
     },
 
@@ -423,7 +451,7 @@
     flush() {
       if (!this.dirty) return;
       this.dirty = false;
-      Storage.setJson('NRL_MISSED_TERMS', this.data);
+      Storage.setJson(STORAGE_KEYS.missedTerms, this.data);
     },
 
     stats() {
@@ -455,7 +483,7 @@
     clearAll() {
       this.data = {};
       this.flush();
-      Storage.setJson('NRL_MISSED_TERMS', {});
+      Storage.setJson(STORAGE_KEYS.missedTerms, {});
     },
 
     clearPath() {
@@ -1358,7 +1386,7 @@
 
     setMissedTerms(enabled) {
       dict.missedTerms.enabled = enabled;
-      Storage.set('NRL_MISSED_TERMS_ENABLED', String(enabled));
+      Storage.set(STORAGE_KEYS.missedTermsEnabled, String(enabled));
       if (!enabled) Missed.clearAll();
     },
 

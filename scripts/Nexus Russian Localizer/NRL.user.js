@@ -16,6 +16,9 @@
 // @require         https://vanja-san.github.io/JS-UserScripts/scripts/Nexus%20Russian%20Localizer/modules/core.js?v=3.1.0-20261018-1704
 // @grant           GM_registerMenuCommand
 // @grant           GM_unregisterMenuCommand
+// @grant           GM_getValue
+// @grant           GM_setValue
+// @grant           GM_deleteValue
 // @license         MIT
 // ==/UserScript==
 

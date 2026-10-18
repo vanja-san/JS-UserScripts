@@ -357,6 +357,20 @@ test('safe() требует receiver и возвращает результат 
   assert.equal(NRL.safe(receiver, () => { throw new Error('boom'); }, 'boom')(), undefined);
 });
 
+test('флаг учёта непереведённых переживает перезагрузку', () => {
+  // Флаг писался в хранилище, но никогда не читался обратно, поэтому после
+  // F5 учёт молча выключался, а меню снова предлагало его включить.
+  NRL.setMissedTerms(true);
+  assert.equal(NRL.dict.missedTerms.enabled, true, 'сразу после включения');
+
+  NRL.loadDictionary(DICTIONARY);
+  assert.equal(NRL.dict.missedTerms.enabled, true, 'после повторной загрузки словаря');
+
+  NRL.setMissedTerms(false);
+  NRL.loadDictionary(DICTIONARY);
+  assert.equal(NRL.dict.missedTerms.enabled, false, 'после выключения');
+});
+
 test('Storage.setVerified возвращает true при успешной записи', () => {
   assert.equal(NRL.Storage.setVerified('nrl_test_key', 'значение'), true);
   assert.equal(NRL.Storage.get('nrl_test_key'), 'значение');
