@@ -2,6 +2,78 @@
 
 const DICTIONARIES = {
   // Основной словарь: Ключ = текст
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Конфигурация движка
+  // ═══════════════════════════════════════════════════════════════════════
+  conf: {
+    // Маршрутизация страниц. Порядок важен: от специфичного к общему.
+    // Первый подошедший re определяет pageType. Если ни один не подошёл —
+    // используется '*' (универсальный словарь main).
+    routes: [
+      { re: /^\/mods\/[^/]+\/files\b/i,        page: 'mods/files' },
+      { re: /^\/mods\/[^/]+\/screenshots\b/i,   page: 'mods/screenshots' },
+      { re: /^\/mods\/[^/]+\/changelog\b/i,     page: 'mods/changelog' },
+      { re: /^\/mods\/[^/]+\/[^/]+\/?$/i,       page: 'mods/tab' },
+      { re: /^\/mods\/[^/]+\/?$/i,               page: 'mods/detail' },
+      { re: /^\/mods\b/i,                       page: 'mods/listing' },
+      { re: /^\/games\b/i,                      page: 'games' },
+      { re: /^\/collections\b/i,                page: 'collections' },
+      { re: /^\/users\/[^/]+/i,                 page: 'user' },
+      { re: /^\/?$/,                            page: 'home' }
+    ],
+
+    // Дополнительные игнор-селекторы по страницам. '*' добавляется ко всем.
+    ignoreSelectorPage: {
+      '*': [],
+      'mods/listing': ['.tabs', '.sort-dropdown'],
+      'mods/detail': ['.mod-info-panel', '.file-details']
+    },
+
+    // Элементы, мутации которых игнорируются (счётчики, анимации).
+    ignoreMutationSelectorPage: {
+      '*': ['[data-nrl-live]', '.tab-count']
+    },
+
+    // Наблюдение characterData — самое дорогое, включено везде по умолчанию.
+    // Список — это ОТКЛЮЧЕНИЯ: перечислите pageType, где изменения текста
+    // не нужны (страницы с постоянно обновляющимися счётчиками).
+    // Пустой массив = наблюдать на всех страницах.
+    characterDataIgnorePage: [],
+
+    // Заходить в открытые shadow root (веб-компоненты).
+    observeShadowRoots: true
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Словари страниц
+  // ═══════════════════════════════════════════════════════════════════════
+  // Ключ — pageType из conf.routes. Значение:
+  //   static  — переопределения поверх main (имеют приоритет)
+  //   regexp  — [[RegExp, 'замена'], ...], выполняются до static
+  // Заполняйте постепенно: не описанная страница работает на main.
+  pageDictionaries: {
+    // 'mods/files': {
+    //   static: { 'Main File': 'Основной файл' },
+    //   regexp: [[/(Last updated )\d{1,2} ([A-Za-z]{3}) (\d{4})/, '$1$2 $3']]
+    // }
+  },
+
+  // Правила для document.title
+  titleRules: {
+    static: {
+      'Nexus Mods': 'Nexus Mods — русская локализация',
+      'Mods': 'Моды',
+      'Games': 'Игры'
+    },
+    regexp: [
+      [/^(.*) mods$/i, 'Моды: $1'],
+      [/^Download (\w[\w\s-]*)$/i, 'Скачать: $1']
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Основной словарь
+  // ═══════════════════════════════════════════════════════════════════════
   main: {
     "Home": "Главная",
     "Games": "Игры",
@@ -1628,7 +1700,14 @@ const DICTIONARIES = {
   // Единственный источник правды по атрибутам. Используется и для перевода,
   // и как attributeFilter для MutationObserver — списки не должны расходиться.
   // 'value' исключён намеренно: перевод value у input ломает ввод и React-контроль.
-  translatableAttributes: ['title', 'placeholder', 'alt', 'aria-label', 'data-tooltip', 'data-original-title', 'data-bs-title', 'data-bs-tooltip']
+  translatableAttributes: ['title', 'placeholder', 'alt', 'aria-label', 'data-tooltip', 'data-original-title', 'data-bs-title', 'data-bs-tooltip'],
+
+  // Учёт непереведённых строк: показывает реальное покрытие словаря.
+  missedTerms: {
+    enabled: false,      // включается пунктом меню
+    maxPerPath: 300,     // защита от роста хранилища
+    maxTotal: 5000
+  }
 }
 
 // Экспорт для использования в пользовательском скрипте

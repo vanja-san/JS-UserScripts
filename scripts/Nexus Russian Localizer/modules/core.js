@@ -1,18 +1,27 @@
 /**
- * NRL core — словарь, текстовые правила, перевод DOM, SPA-навигация.
+ * NRL core — словарь, правила, перевод DOM, SPA-навигация.
  *
  * Зависимости: translations.js (window.NRL_TRANSLATIONS), подключается из NRL.user.js.
- * Весь движок синхронный: ни IndexedDB, ни Web Worker, ни await в горячем пути.
+ * Архитектура:
+ *   Storage  — доступ к GM_getValue и localStorage с проверкой записи
+ *   safe     — граница ошибок: одна сбойная функция не роняет скрипт
+ *   Dictionary — маршрутизация страниц, сборка per-page конфига, поиск
+ *   Rules    — даты, плюрализация, размеры файлов
+ *   Missed   — учёт непереведённых строк, экспорт в JSON
+ *   Translator — обход DOM, текстовые узлы, атрибуты, shadow root, restore
+ *   Router   — SPA-навигация Next.js
+ *
+ * Горячий путь синхронный: ни IndexedDB, ни Web Worker, ни await на узел.
  */
 (() => {
   'use strict';
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  0. Настройки
+  //  0. Настройки движка (переопределяются из translations.js -> conf)
   // ═══════════════════════════════════════════════════════════════════════
 
   const CONFIG = {
-    // Не переводить: названия/описания модов и пользовательский контент.
+    // Названия/описания модов и пользовательский контент — не переводим.
     IGNORED_SELECTORS: [
       '.mod-name', '.mod-title', '.name', '#pagetitle', '.file-expander-header',
       '.mod-card .title a', '.list-item .name a',
@@ -30,22 +39,131 @@
     // Переводятся всегда, даже если выглядят как игнорируемые (доступность).
     ALWAYS_TRANSLATE_CLASSES: ['sr-only'],
 
-    // Склеивание соседних текстовых узлов в одну фразу (для React-разметки).
     PHRASE_ASSEMBLY: true,
     PHRASE_MAX_PIECES: 4,
 
-    MAX_TEXT_LENGTH: 2000,   // длиннее — заведомо не из словаря, regex'ы не гоняем
+    MAX_TEXT_LENGTH: 2000,
     MAX_ATTR_LENGTH: 1000,
 
     OBSERVER_DEBOUNCE_MS: 40,
     ROUTE_DEBOUNCE_MS: 60,
-    CHUNK_SIZE: 500,        // узлов за один срез, дальше уступаем браузеру
+    CHUNK_SIZE: 500,
+    RULE_CACHE_LIMIT: 2000,
 
-    RULE_CACHE_LIMIT: 2000
+    OBSERVE_SHADOW_ROOTS: true
   };
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  1. Утилиты
+  //  1. Хранилище и отладка
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const has = name => typeof GM !== 'undefined' && typeof GM[name] === 'function';
+
+  /** GM_* — хранилище менеджера скриптов, localStorage — запасной вариант. */
+  const Storage = {
+    available(which) {
+      try {
+        if (which === 'gm') return has('getValue') && has('setValue');
+        return typeof localStorage !== 'undefined';
+      } catch {
+        return false;
+      }
+    },
+
+    get(key, fallback, which = 'auto') {
+      try {
+        if (which !== 'local' && has('getValue')) {
+          const v = GM_getValue(key, undefined);
+          return v === undefined ? fallback : v;
+        }
+        if (typeof localStorage !== 'undefined') {
+          const v = localStorage.getItem(key);
+          return v === null ? fallback : v;
+        }
+      } catch { /* запрещённый доступ */ }
+      return fallback;
+    },
+
+    set(key, value, which = 'auto') {
+      if (which !== 'local' && has('setValue')) {
+        GM_setValue(key, value);
+        return true;
+      }
+      localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      return true;
+    },
+
+    remove(key, which = 'auto') {
+      try {
+        if (which !== 'local' && has('deleteValue')) GM_deleteValue(key);
+        else if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+      } catch { /* запрещённый доступ */ }
+    },
+
+    /**
+     * Запись с проверкой: возвращает false, если значение не зафиксировалось.
+     * Молча теряющиеся настройки — худший вид поломки, поэтому проверяем.
+     */
+    setVerified(key, value, which = 'auto') {
+      try {
+        this.set(key, value, which);
+        return this.get(key, '__nrl_missing__', which) === value;
+      } catch {
+        return false;
+      }
+    },
+
+    json(key, fallback) {
+      const raw = this.get(key, null);
+      if (raw === null) return fallback;
+      if (typeof raw === 'object') return raw;
+      try { return JSON.parse(raw); } catch { return fallback; }
+    },
+
+    setJson(key, value, which = 'auto') {
+      const payload = JSON.stringify(value);
+      return this.setVerified(key, payload, which);
+    }
+  };
+
+  const debug = {
+    on: false,
+    init() {
+      try { this.on = Storage.get('NRL_DEBUG', 'false') === 'true'; } catch { this.on = false; }
+      return this;
+    },
+    log(...a) { if (this.on) console.log('[NRL]', ...a); },
+    warn(...a) { if (this.on) console.warn('[NRL]', ...a); },
+    enable() {
+      this.on = true;
+      Storage.set('NRL_DEBUG', 'true');
+      console.log('[NRL] Отладка включена. Перезагрузите страницу.');
+    },
+    disable() {
+      this.on = false;
+      Storage.set('NRL_DEBUG', 'false');
+      console.log('[NRL] Отладка выключена.');
+    }
+  };
+  debug.init();
+
+  /**
+   * Граница ошибок. Одна сбойная функция не должна ронять перевод страницы —
+   * пользователь лучше увидит часть на английском, чем пустую страницу.
+   */
+  function safe(fn, label) {
+    return function (...args) {
+      try {
+        return fn.apply(this, args);
+      } catch (error) {
+        console.error(`[NRL] ${label}:`, error);
+        return undefined;
+      }
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  2. Утилиты
   // ═══════════════════════════════════════════════════════════════════════
 
   const RE_CYRILLIC = /[\u0400-\u04FF]/;
@@ -56,28 +174,6 @@
   const RE_NEXT_CHUNK = /self\.__next_f|__next_f\.push|\.push\(\[1,"/;
   const RE_CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g;
 
-  const storage = {
-    get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
-    set(key, value) { try { sessionStorage.setItem(key, value); } catch { /* нет доступа */ } },
-    remove(key) { try { sessionStorage.removeItem(key); } catch { /* нет доступа */ } }
-  };
-
-  const debug = {
-    on: storage.get('NRL_DEBUG') === 'true',
-    log(...a) { if (this.on) console.log('[NRL]', ...a); },
-    warn(...a) { if (this.on) console.warn('[NRL]', ...a); },
-    enable() {
-      this.on = true;
-      storage.set('NRL_DEBUG', 'true');
-      console.log('[NRL] Отладка включена. Перезагрузите страницу.');
-    },
-    disable() {
-      this.on = false;
-      storage.remove('NRL_DEBUG');
-      console.log('[NRL] Отладка выключена.');
-    }
-  };
-
   function escapeRe(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
@@ -86,7 +182,7 @@
     return s.replace(/\s+/g, ' ').trim();
   }
 
-  /** Возвращает обрезанный текст и исходные пробелы по краям, чтобы их вернуть при записи. */
+  /** Обрезанный текст плюс исходные пробелы по краям — вернём их при записи. */
   function trimBounds(raw) {
     const trimmed = raw.trim();
     if (!trimmed) return { trimmed: '', lead: raw, trail: '' };
@@ -105,7 +201,7 @@
     });
   }
 
-  /** Оставляет только валидные селекторы и склеивает их в один: 1 matches() вместо 20. */
+  /** Оставляет валидные селекторы и склеивает в один: 1 matches() вместо 20. */
   function compileSelectorList(list) {
     const valid = [];
     for (const selector of list) {
@@ -123,7 +219,6 @@
     return RE_CYRILLIC.test(text) && !RE_LATIN.test(text);
   }
 
-  /** Дешёвые отсевы до словаря и regex'ов. */
   function isSkippableText(trimmed) {
     if (!trimmed) return true;
     if (trimmed.length > CONFIG.MAX_TEXT_LENGTH) return true;
@@ -134,29 +229,59 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  2. Словарь
+  //  3. Словарь и маршрутизация страниц
   // ═══════════════════════════════════════════════════════════════════════
 
   const dict = {
-    main: Object.create(null),  // null-прототип: main['constructor'] не вернёт Object
-    contextual: new Map(),      // текст -> [{selector, translation}]
-    months: new Map(),          // lower-case -> русская форма
-    units: new Map(),           // en -> [1 шт., 2-4 шт., 5+ шт.]
+    main: Object.create(null),        // null-прототип: main['constructor'] не вернёт Object
+    contextual: new Map(),
+    pageDictionaries: {},
+    routes: [],
+    titleStatic: Object.create(null),
+    titleRegexp: [],
+    ignoreSelectorPage: {},
+    ignoreMutationSelectorPage: {},
+    characterDataIgnorePage: [],
+    observeShadowRoots: true,
+    months: new Map(),
+    units: new Map(),
     timeUnits: new Map(),
     fileSizes: [],
     datePrefixes: [],
     suffixes: new Map(),
     attributes: ['title', 'placeholder', 'alt', 'aria-label'],
-    inlineTags: new Set()
+    inlineTags: new Set(),
+    missedTerms: { enabled: false, maxPerPath: 300, maxTotal: 5000 }
   };
+
+  function detectPageType(pathname) {
+    for (const route of dict.routes) {
+      let matched = false;
+      try { matched = route.re.test(pathname); } catch { matched = false; }
+      if (matched) return route.page;
+    }
+    return '*';
+  }
 
   function loadDictionary(source) {
     const data = source || {};
+    const conf = data.conf || {};
 
     dict.main = Object.assign(Object.create(null), data.main || {});
     dict.attributes = (data.translatableAttributes && data.translatableAttributes.length)
       ? data.translatableAttributes.slice()
       : ['title', 'placeholder', 'alt', 'aria-label'];
+
+    dict.routes = Array.isArray(conf.routes) ? conf.routes.filter(r => r && r.re && r.page) : [];
+    dict.ignoreSelectorPage = conf.ignoreSelectorPage || {};
+    dict.ignoreMutationSelectorPage = conf.ignoreMutationSelectorPage || {};
+    dict.characterDataIgnorePage = Array.isArray(conf.characterDataIgnorePage) ? conf.characterDataIgnorePage : [];
+    dict.observeShadowRoots = conf.observeShadowRoots !== false;
+
+    dict.pageDictionaries = data.pageDictionaries || {};
+
+    dict.titleStatic = Object.assign(Object.create(null), data.titleRules?.static || {});
+    dict.titleRegexp = Array.isArray(data.titleRules?.regexp) ? data.titleRules.regexp : [];
 
     dict.months = new Map();
     for (const [en, ru] of Object.entries(data.months || {})) dict.months.set(en.toLowerCase(), ru);
@@ -167,6 +292,7 @@
     dict.datePrefixes = Object.entries(data.datePrefixes || {});
     dict.suffixes = new Map(Object.entries(data.suffixes || {}));
     dict.inlineTags = new Set((data.phraseInlineTags || []).map(t => t.toUpperCase()));
+    dict.missedTerms = { ...dict.missedTerms, ...(data.missedTerms || {}) };
 
     dict.contextual = new Map();
     for (const [text, selectors] of Object.entries(data.contextual || {})) {
@@ -176,9 +302,64 @@
       }
       if (rules.length) dict.contextual.set(text, rules);
     }
+
+    // Словарь изменился — все собранные конфиги страниц устарели.
+    clearPageConfigCache();
   }
 
-  /** Контекстные правила имеют приоритет над общим словарём. */
+  /**
+   * Конфиг страницы собирается один раз и кэшируется: компиляция селекторов
+   * на каждой навигации — лишняя работа.
+   */
+  const pageConfigCache = new Map();
+  let pageConfig = null;
+
+  function buildPageConfig(pageType) {
+    const cached = pageConfigCache.get(pageType);
+    if (cached) return cached;
+
+    const pageDict = dict.pageDictionaries[pageType] || {};
+    const baseIgnore = dict.ignoreSelectorPage['*'] || [];
+    const pageIgnore = dict.ignoreSelectorPage[pageType] || [];
+    const baseMut = dict.ignoreMutationSelectorPage['*'] || [];
+    const pageMut = dict.ignoreMutationSelectorPage[pageType] || [];
+
+    const config = {
+      pageType,
+      // Страничные переводы имеют приоритет над универсальными.
+      staticDict: Object.assign(Object.create(null), dict.main, pageDict.static || {}),
+      regexpRules: Array.isArray(pageDict.regexp) ? pageDict.regexp : [],
+      ignoreSelector: compileSelectorList([...CONFIG.IGNORED_SELECTORS, ...baseIgnore, ...pageIgnore]),
+      ignoreMutationSelector: compileSelectorList([...baseMut, ...pageMut]),
+      // characterData наблюдается везде, кроме перечисленных в
+      // conf.characterDataIgnorePage страниц.
+      characterData: !dict.characterDataIgnorePage.includes(pageType)
+    };
+
+    pageConfigCache.set(pageType, config);
+    return config;
+  }
+
+  function clearPageConfigCache() {
+    pageConfigCache.clear();
+    pageConfig = null;
+  }
+
+  /** Конфиг всегда актуален: собирается лениво и сбрасывается вместе со словарём. */
+  function getPageConfig() {
+    if (!pageConfig) pageConfig = buildPageConfig('*');
+    return pageConfig;
+  }
+
+  function setPageType(pageType) {
+    if (!pageConfig || pageConfig.pageType !== pageType) {
+      pageConfig = buildPageConfig(pageType);
+      debug.log('Страница:', pageType);
+    }
+    return pageConfig;
+  }
+
+  /** Контекстные правила важнее словаря; словарь страницы важнее универсального. */
   function lookup(text, element) {
     if (element) {
       const rules = dict.contextual.get(text);
@@ -190,22 +371,127 @@
         }
       }
     }
-    return dict.main[text] || null;
+    return getPageConfig().staticDict[text] || null;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  3. Правила текста: даты, плюрализация, размеры файлов
-  //  Регулярки без флага g — сбрасывать lastIndex больше не нужно.
+  //  4. Учёт непереведённых строк
+  //  Показывает реальное покрытие словаря — без него непонятно, что ещё переводить.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const Missed = {
+    data: null,
+    dirty: false,
+    saveTimer: 0,
+
+    load() {
+      this.data = Storage.json('NRL_MISSED_TERMS', {});
+      return this;
+    },
+
+    get enabled() { return !!dict.missedTerms.enabled; },
+
+    pathKey() {
+      return location.pathname + location.search;
+    },
+
+    count() {
+      return Object.values(this.data).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+    },
+
+    record(text) {
+      if (!this.enabled || !text || text.length > 120) return false;
+      if (!this.data) this.load();
+
+      const key = this.pathKey();
+      if (!this.data[key]) this.data[key] = {};
+      if (Object.hasOwn(this.data[key], text)) return false;
+      if (Object.keys(this.data[key]).length >= dict.missedTerms.maxPerPath) return false;
+      if (this.count() >= dict.missedTerms.maxTotal) return false;
+
+      this.data[key][text] = '';
+      this.scheduleSave();
+      return true;
+    },
+
+    /** Строка переведена — убираем из списка, чтобы он показывал только актуальное. */
+    cleanup(text) {
+      if (!this.data) return;
+      const key = this.pathKey();
+      if (!this.data[key] || !Object.hasOwn(this.data[key], text)) return;
+      delete this.data[key][text];
+      if (Object.keys(this.data[key]).length === 0) delete this.data[key];
+      this.scheduleSave();
+    },
+
+    scheduleSave() {
+      this.dirty = true;
+      if (this.saveTimer) return;
+      this.saveTimer = setTimeout(() => {
+        this.saveTimer = 0;
+        this.flush();
+      }, 2000);
+    },
+
+    flush() {
+      if (!this.dirty) return;
+      this.dirty = false;
+      Storage.setJson('NRL_MISSED_TERMS', this.data);
+    },
+
+    stats() {
+      const paths = Object.keys(this.data || {});
+      return { paths: paths.length, terms: this.count() };
+    },
+
+    exportPayload() {
+      return {
+        metadata: {
+          exportedAt: new Date().toISOString(),
+          version: NRL.version,
+          ...this.stats()
+        },
+        data: this.data || {}
+      };
+    },
+
+    exportFile() {
+      const blob = new Blob([JSON.stringify(this.exportPayload(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `NRL_непереведенные_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+
+    clearAll() {
+      this.data = {};
+      this.flush();
+      Storage.setJson('NRL_MISSED_TERMS', {});
+    },
+
+    clearPath() {
+      if (!this.data) return;
+      delete this.data[this.pathKey()];
+      this.flush();
+    }
+  };
+  Missed.load();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  5. Правила текста: даты, плюрализация, размеры
+  //  Регулярки без флага g — сбрасывать lastIndex не нужно.
   // ═══════════════════════════════════════════════════════════════════════
 
   const SUFFIX_MULTIPLIERS = { k: 1e3, m: 1e6, b: 1e9, t: 1e12 };
   const RE_NUMBER = /([$€£]?)\s*(\d+(?:[.,]\d+)?)\s*([kmbt])?\b/i;
   const FALLBACK_MONTHS = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec';
+  const NOUN_FORMS = new Map();
 
   let TEXT_RULES = [];
   const ruleCache = new Map();
 
-  /** Правильное русское окончание: n=1 -> forms[0], 2-4 -> forms[1], 5+ -> forms[2]. */
   function pluralize(n, forms) {
     if (!forms || forms.length < 3) return forms?.[2] || '';
     const abs = Math.floor(Math.abs(n));
@@ -246,22 +532,29 @@
     return `${num} ${pluralize(num, forms)}${tail}`;
   }
 
-  function formatNumberWord(prefix, numStr, suffix, forms) {
+  function formatNumberWord(numStr, suffix, forms) {
     const num = parseNumber(String(numStr).replace(/[^\d.,]/g, ''));
-    if (Number.isNaN(num)) return `${prefix}${numStr} ${pluralize(0, forms)}`;
+    if (Number.isNaN(num)) return `${numStr} ${pluralize(0, forms)}`;
     const currency = String(numStr).match(/^([$€£])\s*/)?.[1] || '';
     const clean = String(numStr).replace(/^[\s$€£]+/, '');
-    return `${prefix}${currency}${clean}${suffix} ${pluralize(expandNumber(num, suffix), forms)}`;
+    return `${currency}${clean}${suffix} ${pluralize(expandNumber(num, suffix), forms)}`;
+  }
+
+  function buildNounIndex() {
+    NOUN_FORMS.clear();
+    for (const [en, forms] of dict.units) {
+      NOUN_FORMS.set(en.toLowerCase(), forms);
+      for (const form of forms) NOUN_FORMS.set(form.toLowerCase(), forms);
+    }
   }
 
   function buildTextRules() {
-    // Длинные названия месяцев идут первыми: иначе «January» распадётся на «Jan» + хвост.
+    // Длинные названия месяцев первыми: иначе «January» распадётся на «Jan» + хвост.
     const monthNames = [...dict.months.keys()].sort((a, b) => b.length - a.length).map(escapeRe);
     const monthAlt = monthNames.length ? monthNames.join('|') : FALLBACK_MONTHS;
 
     const rules = [];
 
-    // «Published 10 Oct 2025» -> «Опубликовано 10 окт 2025»
     for (const [en, ru] of dict.datePrefixes) {
       rules.push({
         re: new RegExp(`${escapeRe(en)}\\s+(\\d{1,2})\\s+(${monthAlt})\\s+(\\d{4})`, 'i'),
@@ -272,7 +565,6 @@
       });
     }
 
-    // «10 Oct 2025 ago» -> «10 окт 2025 назад»
     rules.push({
       re: new RegExp(`(\\d{1,2})\\s+(${monthAlt})\\s+(\\d{4})\\s+ago`, 'i'),
       fn: (m, day, month, year) => {
@@ -281,7 +573,6 @@
       }
     });
 
-    // «Updated on 10 Oct 2025» — неизвестный префикс берётся из общего словаря
     rules.push({
       re: new RegExp(`([A-Za-z][A-Za-z ]*?)\\s+(\\d{1,2})\\s+(${monthAlt})\\s+(\\d{4})`, 'i'),
       fn: (m, prefix, day, month, year) => {
@@ -292,7 +583,6 @@
       }
     });
 
-    // «12 January 2024» -> «12 января 2024»
     rules.push({
       re: new RegExp(`(\\d{1,2})\\s+(${monthAlt})\\s+(\\d{4})`, 'i'),
       fn: (m, day, month, year) => {
@@ -303,30 +593,26 @@
 
     const unitsAlt = [...dict.timeUnits.keys()].map(escapeRe).join('|');
     if (unitsAlt) {
-      // «5 minutes ago» -> «5 минут назад»
       rules.push({
         re: new RegExp(`(\\d+)[\\s\\u00A0]+(${unitsAlt})s?[\\s\\u00A0]+ago`, 'i'),
         fn: (m, count, unit) => formatTimeUnit(count, unit, ' назад')
       });
-      // «5 minutes to» -> «5 минут до»
       rules.push({
         re: new RegExp(`(\\d+)[\\s\\u00A0]+(${unitsAlt})s?[\\s\\u00A0]+(to|through|before)`, 'i'),
         fn: (m, count, unit) => formatTimeUnit(count, unit, ' до')
       });
     }
 
-    // «8.9k mods» -> «8.9k модов». Ключи словаря во множественном числе,
-    // поэтому его финальное s делаем необязательным: «1 mod» -> «1 мод».
+    // Ключи словаря во множественном числе, поэтому финальное s необязательно.
     for (const [en, forms] of dict.units) {
       const base = escapeRe(en);
       const word = base.endsWith('s') ? base.slice(0, -1) + 's?' : base;
       rules.push({
         re: new RegExp(`^[\\s]*([\\$€£]?\\s*\\d+(?:[.,]\\d+)?)([kmbt])?\\s+${word}\\s*$`, 'i'),
-        fn: (m, numStr, suffix) => formatNumberWord('', numStr, suffix || '', forms)
+        fn: (m, numStr, suffix) => formatNumberWord(numStr, suffix || '', forms)
       });
     }
 
-    // «1.2 GB» -> «1.2 ГБ»
     for (const { en, ru } of dict.fileSizes) {
       rules.push({
         re: new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*${escapeRe(en)}\\b`, 'i'),
@@ -339,7 +625,6 @@
     ruleCache.clear();
   }
 
-  /** Прогоняет текст через правила. null — ни одно правило не сработало. */
   function applyTextRules(text) {
     if (!RE_DIGIT.test(text)) return null;
 
@@ -351,7 +636,7 @@
 
     for (const rule of TEXT_RULES) {
       if (!rule.re.test(cleaned)) continue;
-      // null/undefined от replacer'а превратился бы в строку "null" — возвращаем исходное совпадение.
+      // null из replacer'а превратился бы в строку "null".
       const replaced = cleaned.replace(rule.re, (...args) => {
         const out = rule.fn(...args);
         return out === null || out === undefined ? args[0] : out;
@@ -367,7 +652,7 @@
     return result;
   }
 
-  /** «8.9k» -> «8.9 тыс.». Работает, только если в словаре заполнен раздел suffixes. */
+  /** «8.9k» -> «8.9 тыс.». Работает, только если заполнен раздел suffixes. */
   function applySuffix(text) {
     if (dict.suffixes.size === 0) return null;
     const m = RE_NUMBER.exec(text);
@@ -377,23 +662,13 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  4. Число и существительное в разнесённой по DOM разметке
+  //  6. Число и существительное в разнесённой разметке
   // ═══════════════════════════════════════════════════════════════════════
-
-  const TEXT_NOUN_FORMS = new Map(); // lower-case форма -> [1 шт., 2-4 шт., 5+ шт.]
-
-  function buildNounIndex() {
-    TEXT_NOUN_FORMS.clear();
-    for (const [en, forms] of dict.units) {
-      TEXT_NOUN_FORMS.set(en.toLowerCase(), forms);
-      for (const form of forms) TEXT_NOUN_FORMS.set(form.toLowerCase(), forms);
-    }
-  }
 
   function findCountableNoun(text) {
     const lower = text?.toLowerCase().trim();
     if (!lower) return null;
-    const forms = TEXT_NOUN_FORMS.get(lower);
+    const forms = NOUN_FORMS.get(lower);
     return forms ? { forms } : null;
   }
 
@@ -418,10 +693,9 @@
     let parent = element.parentElement;
     let levels = 0;
     while (parent && levels < maxLevels) {
-      // Прямой текст родителя ищем на всех уровнях — это разнесённая по <span> разметка.
+      const direct = numberFrom(directChildText(parent));
       // Полный textContent допускаем только у непосредственного родителя:
       // выше по дереву контейнеры слишком большие и дают ложные срабатывания.
-      const direct = numberFrom(directChildText(parent));
       const full = direct || (levels === 0 ? numberFrom(parent.textContent) : null);
       if (full) return full;
       parent = parent.parentElement;
@@ -430,7 +704,6 @@
     return null;
   }
 
-  /** Текстовый узел, либо inline-элемент с единственным текстовым потомком. */
   function asInlineText(node) {
     if (node.nodeType === Node.TEXT_NODE) return node;
     if (node.nodeType !== Node.ELEMENT_NODE) return null;
@@ -442,8 +715,8 @@
   }
 
   /**
-   * Узел и следующие соседи-тексты в пределах родителя.
-   * Именно «вперёд», чтобы носителем перевода всегда оставался сам node.
+   * Узел и следующие соседи-тексты в пределах родителя. Только «вперёд»,
+   * чтобы носителем перевода всегда оставался сам node.
    */
   function collectInlinePieces(node, max) {
     if (!node.parentElement) return null;
@@ -460,7 +733,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  5. Перевод DOM
+  //  7. Перевод DOM
   // ═══════════════════════════════════════════════════════════════════════
 
   class Translator {
@@ -474,10 +747,11 @@
     #pendingRoots = [];
     #draining = false;
     #ignoreSelector = '';
+    #ignoreMutationSelector = '';
     #ignoreClasses = new Set();
     #alwaysTranslate = new Set();
     #ignoredTags = new Set();
-    #stats = { text: 0, attr: 0, phrase: 0, plural: 0, nodes: 0 };
+    #stats = { text: 0, attr: 0, phrase: 0, plural: 0, nodes: 0, restored: 0 };
 
     #walkerFilter = {
       acceptNode: (node) => (node.nodeType === Node.ELEMENT_NODE && this.#isIgnoredElement(node)
@@ -486,10 +760,17 @@
     };
 
     constructor() {
-      this.#ignoreSelector = compileSelectorList(CONFIG.IGNORED_SELECTORS);
       this.#ignoreClasses = new Set(CONFIG.IGNORED_CLASSES);
       this.#alwaysTranslate = new Set(CONFIG.ALWAYS_TRANSLATE_CLASSES);
       this.#ignoredTags = new Set(CONFIG.IGNORED_TAGS);
+      this.applyPageConfig();
+    }
+
+    /** Селекторы зависят от страницы — обновляем при навигации. */
+    applyPageConfig() {
+      const config = getPageConfig();
+      this.#ignoreSelector = config.ignoreSelector;
+      this.#ignoreMutationSelector = config.ignoreMutationSelector;
     }
 
     // ── Фильтрация ──────────────────────────────────────────────────────
@@ -514,6 +795,17 @@
       return false;
     }
 
+    /** Игнорировать ли саму мутацию (без обхода поддерева). */
+    #isIgnoredMutationTarget(element) {
+      if (!element || !this.#ignoreMutationSelector) return false;
+      try {
+        return typeof element.closest === 'function'
+          && !!element.closest(this.#ignoreMutationSelector);
+      } catch {
+        return false;
+      }
+    }
+
     // ── Текстовые узлы ───────────────────────────────────────────────────
 
     /** @returns {boolean} true, если текст узла был изменён */
@@ -524,8 +816,8 @@
 
       const state = this.#textState.get(node);
       if (state) {
-        if (raw === state.out) return false;                  // наш перевод уже на месте
-        if (raw === state.src && state.out === null) return false; // тот же непереведённый текст
+        if (raw === state.out) return false;                        // наш перевод уже на месте
+        if (raw === state.src && state.out === null) return false;  // тот же непереведённый текст
         this.#textState.delete(node);
       }
 
@@ -533,30 +825,41 @@
       const element = node.parentElement;
 
       if (isSkippableText(trimmed) || this.#isIgnoredElement(element)) {
-        // out === null: при повторном показе узла пробуем ещё раз —
-        // контекст (классы родителя) мог измениться при SPA-навигации.
+        // out === null: покажем узел снова — попробуем ещё раз, контекст мог измениться.
         this.#textState.set(node, { src: raw, out: null });
         return false;
       }
 
-      // Плюрализация идёт первым: если рядом есть число, форма стоит
-      // любого общего словаря ("Mods" -> "модов", а не "Моды").
+      // Плюрализация первым: если рядом есть число, форма важнее любого словаря.
       const translated =
         this.#pluralizeFromParent(node, element) ||
         lookup(trimmed, element) ||
+        this.#applyPageRegexp(trimmed) ||
         applyTextRules(trimmed) ||
         applySuffix(trimmed) ||
         this.#assemblePhrase(node);
 
       if (!translated || translated === trimmed) {
         this.#textState.set(node, { src: raw, out: null });
+        Missed.record(trimmed);
         return false;
       }
 
       node.data = lead + translated + trail;
       this.#textState.set(node, { src: raw, out: node.data });
       this.#stats.text++;
+      Missed.cleanup(trimmed);
       return true;
+    }
+
+    /** Регулярки страницы выполняются до общих правил. */
+    #applyPageRegexp(text) {
+      for (const [pattern, replacement] of getPageConfig().regexpRules) {
+        if (!pattern || !pattern.test(text)) continue;
+        const replaced = text.replace(pattern, replacement);
+        if (replaced && replaced !== text) return replaced;
+      }
+      return null;
     }
 
     /** «Mods» + число в соседнем узле: 8.9k | Mods -> 8.9k модов. */
@@ -586,7 +889,6 @@
       const pieces = collectInlinePieces(node, CONFIG.PHRASE_MAX_PIECES);
       if (!pieces) return null;
 
-      // Если хоть один кусок уже переведён — фраза не английская, не трогаем.
       for (const piece of pieces) {
         const state = this.#textState.get(piece);
         if ((state && piece.data === state.out) || isTrulyTranslated(piece.data)) return null;
@@ -595,7 +897,7 @@
       const source = normalizeSpace(pieces.map(p => p.data).join(''));
       if (!source || source.length > CONFIG.MAX_TEXT_LENGTH) return null;
 
-      const translated = lookup(source, node.parentElement);
+      const translated = this.#applyPageRegexp(source) || lookup(source, node.parentElement);
       if (!translated || translated === source) return null;
 
       for (let i = 1; i < pieces.length; i++) {
@@ -627,7 +929,7 @@
         const state = map.get(attr);
         if (state) {
           if (current === state.out) continue;
-          map.delete(attr); // значение изменилось — переоцениваем с нуля
+          map.delete(attr);
         }
 
         if (!current || current.length > CONFIG.MAX_ATTR_LENGTH || RE_NEXT_CHUNK.test(current)) {
@@ -639,13 +941,16 @@
           continue;
         }
 
-        const translated = lookup(current, element) || applyTextRules(current) || applySuffix(current);
+        const translated = lookup(current, element) || this.#applyPageRegexp(current)
+          || applyTextRules(current) || applySuffix(current);
+
         if (translated && translated !== current) {
           element.setAttribute(attr, translated);
           map.set(attr, { src: current, out: translated });
           this.#stats.attr++;
         } else {
           map.set(attr, { src: current, out: null });
+          Missed.record(current);
         }
       }
     }
@@ -663,28 +968,55 @@
         return { textNodes, elements };
       }
 
-      if (root.nodeType === Node.ELEMENT_NODE) {
-        if (this.#isIgnoredElement(root)) return { textNodes, elements };
-        elements.push(root);
-      }
+      const visit = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          textNodes.push(node);
+          return;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (this.#isIgnoredElement(node)) return;
 
+        elements.push(node);
+
+        const walker = document.createTreeWalker(
+          node,
+          NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+          this.#walkerFilter,
+          false
+        );
+        let child;
+        while ((child = walker.nextNode())) {
+          if (child.nodeType === Node.TEXT_NODE) textNodes.push(child);
+          else elements.push(child);
+        }
+
+        // Открытые shadow root: веб-компоненты прячут текст от обычного обхода.
+        if (dict.observeShadowRoots && child === null && node.shadowRoot) {
+          this.#collectShadow(node.shadowRoot, textNodes, elements);
+        }
+      };
+
+      visit(root);
+      return { textNodes, elements };
+    }
+
+    #collectShadow(shadowRoot, textNodes, elements) {
       const walker = document.createTreeWalker(
-        root,
+        shadowRoot,
         NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
         this.#walkerFilter,
         false
       );
-      let node;
-      while ((node = walker.nextNode())) {
-        if (node.nodeType === Node.TEXT_NODE) textNodes.push(node);
-        else elements.push(node);
+      let child;
+      while ((child = walker.nextNode())) {
+        if (child.nodeType === Node.TEXT_NODE) textNodes.push(child);
+        else elements.push(child);
       }
-      return { textNodes, elements };
     }
 
     /**
      * Переводит всё дерево по срезам, уступая браузеру между ними.
-     * Ничего не обрезается: длинные страницы просто проходят за несколько кадров.
+     * Ничего не обрезается: длинные страницы проходят за несколько кадров.
      */
     async translateTree(root) {
       const { textNodes, elements } = this.collect(root);
@@ -700,19 +1032,48 @@
       }
     }
 
+    /**
+     * Возвращает страницу к английскому оригиналу.
+     * Оригиналы сохранены в #textState/#attrState, поэтому перевод обратим.
+     */
+    restoreTree(root) {
+      const { textNodes, elements } = this.collect(root);
+
+      for (const node of textNodes) {
+        const state = this.#textState.get(node);
+        if (state && state.out !== null && node.data === state.out) {
+          node.data = state.src;
+          this.#textState.delete(node);
+          this.#stats.restored++;
+        }
+      }
+
+      for (const element of elements) {
+        const map = this.#attrState.get(element);
+        if (!map) continue;
+        for (const [attr, state] of map) {
+          if (state.out !== null && element.getAttribute(attr) === state.out) {
+            element.setAttribute(attr, state.src);
+            this.#stats.restored++;
+          }
+        }
+        this.#attrState.delete(element);
+      }
+    }
+
     // ── Наблюдение за DOM ────────────────────────────────────────────────
 
     observe(root = document.body) {
       if (!root || this.#observer) return;
-      this.#observer = new MutationObserver(records => this.#onMutations(records));
+      this.#observer = new MutationObserver(records => safe(this.#onMutations, 'MutationObserver')(records));
 
       const options = {
         childList: true,
         subtree: true,
-        characterData: true,
+        characterData: getPageConfig().characterData,
         attributes: dict.attributes.length > 0
       };
-      // Пустой attributeFilter бросает TypeError, поэтому добавляем его отдельно.
+      // Пустой attributeFilter бросает TypeError, поэтому добавляем отдельно.
       if (options.attributes) options.attributeFilter = dict.attributes.slice();
 
       this.#observer.observe(root, options);
@@ -722,6 +1083,10 @@
       if (this.#observer) {
         this.#observer.disconnect();
         this.#observer = null;
+      }
+      if (this.#debounceId) {
+        clearTimeout(this.#debounceId);
+        this.#debounceId = 0;
       }
     }
 
@@ -733,16 +1098,19 @@
       for (const record of records) {
         if (record.type === 'childList') {
           for (const node of record.addedNodes) {
+            if (this.#isIgnoredMutationTarget(node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)) continue;
             if (node.nodeType === Node.TEXT_NODE) textNodes.add(node);
             else if (node.nodeType === Node.ELEMENT_NODE) addedRoots.add(node);
           }
         } else if (record.type === 'characterData') {
-          textNodes.add(record.target);
+          if (getPageConfig().characterData) textNodes.add(record.target);
         } else if (record.type === 'attributes') {
           // Только сам элемент: обход поддерева здесь давал бы лавину мутаций.
-          attrTargets.add(record.target);
+          if (!this.#isIgnoredMutationTarget(record.target)) attrTargets.add(record.target);
         }
       }
+
+      this.#dedupeAncestors(addedRoots);
 
       if (!textNodes.size && !attrTargets.size && !addedRoots.size) return;
 
@@ -753,6 +1121,21 @@
         for (const node of textNodes) this.translateTextNode(node);
         for (const root of addedRoots) this.enqueue(root);
       }, CONFIG.OBSERVER_DEBOUNCE_MS);
+    }
+
+    /** В одной пачке мутаций родитель и его потомок обходятся один раз. */
+    #dedupeAncestors(nodes) {
+      if (nodes.size < 2) return;
+      for (const node of [...nodes]) {
+        let ancestor = node.parentNode;
+        while (ancestor) {
+          if (nodes.has(ancestor)) {
+            nodes.delete(node);
+            break;
+          }
+          ancestor = ancestor.parentNode;
+        }
+      }
     }
 
     /** Последовательная очередь поддеревьев, чтобы не плодить параллельные обходы. */
@@ -777,12 +1160,51 @@
     }
 
     resetStats() {
-      this.#stats = { text: 0, attr: 0, phrase: 0, plural: 0, nodes: 0 };
+      this.#stats = { text: 0, attr: 0, phrase: 0, plural: 0, nodes: 0, restored: 0 };
     }
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  6. SPA-навигация: pushState / replaceState / popstate / pageshow
+  //  8. Заголовок вкладки
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const TitleTranslator = {
+    original: null,
+
+    capture() {
+      if (this.original === null) this.original = document.title;
+      return this.original;
+    },
+
+    apply() {
+      const original = this.capture();
+      if (!original) return false;
+      if (isTrulyTranslated(original)) return false;
+
+      const direct = dict.titleStatic[original];
+      if (direct && direct !== original) {
+        document.title = direct;
+        return true;
+      }
+      for (const [pattern, replacement] of dict.titleRegexp) {
+        if (!pattern || !pattern.test(original)) continue;
+        const replaced = original.replace(pattern, replacement);
+        if (replaced && replaced !== original) {
+          document.title = replaced;
+          return true;
+        }
+      }
+      return false;
+    },
+
+    restore() {
+      if (this.original === null) return;
+      if (document.title !== this.original) document.title = this.original;
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  9. SPA-навигация: pushState / replaceState / popstate / pageshow
   // ═══════════════════════════════════════════════════════════════════════
 
   const router = {
@@ -818,11 +1240,9 @@
       this.timer = setTimeout(() => {
         this.timer = 0;
         const url = location.href;
-        // Тот же URL после load/pageshow — повтор всё равно не повредит,
-        // но экономим проход; после history-навигации URL всегда новый.
         if (url === this.lastUrl) return;
         this.lastUrl = url;
-        this.repeated = false; // счётчик повторов живёт в пределах одного перехода
+        this.repeated = false;
         this.run(reason);
       }, CONFIG.ROUTE_DEBOUNCE_MS);
     },
@@ -832,12 +1252,16 @@
 
       debug.log('Проход по странице:', reason);
       await this.translator.translateTree(document.body);
+      TitleTranslator.apply();
 
-      // Контент Next.js стримится после первой разметки — короткий повтор в простое.
+      // Контент Next.js стримится после первой разметки — короткий повтор.
       if (!this.repeated) {
         this.repeated = true;
         await idleTask(CONFIG.ROUTE_DEBOUNCE_MS);
-        if (this.translator) await this.translator.translateTree(document.body);
+        if (this.translator) {
+          await this.translator.translateTree(document.body);
+          TitleTranslator.apply();
+        }
       }
     },
 
@@ -847,19 +1271,26 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  7. Публичный API
+  //  10. Публичный API
   // ═══════════════════════════════════════════════════════════════════════
 
   const NRL = {
-    version: '3.0.0',
+    version: '3.1.0',
     CONFIG,
     debug,
     dict,
+    Storage,
+    Missed,
+    TitleTranslator,
     translator: null,
 
     loadDictionary,
     buildRules: buildTextRules,
+    clearPageConfigCache,
+    detectPageType,
+    buildPageConfig,
     get rules() { return TEXT_RULES; },
+    get pageConfig() { return getPageConfig(); },
     lookup,
     pluralize,
     expandNumber,
@@ -873,19 +1304,17 @@
     findCountableNoun,
     extractNumberFromParent,
     collectInlinePieces,
+    safe,
 
-    /** Ставится сразу при document-start, чтобы не пропустить ранний pushState. */
-    installRouter() {
-      router.install();
-    },
-
-    /** Единственная точка старта: словарь -> правила -> перевод -> наблюдение. */
+    /** Единственная точка старта: словарь -> правила -> страница -> перевод. */
     async start() {
-      if (this.translator) return this.translator; // повторный вызов не должен плодить наблюдатели
+      if (this.translator) return this.translator;
 
       loadDictionary(window.NRL_TRANSLATIONS);
       buildTextRules();
-      debug.log('Словарь загружен:', Object.keys(dict.main).length, 'записей,', TEXT_RULES.length, 'правил');
+      setPageType(detectPageType(location.pathname));
+      debug.log('Словарь:', Object.keys(dict.main).length, 'записей,', TEXT_RULES.length,
+        'правил, страница', getPageConfig().pageType);
 
       this.translator = new Translator();
       router.translator = this.translator;
@@ -893,6 +1322,8 @@
       // Первый проход — до подключения наблюдателя, иначе каждая наша
       // запись попала бы в очередь мутаций и породила повторный обход.
       await this.translator.translateTree(document.body);
+      TitleTranslator.capture();
+      TitleTranslator.apply();
       this.translator.observe(document.body);
       router.reset();
 
@@ -906,20 +1337,57 @@
       await router.run(reason);
     },
 
+    /** Возврат к английскому — точная отмена всех наших правок. */
+    restoreAll() {
+      if (!this.translator) return;
+      this.translator.disconnect();
+      safe(this.translator.restoreTree, 'restoreTree')(document.body);
+      TitleTranslator.restore();
+      Missed.flush();
+      debug.log('Восстановлено узлов:', this.translator.stats.restored);
+    },
+
+    /** Мгновенное включение после выключения — без перезагрузки страницы. */
+    async enable() {
+      if (this.translator) {
+        this.translator.observe(document.body);
+        await this.translateAll('enable');
+      }
+    },
+
+    stop() {
+      this.translator?.disconnect();
+      Missed.flush();
+    },
+
+    isRunning() {
+      return !!this.translator && !!this.translator.observer;
+    },
+
     translateElement(root) {
       if (!this.translator || !root) return;
       this.translator.enqueue(root);
     },
 
+    setMissedTerms(enabled) {
+      dict.missedTerms.enabled = enabled;
+      Storage.set('NRL_MISSED_TERMS_ENABLED', String(enabled));
+      if (!enabled) Missed.clearAll();
+    },
+
     report() {
       const stats = this.translator?.stats || {};
+      const missed = Missed.stats();
       const data = {
         'Версия': NRL.version,
+        'Страница': getPageConfig().pageType,
         'Переведено текстовых узлов': stats.text || 0,
         'Переведено атрибутов': stats.attr || 0,
         'Склеено фраз': stats.phrase || 0,
         'Плюрализация по родителю': stats.plural || 0,
         'Просмотрено узлов': stats.nodes || 0,
+        'Не переведено (страниц)': missed.paths,
+        'Не переведено (строк)': missed.terms,
         'Контекстных правил': dict.contextual.size,
         'Текстовых правил': TEXT_RULES.length,
         'Записей в main': Object.keys(dict.main).length,

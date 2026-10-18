@@ -46,6 +46,7 @@ const FIXTURE = `
 
   <div class="stat" id="s1"><span class="num">8.9k</span><span class="label">Mods</span></div>
   <div class="stat" id="s2"><span class="num">1</span><span class="label">Files</span></div>
+  <div class="stat" id="s3"><span class="num">3</span><span class="label">Mods</span></div>
   <div class="inline" id="p1"><span>Recently</span> <span>added</span></div>
   <div class="inline" id="p2">Recently <span>added</span></div>
 
@@ -105,7 +106,7 @@ async function run() {
   check('sr-only переведён (форма из словаря)', txt('sr'), 'премиум-участником');
 
   // ── SPA: React переиспользует узлы ────────────────────────────────────
-  const reused = el('s1').querySelector('.label');
+  const reused = el('s3').querySelector('.label');
   reused.data = 'Support';                         // тот же узел, новое содержимое
   await window.NRL.translateAll('harness');
   check('SPA: переиспользованный узел переведён', reused.data, 'Поддержка');
@@ -132,6 +133,35 @@ async function run() {
   await window.NRL.translateAll('repeat');
   const added = window.NRL.translator.stats.text - before;
   check('повторный проход почти ничего не меняет', added <= 2, true);
+
+  // ── Заголовок вкладки ─────────────────────────────────────────────────
+  document.title = 'Skyrim Mods';
+  window.NRL.TitleTranslator.original = null;
+  window.NRL.TitleTranslator.apply();
+  check('заголовок переведён', document.title, 'Моды: Skyrim');
+
+  // ── Учёт непереведённых ───────────────────────────────────────────────
+  window.NRL.setMissedTerms(true);
+  await window.NRL.translateAll('missed');
+  check('учёт непереведённых собирает данные', window.NRL.Missed.stats().terms > 0, true);
+  check('экспорт содержит пути', Object.keys(window.NRL.Missed.exportPayload().data).length > 0, true);
+  window.NRL.setMissedTerms(false);
+  check('учёт непереведённых очищается', window.NRL.Missed.stats().terms, 0);
+
+  // ── Откат к оригиналу и повторное включение ────────────────────────────
+  window.NRL.restoreAll();
+  check('откат вернул заголовок', document.title, 'Skyrim Mods');
+  check('откат вернул навигацию', fixture.querySelector('nav').textContent, 'HomeGamesCommunity');
+  check('откат вернул описание мода', txt('moddesc'), 'User-written description that must stay untouched.');
+  check('откат вернул дату', txt('d1'), '10 Oct 2025');
+  check('откат вернул title', el('btn').getAttribute('title'), 'Download');
+  check('откат вернул фразу', txt('p2'), 'Recently added');
+  check('откат вернул плюрализацию', txt('s1'), '8.9kMods');
+  check('откат вернул переиспользованный узел', txt('s3'), '3Support');
+
+  await window.NRL.enable();
+  check('повторное включение вернуло перевод', fixture.querySelector('nav').textContent, 'ГлавнаяИггрыСообщество');
+  check('повторное включение вернуло фразу', txt('p2'), 'Недавно добавлены');
 
   // ── Отчёт ─────────────────────────────────────────────────────────────
   const stats = window.NRL.translator.stats;

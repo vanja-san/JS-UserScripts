@@ -14,8 +14,21 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 
 // Минимальные заглушки: на этапе загрузки ядро обращается только к ним.
+const memoryStore = new Map();
+
 globalThis.window = globalThis;
-globalThis.sessionStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+globalThis.localStorage = {
+  getItem: key => (memoryStore.has(key) ? memoryStore.get(key) : null),
+  setItem: (key, value) => memoryStore.set(key, String(value)),
+  removeItem: key => memoryStore.delete(key)
+};
+globalThis.sessionStorage = globalThis.localStorage;
+globalThis.location = {
+  href: 'https://www.nexusmods.com/mods',
+  pathname: '/mods',
+  search: '',
+  hash: ''
+};
 globalThis.document = { querySelector: () => null };
 
 require(path.join(ROOT, 'translations.js'));
@@ -230,4 +243,144 @@ test('lookup: контекстное правило важнее общего с
 test('lookup не падает на невалидном селекторе', () => {
   const broken = { matches() { throw new SyntaxError('bad selector'); } };
   assert.equal(NRL.lookup('Mods', broken), DICTIONARY.main.Mods ?? null);
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Хранилище
+// ═══════════════════════════════════════════════════════════════════════
+
+test('Storage.setVerified возвращает true при успешной записи', () => {
+  assert.equal(NRL.Storage.setVerified('nrl_test_key', 'значение'), true);
+  assert.equal(NRL.Storage.get('nrl_test_key'), 'значение');
+  NRL.Storage.remove('nrl_test_key');
+});
+
+test('Storage.setVerified возвращает false, если запись не фиксируется', () => {
+  const original = globalThis.localStorage;
+  globalThis.localStorage = {
+    getItem: () => null,
+    setItem() { /* молча ничего не делаем */ },
+    removeItem() {}
+  };
+  try {
+    assert.equal(NRL.Storage.setVerified('nrl_test_key', 'значение'), false);
+  } finally {
+    globalThis.localStorage = original;
+  }
+});
+
+test('Storage.json переживает битые данные', () => {
+  NRL.Storage.set('nrl_broken_json', '{это не json');
+  assert.deepEqual(NRL.Storage.json('nrl_broken_json', { fallback: true }), { fallback: true });
+  NRL.Storage.remove('nrl_broken_json');
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Учёт непереведённых строк
+// ═══════════════════════════════════════════════════════════════════════
+
+test('Missed записывает новую строку один раз', () => {
+  NRL.dict.missedTerms.enabled = true;
+  NRL.Missed.clearAll();
+
+  assert.equal(NRL.Missed.record('Untranslated label'), true);
+  assert.equal(NRL.Missed.record('Untranslated label'), false, 'повтор не должен добавлять');
+  assert.equal(NRL.Missed.stats().terms, 1);
+
+  NRL.Missed.cleanup('Untranslated label');
+  assert.equal(NRL.Missed.stats().terms, 0, 'переведённая строка убирается из списка');
+});
+
+test('Missed хранит строки по pathname', () => {
+  NRL.dict.missedTerms.enabled = true;
+  NRL.Missed.clearAll();
+  globalThis.location.pathname = '/mods';
+
+  NRL.Missed.record('On page one');
+  globalThis.location.pathname = '/games';
+  NRL.Missed.record('On page two');
+
+  const stats = NRL.Missed.stats();
+  assert.equal(stats.paths, 2);
+  assert.equal(stats.terms, 2);
+  assert.deepEqual(Object.keys(NRL.Missed.exportPayload().data).sort(), ['/games', '/mods']);
+
+  NRL.Missed.clearAll();
+  globalThis.location.pathname = '/mods';
+});
+
+test('Missed уважает лимит на страницу', () => {
+  NRL.dict.missedTerms.enabled = true;
+  NRL.dict.missedTerms.maxPerPath = 3;
+  NRL.Missed.clearAll();
+
+  for (let i = 0; i < 10; i++) NRL.Missed.record(`Term ${i}`);
+  assert.equal(NRL.Missed.stats().terms, 3);
+
+  NRL.Missed.clearAll();
+  NRL.dict.missedTerms.maxPerPath = 300;
+});
+
+test('Missed молчит, когда выключен', () => {
+  NRL.dict.missedTerms.enabled = false;
+  NRL.Missed.clearAll();
+  assert.equal(NRL.Missed.record('Should not be stored'), false);
+  assert.equal(NRL.Missed.stats().terms, 0);
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Заголовок вкладки
+// ═══════════════════════════════════════════════════════════════════════
+
+test('правила заголовка доступны из словаря', () => {
+  assert.ok(Object.keys(DICTIONARY.titleRules.static).length > 0);
+  assert.ok(Array.isArray(DICTIONARY.titleRules.regexp));
+  assert.equal(NRL.dict.titleStatic['Nexus Mods'], 'Nexus Mods — русская локализация');
+});
+
+test('регулярки заголовка объявлены как [паттерн, замена]', () => {
+  for (const rule of DICTIONARY.titleRules.regexp) {
+    assert.ok(Array.isArray(rule), 'ожидалась пара [RegExp, замена]');
+    assert.ok(rule[0] instanceof RegExp, String(rule));
+    assert.equal(typeof rule[1], 'string');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Целостность конфигурации
+// ═══════════════════════════════════════════════════════════════════════
+
+test('conf.routes — валидные RegExp с непустым page', () => {
+  assert.ok(DICTIONARY.conf.routes.length > 0);
+  for (const route of DICTIONARY.conf.routes) {
+    assert.ok(route.re instanceof RegExp, JSON.stringify(route.page));
+    assert.ok(typeof route.page === 'string' && route.page.length > 0);
+  }
+});
+
+test('conf.routes упорядочены: специфичные до общих', () => {
+  const routes = DICTIONARY.conf.routes;
+  const filesIdx = routes.findIndex(r => r.page === 'mods/files');
+  const detailIdx = routes.findIndex(r => r.page === 'mods/detail');
+  const listingIdx = routes.findIndex(r => r.page === 'mods/listing');
+  assert.ok(filesIdx < detailIdx, 'mods/files должен проверяться раньше mods/detail');
+  assert.ok(detailIdx < listingIdx, 'mods/detail раньше mods/listing');
+});
+
+test('conf: списки игнора — массивы строк', () => {
+  for (const [key, value] of Object.entries(DICTIONARY.conf.ignoreSelectorPage)) {
+    assert.ok(Array.isArray(value), key);
+    for (const selector of value) assert.equal(typeof selector, 'string');
+  }
+  for (const [key, value] of Object.entries(DICTIONARY.conf.ignoreMutationSelectorPage)) {
+    assert.ok(Array.isArray(value), key);
+  }
+  assert.ok(Array.isArray(DICTIONARY.conf.characterDataIgnorePage));
+});
+
+test('pageDictionaries и titleRules имеют ожидаемую форму', () => {
+  for (const [page, entry] of Object.entries(DICTIONARY.pageDictionaries)) {
+    assert.ok(entry.static === undefined || typeof entry.static === 'object', page);
+    assert.ok(entry.regexp === undefined || Array.isArray(entry.regexp), page);
+  }
 });
