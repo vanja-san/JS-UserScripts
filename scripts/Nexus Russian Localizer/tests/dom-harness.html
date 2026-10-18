@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>NRL — проверка движка в браузере</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 24px; max-width: 900px; }
+  #result { font-family: ui-monospace, monospace; white-space: pre-wrap; padding: 12px;
+            border: 1px solid #ccc; border-radius: 6px; background: #fafafa; }
+  .pass { color: #0a7a28; } .fail { color: #c00; font-weight: 600; }
+  #fixture { border: 1px dashed #bbb; padding: 12px; margin: 16px 0; border-radius: 6px; }
+  #fixture div, #fixture p { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<h1>NRL — проверка движка в браузере</h1>
+<p>Откройте файл двойным щелчком. Скрипт прогоняет синтетическую страницу через
+настоящий движок и печатает результат. Так проверяется DOM-часть, которую
+unit-тесты не покрывают: игнор-правила, атрибуты и поведение при SPA-навигации.</p>
+
+<div id="result">Запуск…</div>
+
+<div id="fixture"></div>
+
+<script src="../translations.js"></script>
+<script src="../modules/core.js"></script>
+<script>
+'use strict';
+
+const results = [];
+const out = document.getElementById('result');
+
+function check(name, actual, expected) {
+  const pass = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ name, pass, actual, expected });
+  return pass;
+}
+
+const FIXTURE = `
+  <nav><a href="#">Home</a><a href="#">Games</a><a href="#">Community</a></nav>
+
+  <h1 class="mod-name">Some Cool Skyrim Mod</h1>
+  <h2 id="heading">Recently added</h2>
+  <p class="description" id="moddesc">User-written description that must stay untouched.</p>
+
+  <div class="stat" id="s1"><span class="num">8.9k</span><span class="label">Mods</span></div>
+  <div class="stat" id="s2"><span class="num">1</span><span class="label">Files</span></div>
+  <div class="inline" id="p1"><span>Recently</span> <span>added</span></div>
+  <div class="inline" id="p2">Recently <span>added</span></div>
+
+  <p id="d1"><time datetime="2025-10-10">10 Oct 2025</time></p>
+  <p id="d2"><time>5 minutes ago</time></p>
+  <p id="d3">Published 15 November 2025</p>
+  <p id="d4">File size: 1.2 GB</p>
+  <p id="d5">10 Oct 2025 ago</p>
+
+  <button id="btn" title="Download">Download</button>
+  <input id="inp" placeholder="Email or Username" value="do-not-touch">
+  <p class="sr-only" id="sr">Premium Member</p>
+  <p id="icon"><i class="material-icons">star</i></p>
+  <p id="note" translate="no">Leave me alone</p>
+  <p id="ru">Уже переведено</p>
+  <p class="user-content" id="user">Comment left by a user</p>
+`;
+
+async function run() {
+  const fixture = document.getElementById('fixture');
+  fixture.innerHTML = FIXTURE;
+
+  await window.NRL.start();
+
+  const el = id => fixture.querySelector('#' + id);
+  const txt = id => el(id) ? el(id).textContent.replace(/\s+/g, ' ').trim() : null;
+
+  // ── Словарь и игнор-правила ───────────────────────────────────────────
+  check('навигация переведена', fixture.querySelector('nav').textContent, 'ГлавнаяИггрыСообщество');
+  check('название мода не тронуто', fixture.querySelector('h1.mod-name').textContent, 'Some Cool Skyrim Mod');
+  check('описание мода не тронуто', txt('moddesc'), 'User-written description that must stay untouched.');
+  check('пользовательский контент не тронут', txt('user'), 'Comment left by a user');
+  check('translate="no" не тронут', txt('note'), 'Leave me alone');
+  check('кириллица не трогается', txt('ru'), 'Уже переведено');
+  check('<i> игнорируется', txt('icon'), 'star');
+
+  // ── Разнесённая по DOM разметка ───────────────────────────────────────
+  check('число + существительное по соседям', txt('s1'), '8.9k модов');
+  check('единственное число', txt('s2'), '1 файл');
+
+  // ── Склейка фразы ─────────────────────────────────────────────────────
+  check('фраза в одном узле', txt('heading'), 'Недавно добавлены');
+  check('фраза склеена (текст + span)', txt('p2'), 'Недавно добавлены');
+  check('фраза склеена (span + span)', txt('p1'), 'Недавно добавлены');
+
+  // ── Даты и правила ────────────────────────────────────────────────────
+  check('дата в теге time', txt('d1'), '10 окт 2025');
+  check('время назад', txt('d2'), '5 минут назад');
+  check('дата с префиксом', txt('d3'), 'Опубликовано 15 ноября 2025');
+  check('размер файла', txt('d4'), 'File size: 1.2 ГБ');
+  check('дата + ago', txt('d5'), '10 окт 2025 назад');
+
+  // ── Атрибуты ──────────────────────────────────────────────────────────
+  check('title переведён', el('btn').getAttribute('title'), 'Скачать');
+  check('placeholder переведён', el('inp').getAttribute('placeholder'), 'Эл. почта или имя пользователя');
+  check('value НЕ переводится', el('inp').getAttribute('value'), 'do-not-touch');
+  check('sr-only переведён (форма из словаря)', txt('sr'), 'премиум-участником');
+
+  // ── SPA: React переиспользует узлы ────────────────────────────────────
+  const reused = el('s1').querySelector('.label');
+  reused.data = 'Support';                         // тот же узел, новое содержимое
+  await window.NRL.translateAll('harness');
+  check('SPA: переиспользованный узел переведён', reused.data, 'Поддержка');
+
+  const reusedAttr = el('btn');
+  reusedAttr.setAttribute('title', 'Home');
+  await window.NRL.translateAll('harness');
+  check('SPA: переиспользованный атрибут переведён', reusedAttr.getAttribute('title'), 'Главная');
+
+  const fresh = document.createElement('p');
+  fresh.id = 'fresh';
+  fresh.textContent = 'Register';
+  fixture.appendChild(fresh);
+  await new Promise(r => setTimeout(r, 200));
+  check('SPA: новая вставка переведена', fresh.textContent, 'Регистрация');
+
+  const reusedWhole = el('ru');
+  reusedWhole.textContent = 'Community';
+  await window.NRL.translateAll('harness');
+  check('SPA: узел с прошлым переводом переводится заново', reusedWhole.textContent, 'Сообщество');
+
+  // ── Собственная запись не вызывает повторный перевод ──────────────────
+  const before = window.NRL.translator.stats.text;
+  await window.NRL.translateAll('repeat');
+  const added = window.NRL.translator.stats.text - before;
+  check('повторный проход почти ничего не меняет', added <= 2, true);
+
+  // ── Отчёт ─────────────────────────────────────────────────────────────
+  const stats = window.NRL.translator.stats;
+  const failed = results.filter(r => !r.pass);
+
+  out.className = failed.length ? 'fail' : 'pass';
+  out.textContent = results.map(r =>
+    `${r.pass ? 'OK  ' : 'FAIL'} ${r.name}\n     получено: ${JSON.stringify(r.actual)}` +
+    (r.pass ? '' : `\n     ожидалось: ${JSON.stringify(r.expected)}`)
+  ).join('\n') + `\n\nПереведено узлов: ${stats.text}, атрибутов: ${stats.attr}, ` +
+    `фраз: ${stats.phrase}, плюрализация: ${stats.plural}` +
+    `\n\nИТОГО: ${results.length - failed.length}/${results.length} пройдено`;
+
+  window.__NRL_HARNESS__ = { total: results.length, failed: failed.length, results };
+  console.log('[NRL harness]', (results.length - failed.length) + '/' + results.length);
+}
+
+run().catch(error => {
+  out.className = 'fail';
+  out.textContent = 'Ошибка: ' + ((error && error.stack) || error);
+  window.__NRL_HARNESS__ = { total: 0, failed: 1, error: String(error) };
+});
+</script>
+
+</body>
+</html>
