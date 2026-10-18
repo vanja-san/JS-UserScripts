@@ -21,17 +21,22 @@
   // ═══════════════════════════════════════════════════════════════════════
 
   const CONFIG = {
-    // Названия/описания модов и пользовательский контент — не переводим.
+    // Не переводить: пользовательский контент, названия модов и служебные блоки.
+    // Селекторы проверены разбором реальных страниц (docs/nexus-markup.md);
+    // перепроверяй скриптом script/check-ignore-selectors.py после каждого
+    // редизайна сайта. Классы вида nxm-* переживают редизайн, utility-классы
+    // Tailwind — нет, поэтому берём только семантические.
     IGNORED_SELECTORS: [
-      '.mod-name', '.mod-title', '.name', '#pagetitle', '.file-expander-header',
-      '.mod-card .title a', '.list-item .name a',
-      'h3 a[href*="/mods/"]', 'h4 a[href*="/mods/"]',
-      '.mod-desc', '.description', '.summary', '.mod-details', '.mod_description_container',
-      '.mod-card .description', '.mod-card .summary',
-      '.user-content', '.wysiwyg',
-      'blockquote', '.quote',
-      'article .body', 'article .content',
-      'i', 'i.material-icons-outlined'
+      // Пользовательский форматированный текст: описания модов, посты, комментарии
+      '.prose-lexical', '.prose-markdown',
+      // Название мода и плитки в листингах
+      '.mod-header__title', '.group\\/mod-tile',
+      // Строки модов внутри коллекций
+      '.collection-mod-row', '.official-collection-tile',
+      // Карусели с изображениями
+      '.swiper',
+      // Иконки шрифтовых наборов
+      'i'
     ],
 
     IGNORED_CLASSES: ['no-translate', 'notranslate', 'ignore-translation', 'code', 'pre'],

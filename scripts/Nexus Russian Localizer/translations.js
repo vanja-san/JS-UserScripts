@@ -7,31 +7,34 @@ const DICTIONARIES = {
   // ═══════════════════════════════════════════════════════════════════════
   conf: {
     // Маршрутизация страниц. Порядок важен: от специфичного к общему.
-    // Первый подошедший re определяет pageType. Если ни один не подошёл —
-    // используется '*' (универсальный словарь main).
+    // Пути проверены script/probe-routes.py — см. docs/nexus-markup.md.
+    // Учтите: страницы мода (/mods/<игра>/<id>) отдают СТАРУЮ разметку,
+    // остальные — новую (Next.js). Оба поколения поддерживаются.
     routes: [
-      { re: /^\/mods\/[^/]+\/files\b/i,        page: 'mods/files' },
-      { re: /^\/mods\/[^/]+\/screenshots\b/i,   page: 'mods/screenshots' },
-      { re: /^\/mods\/[^/]+\/changelog\b/i,     page: 'mods/changelog' },
-      { re: /^\/mods\/[^/]+\/[^/]+\/?$/i,       page: 'mods/tab' },
-      { re: /^\/mods\/[^/]+\/?$/i,               page: 'mods/detail' },
-      { re: /^\/mods\b/i,                       page: 'mods/listing' },
-      { re: /^\/games\b/i,                      page: 'games' },
-      { re: /^\/collections\b/i,                page: 'collections' },
-      { re: /^\/users\/[^/]+/i,                 page: 'user' },
-      { re: /^\/?$/,                            page: 'home' }
+      { re: /^\/games\/[^/]+\/mods\b/i, page: 'game/mods' },
+      { re: /^\/games\/[^/]+/i,       page: 'game' },
+      { re: /^\/mods\/[^/]+\/\d+/i,   page: 'mod/detail' }, // /mods/skyrim/15538
+      { re: /^\/[^/]+\/mods\/\d+/i,   page: 'mod/detail' }, // /skyrim/mods/15538
+      { re: /^\/[^/]+\/mods\/?$/i,    page: 'game/mods' },  // /skyrim/mods
+      { re: /^\/mods\b/i,             page: 'mods' },
+      { re: /^\/games\b/i,            page: 'games' },
+      { re: /^\/collections\b/i,      page: 'collections' },
+      { re: /^\/media\b/i,            page: 'media' },
+      { re: /^\/users\b/i,            page: 'users' },
+      { re: /^\/[^/]+\/?$/i,          page: 'game' },       // /skyrim
+      { re: /^\/?$/,                  page: 'home' }
     ],
 
     // Дополнительные игнор-селекторы по страницам. '*' добавляется ко всем.
     ignoreSelectorPage: {
       '*': [],
-      'mods/listing': ['.tabs', '.sort-dropdown'],
-      'mods/detail': ['.mod-info-panel', '.file-details']
+      'mods': ['.tabs', '.sort-dropdown'],
+      'mod/detail': ['.mod-info-panel', '.file-details']
     },
 
     // Элементы, мутации которых игнорируются (счётчики, анимации).
     ignoreMutationSelectorPage: {
-      '*': ['[data-nrl-live]', '.tab-count']
+      '*': ['[data-nrl-live]', '.counter']
     },
 
     // Наблюдение characterData — самое дорогое, включено везде по умолчанию.
@@ -41,7 +44,8 @@ const DICTIONARIES = {
     characterDataIgnorePage: [],
 
     // Заходить в открытые shadow root (веб-компоненты).
-    observeShadowRoots: true
+    // На Nexus веб-компонентов нет — выключено, чтобы не проверять тень зря.
+    observeShadowRoots: false
   },
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -75,6 +79,57 @@ const DICTIONARIES = {
   //  Основной словарь
   // ═══════════════════════════════════════════════════════════════════════
   main: {
+    // ── Строки со страницы мода (старая разметка RJ) — найдены разбором.
+    "Close navigation menu": "Закрыть меню навигации",
+    "You're up to date": "У вас всё обновлено",
+    "Try reloading the notifications.": "Попробуйте перезагрузить уведомления.",
+    "No unread notifications right now": "Сейчас нет непрочитанных уведомлений",
+    "Please log in": "Пожалуйста, войдите",
+    "To enjoy the benefits of Nexus Mods, please log in.": "Чтобы воспользоваться возможностями Nexus Mods, войдите в аккаунт.",
+    "Account settings": "Настройки аккаунта",
+    "Site preferences": "Настройки сайта",
+    "View adult content preferences": "Настройки контента для взрослых",
+    "Adult content disabled": "Контент для взрослых отключён",
+    "My collections": "Мои коллекции",
+    "My media": "Мои медиа",
+    "My wallet": "Мой кошелёк",
+    "Kudos given": "Отправлено благодарностей",
+    "Network Stats": "Статистика сети",
+    "Page served in": "Страница загружена за",
+    "See All": "Показать все",
+    "Back": "Назад",
+    "Oh dear! Something has gone wrong!": "Что-то пошло не так!",
+    "The mod you were looking for couldn't be found": "Мод, который вы искали, не найден",
+    "Not found": "Не найдено",
+    "Unlock": "Открыть",
+    "Exclusive media content and more": "Эксклюзивный медиаконтент и многое другое",
+
+    // ── Строки, найденные разбором реальных страниц (script/extract-strings.py).
+    //    Бренды, названия игр и их технические артефакты намеренно не переводятся.
+    "Skip to content": "Перейти к содержимому",
+    "Clear game filter": "Сбросить фильтр игры",
+    "No results found": "Ничего не найдено",
+    "0 results": "0 результатов",
+    "Sort": "Сортировка",
+    "Find out more": "Подробнее",
+    "Affiliate link": "Партнёрская ссылка",
+    "Badge": "Значок",
+    "Rewards": "Награды",
+    "Kudos": "Благодарности",
+    "Join the Modathon": "Присоединиться к Modathon",
+    "Upgrade to Premium": "Перейти на Премиум",
+    "auto-install collections": "автоустановка коллекций",
+    "browse ad-free": "смотреть без рекламы",
+    "Discover offers": "Смотреть предложения",
+    "Get games to mod, cheaper.": "Играйте с модами дешевле.",
+    "Our creators earned over $ 19m": "Наши авторы заработали более 19 млн $",
+    "Search results for “”": "Результаты поиска для «»",
+    "Media": "Медиа",
+    "Members": "Участники",
+    "Mods": "Моды",
+    "Downloads": "Загрузки",
+    "Forums": "Форумы",
+
     "Home": "Главная",
     "Games": "Игры",
     "All mods": "Все моды",
@@ -268,7 +323,6 @@ const DICTIONARIES = {
     "28 Days": "За 28 дней",
     "1 Year": "За год",
     "Error": "Ошибка",
-    "View all": "Смотреть все",
     "Premium membership": "Премиум-членство",
     "2 months free": "2 месяца бесплатно",
     "Yearly": "Ежегодно",
@@ -405,8 +459,6 @@ const DICTIONARIES = {
     "Collections containing this mod": "Коллекции с этим модом",
     "Get hundreds of curated mods the easy way and": "Получайте сотни проверенных модов легко и устанавливайте их ",
     "make it 1-click with premium": "в один клик с премиум-подпиской",
-    "The following users have invited you to edit their mods.": "Следующие пользователи позвали тебя править их моды.",
-    "You have no pending invitations": "Тебе не пришло ни одного приглашения",
     "Search:": "Поиск:",
     "Previous": "Предыдущая",
     "Last DL": "Скачен",
@@ -594,7 +646,6 @@ const DICTIONARIES = {
     "Dismiss": "Понятно",
     "Explore starter mods": "Исследовать стартовые моды",
     "Trending Mods": "Набирающие популярность",
-    "Get hundreds of curated mods the easy way and": "Получите сотни кураторских модов простым способом, а с ",
     "make it one click with premium": "премиумом вы сделаете это одним щелчком мыши",
     "More time playing": "Болше времени игры",
     "Unlock 1-click automated collections": "Разблокировка автоматизированных коллекций в 1 клик",
@@ -643,8 +694,6 @@ const DICTIONARIES = {
     "7 days": "7 дней",
     "14 days": "14 дней",
     "28 days": "28 дней",
-    "Search:": "Поиск: ",
-    "Search": "Поиск",
     "Homepage": "Главная страница",
     "Download App": "Скачать приложение",
     "Set your default tabs for the ‘homepage’ and ‘game homepages’.": "Установите вкладки по умолчанию для «домашняя страница» и «домашние страницы игры».",
@@ -657,7 +706,6 @@ const DICTIONARIES = {
     "Show user comments on the files you track": "Показывать комментарии пользователей к файлам, которые вы отслеживаете",
     "Show author activity on the files you track": "Показывать активность автора в файлах, которые вы отслеживаете",
     "All Time": "За всё время",
-    "Content blocking": " Блокировка контента",
     "Control what content you see on Nexus Mods.": "Управляйте тем, какой контент вы хотели бы видить на Nexus Mods.",
     "Adult content": "Контент для взрослых",
     "Show adult content with blur": "Отображать контент для взрослых с размытием",
@@ -692,19 +740,16 @@ const DICTIONARIES = {
     "Ignored users": "Пользователи в игноре",
     "Ignoring a user hides their content and activity form you, including mods, images, videos, collections, comments, bug reports, and notifications.": "Игнорирование пользователя скрывает его контент и форму активности, включая моды, изображения, видео, коллекции, комментарии, отчеты об ошибках и уведомления.",
     "Ignored users can still view and interact with your content. They won't be notified, and you can still access their profile.": "Игнорированные пользователи могут по-прежнему просматривать и взаимодействовать с вашим контентом. Они не будут уведомлены, и вы все еще сможете получать доступ к их профилю.",
-    "Ignored users": "Пользователи в игноре",
     "No ignored users": "Нет пользователей в игноре",
     "Add a user you want to ignore": "Добавить пользователя, которого вы хотите игнорировать",
     "Search users": "Поиск пользователей",
     "Username": "Имя пользователя",
-    "Profile": "Профиль",
     "Profile picture": "Картинка профиля",
     "Add, remove and change your profile picture": "Добавьте, удалите или измените изображение своего профиля",
     "A profile picture adds a personal touch to your account and helps others recognise you.": "Изображение профиля добавляет личный отпечаток к вашей учётной записи и помогает другим узнать вас.",
     "Change": "Сменить",
     "Remove": "Удалить",
     "Change username": "Сменить имя пользователя",
-    "Donations": "Пожертвования",
     "If you are a particularly helpful or productive user on the Nexus sites then other users might wish to show their appreciation to you by donating to you. Donations are completely opt-in and optional.": "Если вы являетесь особенно полезным или продуктивным пользователем на сайтах Nexus, другие пользователи могут пожелать показать вам свою признательность, пожертвовав вам. Пожертвования полностью являются опционными и необязательными.",
     "You should": "Вы ",
     "never, ever": "никогда не должны ",
@@ -715,12 +760,10 @@ const DICTIONARIES = {
     "Enter your PayPal email address": "Введите свой адрес электронной почты PayPal",
     "Show a donate button on my profile page": "Показывать кнопку пожертвования на странице моего профиля",
     "Participate in donation points program": "Участвовать в программе баллов пожертвования",
-    "API Keys": "API-ключи",
     "Manage the API keys for all your third-party apps.": "Управляйте ключами API для всех сторонних приложений.",
     "Integrations": "Интеграции",
     "Request Api Key": "Запросить API-ключ",
     "Personal API Key": "Личный API-ключ",
-    "Notifications": "Уведомления",
     "Choose what types of notifications you want to receive from us.": "Выберите, какие типы уведомлений вы хотите получать от нас.",
     "Display notifications": "Отображение уведомлений",
     "Game specific notifications": "Уведомления об играх",
@@ -787,7 +830,6 @@ const DICTIONARIES = {
     "Receive a notification when a Team Member edits existing files on one of your mods": "Получать уведомление, когда участник команды редактирует существующие файлы одного из ваших модов",
     "Mod files archived": "Файлы мода архивированы",
     "Receive a notification when a Team Member archives existing files on one of your mods": "Получать уведомление, когда участник команды архивирует существующие файлы одного из ваших модов",
-    "New articles": "Новые статьи",
     "Receive a notification when a Team Member adds a new article to one of your mods": "Получать уведомление, когда участник команды добавляет новую статью к одному из ваших модов",
     "Updated articles": "Статьи обновлены",
     "Receive a notification when a Team Member updates an existing article on one of your mods": "Получать уведомление, когда участник команды обновляет существующую статью у одного из ваших модов",
@@ -798,7 +840,6 @@ const DICTIONARIES = {
     "Readme removed": "Readme удален",
     "Receive a notification when a Team Member removes a readme from one of your mods": "Получать уведомление, когда участник команды удаляет файл readme у одного из ваших модов",
     "My Collections": "Мои коллекции",
-    "New comments": "Новые комментарии",
     "Receive a notification when a user comments on one of your collections": "Получать уведомление, когда пользователь комментирует одну из ваших коллекций",
     "Bug reports created": "Созданы отчеты об ошибках",
     "Receive a notification when a user creates a new bug report on one of your collections": "Получать уведомление, когда пользователь создает новый отчет об ошибке для одной из ваших коллекций",
@@ -831,7 +872,6 @@ const DICTIONARIES = {
     "Edit": "Изменить",
     "Save": "Сохранить",
     "Uploaded": "Загружено",
-    "Updated": "Обновлённые",
     "Easy install": "Легко установить",
     "Get started with the essential mods.": "Начните с основных модов.",
     "Get starter mods": "Получить стартовые моды.",
@@ -986,7 +1026,6 @@ const DICTIONARIES = {
     "Read more about account recovery": "Читать подробнее о восстановлении уч. записи",
     "Delete account": "Удалить уч. запись",
     "Your current plan": "Ваш текущий план",
-    "Go premium": "Получить премиум",
     "Free": "Бесплатный",
     "Unlock amazing features with": "Разблокируйте невероятные возможности с ",
     "premium": "премиумом",
@@ -1067,7 +1106,6 @@ const DICTIONARIES = {
     "Quests and Adventures": "Квесты и приключение",
     "You have to be logged in to download files": "Войдите, чтобы скачивать файлы",
     "Radio": "Радио",
-    "Manual": "Вручную",
     "Version history": "История версий",
     "Total downloads": "Скачиваний",
     "ReShade Presets": "Пресеты для ReShade",
@@ -1185,7 +1223,6 @@ const DICTIONARIES = {
     "Author contains": "Содержание автора",
     "Uploader contains": "Содержание загрузки",
     "Search mods, games, collections, images & videos": "Поиск модов, игр, коллекций, изображений и видео",
-    "Log in": "Войти",
     "Verify email": "Проверить эл. почту",
     "Popular Game Communities": "Популярные игровые сообщества",
     "Active Topics": "Активные темы",
@@ -1224,7 +1261,6 @@ const DICTIONARIES = {
     "View mod page": "Перейти на страницу мода",
     "View image gallery": "Посмотреть изображения",
     "for": " для ",
-    "Search": "Поиск",
     "NEW RELEASE": "НОВЫЙ РЕЛИЗ",
     "New releases": "НОВЫЕ РЕЛИЗЫ",
     "Popular collections": "Популярные коллекции",
@@ -1320,7 +1356,6 @@ const DICTIONARIES = {
     "Roleplaying": "Ролевые игры",
     "Forum Games": "Форумные игры",
     "Kick back and discuss whatever takes your fancy.": "Расслабься и обсуди всё, что придёт в голову.",
-    "Moderation": "Модерация",
     "Formal Warnings, Bans and Takedowns": "Официальные предупреждения, блокировки и удаления контента",
     "Closed accounts": "Заблокированные аккаунты",
     "Takedown Requests": "Запросы на удаление контента",
@@ -1477,7 +1512,6 @@ const DICTIONARIES = {
     "Specialist": "Специалист",
     "This topic is now closed to further replies.": " В настоящее время эта тема закрыта для дальнейших ответов.",
     "Thanks": "Спасибо",
-    "Talk to our team about issues with our website and services.": "Поговорите с нашей командой о проблемах с нашим сайтом и сервисами.",
     "Talk to our team about issues with our website and services.": "Поговорите с нашей командой о проблемах с нашим сайтом и сервисами.",
     "Subforums": "Подфорумы",
     "Visit out help site to find answers to the most commonly asked questions.": "Посетите сайт помощи, чтобы найти ответы на наиболее часто задаваемые вопросы.",
@@ -1699,8 +1733,11 @@ const DICTIONARIES = {
 
   // Единственный источник правды по атрибутам. Используется и для перевода,
   // и как attributeFilter для MutationObserver — списки не должны расходиться.
+  // Список проверен разбором страниц (docs/nexus-markup.md): реально встречаются
+  // только эти четыре. data-tooltip / data-bs-* — остатки старой Bootstrap-разметки,
+  // на сайте не встречаются ни разу и стоят лишнего getAttribute на каждый элемент.
   // 'value' исключён намеренно: перевод value у input ломает ввод и React-контроль.
-  translatableAttributes: ['title', 'placeholder', 'alt', 'aria-label', 'data-tooltip', 'data-original-title', 'data-bs-title', 'data-bs-tooltip'],
+  translatableAttributes: ['title', 'placeholder', 'alt', 'aria-label'],
 
   // Учёт непереведённых строк: показывает реальное покрытие словаря.
   missedTerms: {

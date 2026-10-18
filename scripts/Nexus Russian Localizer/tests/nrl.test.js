@@ -105,6 +105,30 @@ test('phraseInlineTags заданы в верхнем регистре', () => {
   }
 });
 
+test('в main нет повторяющихся ключей', () => {
+  // В объектном литерале дубль молча перекрывается последним значением:
+  // перевод теряется, и найти это вручную невозможно.
+  const source = require('node:fs').readFileSync(
+    path.join(ROOT, 'translations.js'), 'utf8');
+  const start = source.indexOf('\n  main: {');
+  const end = source.indexOf('\n  contextual: {');
+  const body = source.slice(start, end);
+
+  const re = /^\s+"((?:[^"\\]|\\.)+)"\s*:/gm;
+  const keys = [];
+  let match;
+  while ((match = re.exec(body)) !== null) keys.push(match[1]);
+
+  const seen = new Set();
+  const duplicates = [];
+  for (const key of keys) {
+    if (seen.has(key)) duplicates.push(key);
+    seen.add(key);
+  }
+  assert.deepEqual(duplicates, [], 'дубликаты ключей: ' + duplicates.join(', '));
+  assert.equal(keys.length, seen.size);
+});
+
 // ═══════════════════════════════════════════════════════════════════════
 //  Плюрализация
 // ═══════════════════════════════════════════════════════════════════════
@@ -413,11 +437,35 @@ test('conf.routes — валидные RegExp с непустым page', () => {
 
 test('conf.routes упорядочены: специфичные до общих', () => {
   const routes = DICTIONARY.conf.routes;
-  const filesIdx = routes.findIndex(r => r.page === 'mods/files');
-  const detailIdx = routes.findIndex(r => r.page === 'mods/detail');
-  const listingIdx = routes.findIndex(r => r.page === 'mods/listing');
-  assert.ok(filesIdx < detailIdx, 'mods/files должен проверяться раньше mods/detail');
-  assert.ok(detailIdx < listingIdx, 'mods/detail раньше mods/listing');
+  const index = page => routes.findIndex(r => r.page === page);
+  // /games/<игра>/mods должен проверяться раньше /games/<игра>
+  assert.ok(index('game/mods') < index('game'), 'game/mods раньше game');
+  // Одиночный /<игра> — самое общее правило, оно обязано быть последним
+  // перед home, иначе перехватит /mods и /games.
+  const gameIdx = DICTIONARY.conf.routes.findIndex(r => r.page === 'game' && r.re.source.includes('[^/]+\\/?$'));
+  const modsIdx = DICTIONARY.conf.routes.findIndex(r => r.page === 'mods');
+  assert.ok(modsIdx < gameIdx, 'правило /mods должно стоять раньше общего правила игры');
+  const homeIdx = DICTIONARY.conf.routes.findIndex(r => r.page === 'home');
+  assert.ok(gameIdx < homeIdx, 'общее правило игры раньше home');
+});
+
+test('игнор-селекторы взяты из реальной разметки', () => {
+  // Селекторы, которых на сайте нет, — мёртвый код. См. docs/nexus-markup.md.
+  const selectors = globalThis.NRL.CONFIG.IGNORED_SELECTORS;
+  const dead = ['.mod-name', '.mod-title', '.name', '#pagetitle', '.mod-desc',
+    '.description', '.summary', '.user-content', '.wysiwyg'];
+  for (const selector of dead) {
+    assert.ok(!selectors.includes(selector), 'селектор ' + selector + ' на сайте не встречается');
+  }
+  const alive = ['.prose-lexical', '.prose-markdown', '.mod-header__title', '.swiper'];
+  for (const selector of alive) {
+    assert.ok(selectors.includes(selector), 'селектор ' + selector + ' найден в разметке');
+  }
+});
+
+test('атрибуты ограничены теми, что реально встречаются', () => {
+  // docs/nexus-markup.md: на 9 страницах найдены только эти четыре.
+  assert.deepEqual(DICTIONARY.translatableAttributes, ['title', 'placeholder', 'alt', 'aria-label']);
 });
 
 test('conf: списки игнора — массивы строк', () => {

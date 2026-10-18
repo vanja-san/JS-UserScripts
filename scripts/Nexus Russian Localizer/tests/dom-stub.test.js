@@ -282,7 +282,8 @@ test('attributes: изменение title переводится', async () => 
 
 test('мутация внутри игнорируемого элемента пропускается', async () => {
   const { body } = makeBody();
-  const modName = new MiniElement('span', ['mod-name']);
+  // prose-lexical — реальный класс пользовательского текста на Nexus
+  const modName = new MiniElement('span', ['prose-lexical']);
   const text = new MiniText('Home');
   modName.appendChild(text);
   body.appendChild(modName);
