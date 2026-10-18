@@ -75,6 +75,33 @@ test('словарь contextual: значения — строки, перево
   }
 });
 
+test('подписи статистики на главной согласованы между собой', () => {
+  // Разметка из .cache/nexus/root.html: у всех подписей один и тот же
+  // контейнер, поэтому перевод обязан браться по одному селектору.
+  // Раньше у "Mods" ключа "div > p" не было, и подпись выпадала в общий
+  // словарь как "Моды" рядом с "Скачиваний" и "Участников".
+  const parentMatching = selector => ({
+    tagName: 'P',
+    matches: candidate => candidate === selector,
+    closest: () => null,
+    parentElement: null
+  });
+
+  const expected = {
+    Downloads: 'Скачиваний',
+    Mods: 'Модов',
+    Members: 'Участников',
+    Creator: 'Вознаграждений',
+    Rewards: 'Вознаграждений'
+  };
+
+  for (const [text, want] of Object.entries(expected)) {
+    const source = text === 'Creator' ? 'Creator rewards' : text;
+    const selector = text === 'Rewards' || text === 'Creator' ? 'p > span' : 'div > p';
+    assert.equal(NRL.lookup(source, parentMatching(selector)), want, source);
+  }
+});
+
 test('units и timeUnits: ровно три формы', () => {
   for (const [name, forms] of Object.entries(DICTIONARY.units)) {
     assert.ok(Array.isArray(forms) && forms.length === 3, 'units.' + name);
